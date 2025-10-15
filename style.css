@@ -1,0 +1,29 @@
+
+/* Fix select dropdown text visibility */
+.rizqtrack-dashboard select {
+    color: #1f2937 !important;
+    background-color: #ffffff !important;
+}
+
+.rizqtrack-dashboard select option {
+    color: #1f2937 !important;
+    background-color: #ffffff !important;
+}
+
+.modal select {
+    color: #1f2937 !important;
+    background-color: #ffffff !important;
+}
+
+.modal select option {
+    color: #1f2937 !important;
+    background-color: #ffffff !important;
+}
+
+/* Ensure input text is also visible */
+.rizqtrack-dashboard input[type="text"],
+.rizqtrack-dashboard input[type="number"],
+.rizqtrack-dashboard input[type="date"],
+.rizqtrack-dashboard textarea {
+    color: #1f2937 !important;
+}
