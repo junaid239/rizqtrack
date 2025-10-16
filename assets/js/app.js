@@ -4,12 +4,21 @@
     const RizqTrackApp = {
         charts: {
             category: null,
-            incomeExpense: null
+            incomeExpense: null,
+            goalsDonut: null
         },
         currentFilter: '30',
         editTransactionData: {},
 
         init: function() {
+            this.charts = {
+                category: null,
+                incomeExpense: null,
+                goalsDonut: null
+            };
+            this.currentFilter = '30';
+            this.editTransactionData = {};
+            
             this.setupEventListeners();
             this.setDefaultFormValues();
             this.loadCategories();
@@ -22,27 +31,27 @@
             // Transaction Form
             $('#transaction-form').on('submit', this.handleAddTransaction.bind(this));
             $('.toggle-btn').on('click', this.handleTypeToggle.bind(this));
-            
+
             // Chart Filters
             $('.filter-btn').on('click', this.handleFilterChange.bind(this));
-            
+
             // Transaction Actions
             $(document).on('click', '.edit-transaction', this.openEditModal.bind(this));
             $(document).on('click', '.delete-transaction', this.handleDeleteTransaction.bind(this));
             $('#edit-transaction-form').on('submit', this.handleUpdateTransaction.bind(this));
-            
+
             // Trash Actions
             $('#trash-header').on('click', this.toggleTrash.bind(this));
             $(document).on('click', '.restore-transaction', this.handleRestoreTransaction.bind(this));
             $(document).on('click', '.permanent-delete', this.handlePermanentDelete.bind(this));
             $(document).on('click', '.restore-goal', this.handleRestoreGoal.bind(this));
             $(document).on('click', '.permanent-delete-goal', this.handlePermanentDeleteGoal.bind(this));
-            
+
             // Categories
             $('#manage-categories-card').on('click', this.openCategoriesModal.bind(this));
             $('#add-category-form').on('submit', this.handleAddCategory.bind(this));
             $(document).on('click', '.delete-category', this.handleDeleteCategory.bind(this));
-            
+
             // Goals
             $('#add-goal-btn').on('click', () => this.openGoalModal());
             $('#goal-form').on('submit', this.handleSaveGoal.bind(this));
@@ -50,12 +59,12 @@
             $(document).on('click', '.delete-goal', this.handleDeleteGoal.bind(this));
             $(document).on('click', '.contribute-goal', this.openContributeModal.bind(this));
             $('#contribute-form').on('submit', this.handleContribute.bind(this));
-            
+
             // Report
             $('#generate-report-card').on('click', this.openReportModal.bind(this));
             $('#report-form').on('submit', this.handleGenerateReport.bind(this));
             $('#report-timeframe').on('change', this.handleReportTimeframeChange.bind(this));
-            
+
             // Modal Controls
             $('.close, .cancel-btn').on('click', this.closeModals.bind(this));
             $(window).on('click', this.handleModalBackdropClick.bind(this));
@@ -70,11 +79,11 @@
         handleTypeToggle: function(e) {
             const $btn = $(e.currentTarget);
             const type = $btn.data('type');
-            
+
             $('.toggle-btn').removeClass('active');
             $btn.addClass('active');
             $('#transaction-type').val(type);
-            
+
             this.filterCategoriesByType(type);
         },
 
@@ -83,18 +92,18 @@
             $select.find('option').each(function() {
                 const $option = $(this);
                 const categoryType = $option.data('type');
-                
+
                 if (!categoryType) {
                     return;
                 }
-                
+
                 if (categoryType === 'both' || categoryType === type) {
                     $option.show();
                 } else {
                     $option.hide();
                 }
             });
-            
+
             $select.val('');
         },
 
@@ -117,11 +126,11 @@
 
         populateCategorySelects: function(categories) {
             const selects = ['#category', '#edit-category'];
-            
+
             selects.forEach(selector => {
                 const $select = $(selector);
                 $select.find('option:not(:first)').remove();
-                
+
                 categories.forEach(cat => {
                     $select.append(
                         $('<option></option>')
@@ -131,23 +140,23 @@
                     );
                 });
             });
-            
+
             this.filterCategoriesByType('expense');
         },
 
         renderCategoriesList: function(categories) {
             const $list = $('#categories-list');
             $list.empty();
-            
+
             if (categories.length === 0) {
                 $list.html('<div class="loading-message">No categories found</div>');
                 return;
             }
-            
+
             categories.forEach(cat => {
                 const isDefault = cat.user_id == 0;
                 const badgeHtml = isDefault ? '<span style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 8px;">DEFAULT</span>' : '';
-                
+
                 $list.append(`
                     <div class="category-item">
                         <div class="category-info">
@@ -167,18 +176,18 @@
 
         handleAddTransaction: function(e) {
             e.preventDefault();
-            
+
             // Validate form
             const amount = $('#amount').val();
             const date = $('#date').val();
             const categoryId = $('#category').val();
             const paymentMethod = $('#payment-method').val();
-            
+
             if (!amount || !date || !categoryId || !paymentMethod) {
                 this.showNotification('Please fill in all required fields', 'error');
                 return;
             }
-            
+
             const formData = {
                 action: 'rizqtrack_add_transaction',
                 nonce: rizqtrack.nonce,
@@ -189,9 +198,9 @@
                 payment_method: paymentMethod,
                 description: $('#description').val()
             };
-            
+
             console.log('Submitting transaction:', formData); // Debug log
-            
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -234,16 +243,16 @@
         renderTransactions: function(transactions) {
             const $tbody = $('#transactions-tbody');
             $tbody.empty();
-            
+
             if (transactions.length === 0) {
                 $tbody.html('<tr class="loading-row"><td colspan="6">No transactions found</td></tr>');
                 return;
             }
-            
+
             transactions.forEach(t => {
                 const amountClass = t.type === 'income' ? 'amount-positive' : 'amount-negative';
                 const amountPrefix = t.type === 'income' ? '+' : '-';
-                
+
                 $tbody.append(`
                     <tr>
                         <td>${this.formatDate(t.date)}</td>
@@ -264,7 +273,7 @@
 
         openEditModal: function(e) {
             const transactionId = $(e.currentTarget).data('id');
-            
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -282,7 +291,7 @@
                             $('#edit-category').val(transaction.category_id);
                             $('#edit-payment-method').val(transaction.payment_method);
                             $('#edit-description').val(transaction.description);
-                            
+
                             $('#edit-transaction-modal').addClass('active');
                         }
                     }
@@ -292,7 +301,7 @@
 
         handleUpdateTransaction: function(e) {
             e.preventDefault();
-            
+
             const formData = {
                 action: 'rizqtrack_update_transaction',
                 nonce: rizqtrack.nonce,
@@ -304,7 +313,7 @@
                 payment_method: $('#edit-payment-method').val(),
                 description: $('#edit-description').val()
             };
-            
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -324,9 +333,9 @@
 
         handleDeleteTransaction: function(e) {
             if (!confirm('Move this transaction to trash?')) return;
-            
+
             const transactionId = $(e.currentTarget).data('id');
-            
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -351,10 +360,10 @@
         handleFilterChange: function(e) {
             const $btn = $(e.currentTarget);
             const filter = $btn.data('filter');
-            
+
             $('.filter-btn').removeClass('active');
             $btn.addClass('active');
-            
+
             this.currentFilter = filter;
             this.loadChartData();
         },
@@ -379,15 +388,15 @@
 
         renderCategoryChart: function(data) {
             const ctx = document.getElementById('category-chart');
-            
+
             if (this.charts.category) {
                 this.charts.category.destroy();
             }
-            
+
             const labels = data.map(d => `${d.emoji} ${d.name}`);
             const values = data.map(d => parseFloat(d.total));
             const colors = this.generateColors(data.length);
-            
+
             this.charts.category = new Chart(ctx, {
                 type: 'pie',
                 data: {
@@ -427,14 +436,14 @@
 
         renderIncomeExpenseChart: function(data) {
             const ctx = document.getElementById('income-expense-chart');
-            
+
             if (this.charts.incomeExpense) {
                 this.charts.incomeExpense.destroy();
             }
-            
+
             const income = parseFloat(data.total_income) || 0;
             const expense = parseFloat(data.total_expense) || 0;
-            
+
             this.charts.incomeExpense = new Chart(ctx, {
                 type: 'pie',
                 data: {
@@ -477,12 +486,19 @@
                 '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
                 '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'
             ];
-            
+
             const result = [];
             for (let i = 0; i < count; i++) {
                 result.push(colors[i % colors.length]);
             }
             return result;
+        },
+
+        // Add this helper function for donut center text
+        addDonutCenterText: function(canvas, text) {
+            // This is handled by Chart.js plugins in newer versions
+            // For a simple implementation, we'll skip custom center text
+            // The chart itself is sufficient
         },
 
         loadGoals: function() {
@@ -496,6 +512,8 @@
                 success: (response) => {
                     if (response.success) {
                         this.renderGoals(response.data);
+                        this.renderGoalsOverview(response.data);
+                        this.renderGoalsDonutChart(response.data);
                     }
                 }
             });
@@ -504,29 +522,80 @@
         renderGoals: function(goals) {
             const $container = $('#goals-container');
             $container.empty();
-            
+
             if (goals.length === 0) {
-                $container.html('<div class="loading-message">No goals yet. Create your first goal!</div>');
+                $container.html(`
+                    <div class="loading-message" style="grid-column: 1/-1;">
+                        <div style="text-align: center; padding: 40px;">
+                            <div style="font-size: 64px; margin-bottom: 16px;">🎯</div>
+                            <h3 style="margin: 0 0 8px 0; color: var(--text-dark);">No Goals Yet</h3>
+                            <p style="color: var(--text-gray); margin: 0;">Create your first financial goal to start tracking your progress!</p>
+                        </div>
+                    </div>
+                `);
                 return;
             }
-            
-            goals.forEach(goal => {
+
+            goals.forEach((goal, index) => {
                 const current = parseFloat(goal.current_amount);
                 const target = parseFloat(goal.target_amount);
-                const progress = (current / target * 100).toFixed(1);
-                const deadline = goal.deadline ? `<p>Deadline: ${this.formatDate(goal.deadline)}</p>` : '';
-                
+                const progress = (current / target * 100);
+                const progressCapped = Math.min(progress, 100).toFixed(1);
+
+                // Determine status
+                let statusBadge = '';
+                let progressClass = 'low';
+                let cardClass = '';
+
+                if (progress >= 100) {
+                    statusBadge = '<span class="goal-status-badge complete">✓ Complete</span>';
+                    progressClass = 'complete';
+                    cardClass = 'completed';
+                } else if (progress >= 75) {
+                    statusBadge = '<span class="goal-status-badge on-track">Almost There!</span>';
+                    progressClass = 'high';
+                    cardClass = 'near-complete';
+                } else if (progress >= 50) {
+                    statusBadge = '<span class="goal-status-badge on-track">On Track</span>';
+                    progressClass = 'medium';
+                } else {
+                    statusBadge = '<span class="goal-status-badge needs-attention">Needs Attention</span>';
+                    progressClass = 'low';
+                }
+
+                // Calculate deadline info
+                let deadlineHtml = '';
+                if (goal.deadline && goal.deadline !== '0000-00-00') {
+                    const deadlineDate = new Date(goal.deadline);
+                    const today = new Date();
+                    const daysLeft = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
+
+                    if (daysLeft < 0) {
+                        deadlineHtml = `<div class="goal-deadline-info urgent">⚠️ Deadline passed ${Math.abs(daysLeft)} days ago</div>`;
+                    } else if (daysLeft <= 30) {
+                        deadlineHtml = `<div class="goal-deadline-info urgent">⏰ ${daysLeft} days left until ${this.formatDate(goal.deadline)}</div>`;
+                    } else {
+                        deadlineHtml = `<div class="goal-deadline-info">📅 Deadline: ${this.formatDate(goal.deadline)}</div>`;
+                    }
+                }
+
                 $container.append(`
-                    <div class="goal-card">
-                        <h4>${goal.name}</h4>
+                    <div class="goal-card ${cardClass}" data-goal-id="${goal.id}" data-progress="${progressCapped}" style="animation-delay: ${index * 0.1}s">
+                        <h4>
+                            ${goal.name}
+                            ${statusBadge}
+                        </h4>
                         <div class="goal-amount">
-                            <strong>₹${this.formatCurrency(current)}</strong> / ₹${this.formatCurrency(target)}
+                            <div>
+                                <strong>₹${this.formatCurrency(current)}</strong>
+                                <span style="color: var(--text-gray);"> / ₹${this.formatCurrency(target)}</span>
+                            </div>
+                            <span class="goal-percentage-label">${progressCapped}%</span>
                         </div>
                         <div class="progress-bar-container">
-                            <div class="progress-bar" style="width: ${Math.min(progress, 100)}%"></div>
+                            <div class="progress-bar ${progressClass}" style="width: ${progressCapped}%"></div>
                         </div>
-                        <p style="font-size: 13px; color: var(--text-gray); margin-bottom: 12px;">${progress}% complete</p>
-                        ${deadline}
+                        ${deadlineHtml}
                         <div class="goal-actions">
                             <button class="btn btn-primary btn-sm contribute-goal" data-id="${goal.id}" data-name="${goal.name}">💰 Contribute</button>
                             <button class="btn btn-secondary btn-sm edit-goal" data-id="${goal.id}">✏️ Edit</button>
@@ -535,7 +604,193 @@
                     </div>
                 `);
             });
+
+            // Setup filter functionality
+            this.setupGoalsFilter();
         },
+
+        setupGoalsFilter: function() {
+            $('.filter-chip').off('click').on('click', function() {
+                const filter = $(this).data('filter');
+
+                $('.filter-chip').removeClass('active');
+                $(this).addClass('active');
+
+                $('.goal-card').each(function() {
+                    const $card = $(this);
+                    const progress = parseFloat($card.data('progress'));
+
+                    let show = false;
+
+                    switch (filter) {
+                        case 'all':
+                            show = true;
+                            break;
+                        case 'active':
+                            show = progress < 100;
+                            break;
+                        case 'near-complete':
+                            show = progress >= 75 && progress < 100;
+                            break;
+                    }
+
+                    if (show) {
+                        $card.fadeIn(300);
+                    } else {
+                        $card.fadeOut(300);
+                    }
+                });
+            });
+        },
+
+        renderGoalsOverview: function(goals) {
+            if (goals.length === 0) {
+                // Hide overview if no goals
+                $('.goals-overview-card').hide();
+                return;
+            }
+
+            $('.goals-overview-card').show();
+
+            // Calculate totals
+            let totalSaved = 0;
+            let totalTarget = 0;
+            let completedCount = 0;
+            let onTrackCount = 0;
+            let totalProgress = 0;
+
+            goals.forEach(goal => {
+                const current = parseFloat(goal.current_amount);
+                const target = parseFloat(goal.target_amount);
+                const progress = (current / target) * 100;
+
+                totalSaved += current;
+                totalTarget += target;
+                totalProgress += progress;
+
+                if (progress >= 100) {
+                    completedCount++;
+                    onTrackCount++;
+                } else if (progress >= 50) {
+                    onTrackCount++;
+                }
+            });
+
+            const overallProgress = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
+            const averageProgress = goals.length > 0 ? totalProgress / goals.length : 0;
+            const remaining = totalTarget - totalSaved;
+
+            // Update badges
+            $('#total-goals-count').text(goals.length);
+            $('#completed-goals-count').text(completedCount);
+
+            // Update amounts
+            $('#total-saved-amount').text('₹' + this.formatCurrency(totalSaved));
+            $('#total-target-amount').text('₹' + this.formatCurrency(totalTarget));
+            $('#remaining-amount').text('₹' + this.formatCurrency(remaining));
+
+            // Update progress percentage
+            $('#overall-progress-percentage').text(overallProgress.toFixed(0) + '%');
+
+            // Update progress bar with animation
+            setTimeout(() => {
+                $('#overall-progress-fill').css('width', Math.min(overallProgress, 100) + '%');
+            }, 100);
+
+            // Update insights
+            $('#average-progress').text(averageProgress.toFixed(0) + '%');
+            $('#goals-on-track').text(onTrackCount + '/' + goals.length);
+
+            // Add color coding to progress bar
+            const $progressFill = $('#overall-progress-fill');
+            $progressFill.removeClass('low medium high complete');
+
+            if (overallProgress >= 100) {
+                $progressFill.addClass('complete');
+            } else if (overallProgress >= 75) {
+                $progressFill.addClass('high');
+            } else if (overallProgress >= 50) {
+                $progressFill.addClass('medium');
+            } else {
+                $progressFill.addClass('low');
+            }
+        },
+
+        renderGoalsDonutChart: function(goals) {
+            const ctx = document.getElementById('goals-donut-chart');
+
+            if (!ctx) return;
+
+            // Destroy existing chart
+            if (this.charts.goalsDonut) {
+                this.charts.goalsDonut.destroy();
+            }
+
+            if (goals.length === 0) {
+                $(ctx).parent().html('<div style="text-align: center; color: rgba(255,255,255,0.7); padding: 20px;">No goals to display</div>');
+                return;
+            }
+            
+            // Re-add canvas if it was removed
+            if ($('#goals-donut-chart').length === 0) {
+                $('.goals-donut-chart-container').html('<canvas id="goals-donut-chart"></canvas>');
+            }
+            
+            const newCtx = document.getElementById('goals-donut-chart');
+
+            // Prepare data
+            const labels = goals.map(g => g.name);
+            const savedData = goals.map(g => parseFloat(g.current_amount));
+
+            this.charts.goalsDonut = new Chart(newCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Saved',
+                        data: savedData,
+                        backgroundColor: [
+                            '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6',
+                            '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'white',
+                                padding: 12,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const goal = goals[context.dataIndex];
+                                    const saved = parseFloat(goal.current_amount);
+                                    const target = parseFloat(goal.target_amount);
+                                    const progress = ((saved / target) * 100).toFixed(1);
+                                    return `${context.label}: ₹${this.formatCurrency(saved)} / ₹${this.formatCurrency(target)} (${progress}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+
+            // Add center text
+            const centerText = goals.length + ' Goals';
+            this.addDonutCenterText(newCtx, centerText);
+        },
+
 
         openGoalModal: function(goalData = null) {
             if (goalData) {
@@ -549,16 +804,16 @@
                 $('#goal-form')[0].reset();
                 $('#goal-id').val('');
             }
-            
+
             $('#goal-modal').addClass('active');
         },
 
         handleSaveGoal: function(e) {
             e.preventDefault();
-            
+
             const goalId = $('#goal-id').val();
             const action = goalId ? 'rizqtrack_update_goal' : 'rizqtrack_add_goal';
-            
+
             const formData = {
                 action: action,
                 nonce: rizqtrack.nonce,
@@ -566,11 +821,11 @@
                 target_amount: $('#goal-target').val(),
                 deadline: $('#goal-deadline').val()
             };
-            
+
             if (goalId) {
                 formData.id = goalId;
             }
-            
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -589,7 +844,7 @@
 
         handleEditGoal: function(e) {
             const goalId = $(e.currentTarget).data('id');
-            
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -610,9 +865,9 @@
 
         handleDeleteGoal: function(e) {
             if (!confirm('Move this goal to trash?')) return;
-            
+
             const goalId = $(e.currentTarget).data('id');
-            
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -635,7 +890,7 @@
         openContributeModal: function(e) {
             const goalId = $(e.currentTarget).data('id');
             const goalName = $(e.currentTarget).data('name');
-            
+
             $('#contribute-goal-id').val(goalId);
             $('#contribute-goal-name').text(`Contributing to: ${goalName}`);
             $('#contribute-amount').val('');
@@ -644,7 +899,7 @@
 
         handleContribute: function(e) {
             e.preventDefault();
-            
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -674,7 +929,7 @@
 
         handleAddCategory: function(e) {
             e.preventDefault();
-            
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -699,9 +954,9 @@
 
         handleDeleteCategory: function(e) {
             const categoryId = $(e.currentTarget).data('id');
-            
+
             if (!confirm('Delete this category? This will only work if no transactions use it.')) return;
-            
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -728,7 +983,7 @@
         toggleTrash: function() {
             const $content = $('#trash-content');
             const $icon = $('.toggle-icon');
-            
+
             if ($content.is(':visible')) {
                 $content.slideUp();
                 $icon.removeClass('open');
@@ -758,20 +1013,20 @@
         renderTrash: function(transactions, goals) {
             const $tbody = $('#trash-tbody');
             $tbody.empty();
-            
+
             if (!transactions) transactions = [];
             if (!goals) goals = [];
-            
+
             if (transactions.length === 0 && goals.length === 0) {
                 $tbody.html('<tr class="loading-row"><td colspan="6">Trash is empty</td></tr>');
                 return;
             }
-            
+
             // Render transactions
             transactions.forEach(t => {
                 const amountClass = t.type === 'income' ? 'amount-positive' : 'amount-negative';
                 const amountPrefix = t.type === 'income' ? '+' : '-';
-                
+
                 $tbody.append(`
                     <tr>
                         <td>${this.formatDate(t.date)}</td>
@@ -788,7 +1043,7 @@
                     </tr>
                 `);
             });
-            
+
             // Render goals
             goals.forEach(g => {
                 $tbody.append(`
@@ -809,7 +1064,7 @@
 
         handleRestoreGoal: function(e) {
             const goalId = $(e.currentTarget).data('id');
-            
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -832,9 +1087,9 @@
 
         handlePermanentDeleteGoal: function(e) {
             if (!confirm('Permanently delete this goal? This cannot be undone!')) return;
-            
+
             const goalId = $(e.currentTarget).data('id');
-            
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -856,7 +1111,7 @@
 
         handleRestoreTransaction: function(e) {
             const transactionId = $(e.currentTarget).data('id');
-            
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -880,9 +1135,9 @@
 
         handlePermanentDelete: function(e) {
             if (!confirm('Permanently delete this transaction? This cannot be undone!')) return;
-            
+
             const transactionId = $(e.currentTarget).data('id');
-            
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -904,29 +1159,29 @@
 
         openReportModal: function() {
             const today = new Date().toISOString().split('T')[0];
-            const thirtyDaysAgo = new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0];
-            
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
             $('#report-start-date').val(thirtyDaysAgo);
             $('#report-end-date').val(today);
             $('#report-timeframe').val('30');
             $('#custom-date-range').hide();
-            
+
             $('#report-modal').addClass('active');
         },
 
         handleReportTimeframeChange: function(e) {
             const value = $(e.currentTarget).val();
-            
+
             if (value === 'custom') {
                 $('#custom-date-range').show();
             } else {
                 $('#custom-date-range').hide();
-                
+
                 const today = new Date();
                 const endDate = today.toISOString().split('T')[0];
                 const days = parseInt(value);
-                const startDate = new Date(today.getTime() - days*24*60*60*1000).toISOString().split('T')[0];
-                
+                const startDate = new Date(today.getTime() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
                 $('#report-start-date').val(startDate);
                 $('#report-end-date').val(endDate);
             }
@@ -934,32 +1189,32 @@
 
         handleGenerateReport: function(e) {
             e.preventDefault();
-            
+
             const startDate = $('#report-start-date').val();
             const endDate = $('#report-end-date').val();
             const format = $('#report-format').val();
-            
+
             if (!startDate || !endDate) {
                 this.showNotification('Please select date range', 'error');
                 return;
             }
-            
+
             // Create form and submit
             const form = $('<form>', {
                 method: 'POST',
                 action: rizqtrack.ajax_url
             });
-            
+
             form.append($('<input>', { type: 'hidden', name: 'action', value: 'rizqtrack_generate_report' }));
             form.append($('<input>', { type: 'hidden', name: 'nonce', value: rizqtrack.nonce }));
             form.append($('<input>', { type: 'hidden', name: 'start_date', value: startDate }));
             form.append($('<input>', { type: 'hidden', name: 'end_date', value: endDate }));
             form.append($('<input>', { type: 'hidden', name: 'format', value: format }));
-            
+
             $('body').append(form);
             form.submit();
             form.remove();
-            
+
             this.closeModals();
             this.showNotification('Report generated successfully!', 'success');
         },
@@ -976,10 +1231,10 @@
 
         showNotification: function(message, type = 'success') {
             const bgColor = type === 'success' ? '#10b981' : '#ef4444';
-            
+
             // Remove existing notifications
             $('.rizqtrack-notification').remove();
-            
+
             const $notification = $(`
                 <div class="rizqtrack-notification" style="
                     position: fixed;
@@ -997,9 +1252,9 @@
                     ${message}
                 </div>
             `);
-            
+
             $('body').append($notification);
-            
+
             setTimeout(() => {
                 $notification.fadeOut(300, function() {
                     $(this).remove();
@@ -1030,3 +1285,4 @@
     });
 
 })(jQuery);
+
