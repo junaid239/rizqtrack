@@ -5,7 +5,6 @@
         charts: {
             category: null,
             incomeExpense: null,
-            goalsDonut: null
         },
         currentFilter: '30',
         editTransactionData: {},
@@ -494,12 +493,6 @@
             return result;
         },
 
-        // Add this helper function for donut center text
-        addDonutCenterText: function(canvas, text) {
-            // This is handled by Chart.js plugins in newer versions
-            // For a simple implementation, we'll skip custom center text
-            // The chart itself is sufficient
-        },
 
         loadGoals: function() {
             $.ajax({
@@ -513,7 +506,6 @@
                     if (response.success) {
                         this.renderGoals(response.data);
                         this.renderGoalsOverview(response.data);
-                        this.renderGoalsDonutChart(response.data);
                     }
                 }
             });
@@ -716,80 +708,6 @@
             }
         },
 
-        renderGoalsDonutChart: function(goals) {
-            const ctx = document.getElementById('goals-donut-chart');
-
-            if (!ctx) return;
-
-            // Destroy existing chart
-            if (this.charts.goalsDonut) {
-                this.charts.goalsDonut.destroy();
-            }
-
-            if (goals.length === 0) {
-                $(ctx).parent().html('<div style="text-align: center; color: rgba(255,255,255,0.7); padding: 20px;">No goals to display</div>');
-                return;
-            }
-            
-            // Re-add canvas if it was removed
-            if ($('#goals-donut-chart').length === 0) {
-                $('.goals-donut-chart-container').html('<canvas id="goals-donut-chart"></canvas>');
-            }
-            
-            const newCtx = document.getElementById('goals-donut-chart');
-
-            // Prepare data
-            const labels = goals.map(g => g.name);
-            const savedData = goals.map(g => parseFloat(g.current_amount));
-
-            this.charts.goalsDonut = new Chart(newCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Saved',
-                        data: savedData,
-                        backgroundColor: [
-                            '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6',
-                            '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'
-                        ],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: 'white',
-                                padding: 12,
-                                font: {
-                                    size: 11
-                                }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: (context) => {
-                                    const goal = goals[context.dataIndex];
-                                    const saved = parseFloat(goal.current_amount);
-                                    const target = parseFloat(goal.target_amount);
-                                    const progress = ((saved / target) * 100).toFixed(1);
-                                    return `${context.label}: ₹${this.formatCurrency(saved)} / ₹${this.formatCurrency(target)} (${progress}%)`;
-                                }
-                            }
-                        }
-                    },
-                    cutout: '65%'
-                }
-            });
-
-            // Add center text
-            const centerText = goals.length + ' Goals';
-            this.addDonutCenterText(newCtx, centerText);
-        },
 
 
         openGoalModal: function(goalData = null) {

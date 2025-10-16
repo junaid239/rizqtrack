@@ -69,7 +69,7 @@
     <!-- Section II: Visualization & Snapshot -->
     <div class="visualization-section">
         <h2 class="section-title">Financial Overview</h2>
-        
+
         <!-- Chart Filters -->
         <div class="chart-filters">
             <button class="filter-btn active" data-filter="7">7 Days</button>
@@ -127,6 +127,88 @@
             <h2 class="section-title">Financial Goals</h2>
             <button class="btn btn-secondary" id="add-goal-btn">➕ Add New Goal</button>
         </div>
+
+        <!-- Goals Overview Summary Card -->
+        <div class="goals-overview-card">
+            <div class="goals-overview-header">
+                <h3>📊 Goals Overview</h3>
+                <div class="goals-stats-badges">
+                    <div class="stat-badge">
+                        <span class="badge-label">Total Goals</span>
+                        <span class="badge-value" id="total-goals-count">0</span>
+                    </div>
+                    <div class="stat-badge success">
+                        <span class="badge-label">Completed</span>
+                        <span class="badge-value" id="completed-goals-count">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Progress Bar -->
+            <div class="overall-progress-section">
+                <div class="progress-header">
+                    <div class="progress-amounts">
+                        <div class="amount-item">
+                            <span class="amount-label">Total Saved</span>
+                            <span class="amount-value current" id="total-saved-amount">₹0.00</span>
+                        </div>
+                        <div class="amount-divider">/</div>
+                        <div class="amount-item">
+                            <span class="amount-label">Total Target</span>
+                            <span class="amount-value target" id="total-target-amount">₹0.00</span>
+                        </div>
+                    </div>
+                    <div class="progress-percentage" id="overall-progress-percentage">0%</div>
+                </div>
+
+                <div class="overall-progress-bar-container">
+                    <div class="overall-progress-bar">
+                        <div class="progress-bar-fill" id="overall-progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-markers">
+                        <span class="marker" style="left: 25%">25%</span>
+                        <span class="marker" style="left: 50%">50%</span>
+                        <span class="marker" style="left: 75%">75%</span>
+                    </div>
+                </div>
+
+                <div class="progress-insights">
+                    <div class="insight-item">
+                        <span class="insight-icon">💰</span>
+                        <div class="insight-content">
+                            <span class="insight-label">Remaining to Save</span>
+                            <span class="insight-value" id="remaining-amount">₹0.00</span>
+                        </div>
+                    </div>
+                    <div class="insight-item">
+                        <span class="insight-icon">📈</span>
+                        <div class="insight-content">
+                            <span class="insight-label">Average Progress</span>
+                            <span class="insight-value" id="average-progress">0%</span>
+                        </div>
+                    </div>
+                    <div class="insight-item">
+                        <span class="insight-icon">🎯</span>
+                        <div class="insight-content">
+                            <span class="insight-label">Goals On Track</span>
+                            <span class="insight-value" id="goals-on-track">0/0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Individual Goals Header -->
+        <div class="individual-goals-header">
+            <h3>Individual Goals</h3>
+            <div class="goals-filter">
+                <button class="filter-chip active" data-filter="all">All</button>
+                <button class="filter-chip" data-filter="active">Active</button>
+                <button class="filter-chip" data-filter="near-complete">Near Complete (75%+)</button>
+            </div>
+        </div>
+
         <div id="goals-container" class="goals-grid">
             <div class="loading-message">Loading goals...</div>
         </div>
@@ -191,7 +273,7 @@
         </div>
         <form id="edit-transaction-form">
             <input type="hidden" id="edit-transaction-id">
-            
+
             <div class="form-group">
                 <label for="edit-amount">Amount</label>
                 <input type="number" id="edit-amount" step="0.01" min="0" required>
@@ -241,7 +323,7 @@
             <h2>🏷️ Manage Categories</h2>
             <span class="close">&times;</span>
         </div>
-        
+
         <div class="modal-body">
             <!-- Add Category Form -->
             <div class="add-category-section">
@@ -281,7 +363,7 @@
         </div>
         <form id="goal-form">
             <input type="hidden" id="goal-id">
-            
+
             <div class="form-group">
                 <label for="goal-name">Goal Name</label>
                 <input type="text" id="goal-name" maxlength="200" required placeholder="e.g., Emergency Fund, Vacation">
@@ -314,7 +396,7 @@
         </div>
         <form id="contribute-form">
             <input type="hidden" id="contribute-goal-id">
-            
+
             <p id="contribute-goal-name" class="goal-name-display"></p>
 
             <div class="form-group">
