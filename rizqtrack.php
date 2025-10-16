@@ -3,11 +3,11 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.0.0
- * Author: Junaid AHmed
+ * Version: 1.0.1
+ * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
- * Text Domain: thejunaid
+ * Text Domain: rizqtrack
  */
 
 if (!defined('ABSPATH')) exit;
@@ -35,10 +35,10 @@ class RizqTrack {
         add_action('admin_menu', [$this, 'add_menu']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_frontend_assets']);
-        
+
         // Shortcode
         add_shortcode('rizqtrack_dashboard', [$this, 'render_frontend_dashboard']);
-        
+
         // AJAX endpoints
         $this->register_ajax_endpoints();
     }
@@ -101,7 +101,7 @@ class RizqTrack {
 
     private function create_default_categories() {
         global $wpdb;
-        
+
         $categories = [
             ['Housing/Rent', 'expense', '🏠'],
             ['Transportation', 'expense', '🚗'],
@@ -115,7 +115,7 @@ class RizqTrack {
         // Only insert if no default (user_id=0) categories exist
         $default_count = $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_categories} WHERE user_id = 0");
         if ($default_count == 0) {
-             foreach ($categories as $cat) {
+            foreach ($categories as $cat) {
                 $wpdb->insert($this->table_categories, [
                     'user_id' => 0,
                     'name' => $cat[0],
@@ -141,12 +141,12 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.0');
+        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.1');
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
-        
+
         wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', [], '4.4.0', true);
-        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js'], '1.0.0', true);
-        
+        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js'], '1.0.1', true);
+
         wp_localize_script('rizqtrack-script', 'rizqtrack', [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('rizqtrack_nonce')
@@ -154,18 +154,17 @@ class RizqTrack {
     }
 
     public function enqueue_frontend_assets() {
-        // Only enqueue on pages with the shortcode
         global $post;
         if (!is_a($post, 'WP_Post') || !has_shortcode($post->post_content, 'rizqtrack_dashboard')) {
             return;
         }
 
-        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.0');
+        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.1');
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
-        
+
         wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', [], '4.4.0', true);
-        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js'], '1.0.0', true);
-        
+        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js'], '1.0.1', true);
+
         wp_localize_script('rizqtrack-script', 'rizqtrack', [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('rizqtrack_nonce')
@@ -184,8 +183,6 @@ class RizqTrack {
 
         foreach ($endpoints as $endpoint) {
             add_action("wp_ajax_rizqtrack_{$endpoint}", [$this, "ajax_{$endpoint}"]);
-            // Only allow logged-in users for all operations since the plugin is premium/personal
-            // Removed nopriv actions to ensure data security.
         }
     }
 
@@ -193,26 +190,41 @@ class RizqTrack {
     public function ajax_add_transaction() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
-        
-        // Validate user is logged in
+
         if (!$user_id) {
             wp_send_json_error(['message' => 'You must be logged in to add transactions']);
             return;
         }
-        
-        // Validate required fields
+
         if (empty($_POST['amount']) || empty($_POST['date']) || empty($_POST['category_id']) || empty($_POST['payment_method'])) {
             wp_send_json_error(['message' => 'Please fill in all required fields']);
             return;
         }
+
+        // Validate amount
+        $amount = floatval($_POST['amount']);
+        if ($amount <= 0) {
+            wp_send_json_error(['message' => 'Amount must be greater than 0']);
+            return;
+        }
+
+        // Validate date (not in future)
+        $date = sanitize_text_field($_POST['date']);
+        $selected_date = strtotime($date);
+        $today = strtotime(date('Y-m-d'));
         
+        if ($selected_date > $today) {
+            wp_send_json_error(['message' => 'Cannot add transactions for future dates']);
+            return;
+        }
+
         $data = [
             'user_id' => $user_id,
             'type' => sanitize_text_field($_POST['type']),
-            'amount' => floatval($_POST['amount']),
-            'date' => sanitize_text_field($_POST['date']),
+            'amount' => $amount,
+            'date' => $date,
             'category_id' => intval($_POST['category_id']),
             'payment_method' => sanitize_text_field($_POST['payment_method']),
             'description' => sanitize_textarea_field($_POST['description'] ?? ''),
@@ -220,7 +232,7 @@ class RizqTrack {
         ];
 
         $result = $wpdb->insert($this->table_transactions, $data);
-        
+
         if ($result) {
             wp_send_json_success(['message' => 'Transaction added successfully']);
         } else {
@@ -232,14 +244,31 @@ class RizqTrack {
     public function ajax_update_transaction() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
+
+        // Validate amount
+        $amount = floatval($_POST['amount']);
+        if ($amount <= 0) {
+            wp_send_json_error(['message' => 'Amount must be greater than 0']);
+            return;
+        }
+
+        // Validate date (not in future)
+        $date = sanitize_text_field($_POST['date']);
+        $selected_date = strtotime($date);
+        $today = strtotime(date('Y-m-d'));
         
+        if ($selected_date > $today) {
+            wp_send_json_error(['message' => 'Cannot set transaction date in the future']);
+            return;
+        }
+
         $data = [
             'type' => sanitize_text_field($_POST['type']),
-            'amount' => floatval($_POST['amount']),
-            'date' => sanitize_text_field($_POST['date']),
+            'amount' => $amount,
+            'date' => $date,
             'category_id' => intval($_POST['category_id']),
             'payment_method' => sanitize_text_field($_POST['payment_method']),
             'description' => sanitize_textarea_field($_POST['description'] ?? '')
@@ -250,7 +279,7 @@ class RizqTrack {
             $data,
             ['id' => $id, 'user_id' => $user_id]
         );
-        
+
         if ($result !== false) {
             wp_send_json_success(['message' => 'Transaction updated successfully']);
         } else {
@@ -262,16 +291,16 @@ class RizqTrack {
     public function ajax_delete_transaction() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
-        
+
         $result = $wpdb->update(
             $this->table_transactions,
             ['status' => 'Trash'],
             ['id' => $id, 'user_id' => $user_id]
         );
-        
+
         if ($result) {
             wp_send_json_success(['message' => 'Transaction moved to trash']);
         } else {
@@ -283,16 +312,16 @@ class RizqTrack {
     public function ajax_restore_transaction() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
-        
+
         $result = $wpdb->update(
             $this->table_transactions,
             ['status' => 'Active'],
             ['id' => $id, 'user_id' => $user_id]
         );
-        
+
         if ($result) {
             wp_send_json_success(['message' => 'Transaction restored']);
         } else {
@@ -304,15 +333,15 @@ class RizqTrack {
     public function ajax_permanent_delete() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
-        
+
         $result = $wpdb->delete(
             $this->table_transactions,
             ['id' => $id, 'user_id' => $user_id, 'status' => 'Trash']
         );
-        
+
         if ($result) {
             wp_send_json_success(['message' => 'Transaction permanently deleted']);
         } else {
@@ -324,10 +353,9 @@ class RizqTrack {
     public function ajax_get_recent_transactions() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
-        
-        // Ensure user is logged in for data access
+
         if (!$user_id) {
             wp_send_json_error(['message' => 'You must be logged in to view data.']);
             wp_die();
@@ -342,7 +370,7 @@ class RizqTrack {
             LIMIT 10",
             $user_id
         ));
-        
+
         wp_send_json_success($transactions);
         wp_die();
     }
@@ -350,63 +378,62 @@ class RizqTrack {
     public function ajax_get_chart_data() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
 
-        // Ensure user is logged in for data access
         if (!$user_id) {
             wp_send_json_error(['message' => 'You must be logged in to view data.']);
             wp_die();
         }
 
         $filter = sanitize_text_field($_POST['filter'] ?? '30');
-        
+
         $days_map = ['7' => 7, '30' => 30, '90' => 90, '180' => 180, '365' => 365];
         $days = $days_map[$filter] ?? 30;
-        
+
         // Category breakdown (expenses only)
         $category_data = $wpdb->get_results($wpdb->prepare(
             "SELECT c.name, c.emoji, SUM(t.amount) as total
             FROM {$this->table_transactions} t
             LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
-            WHERE t.user_id = %d AND t.status = 'Active' AND t.type = 'expense' 
+            WHERE t.user_id = %d AND t.status = 'Active' AND t.type = 'expense'
             AND t.date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
             GROUP BY c.id, c.name, c.emoji
             ORDER BY total DESC",
             $user_id, $days
         ));
-        
+
         // Income vs Expense
         $income_expense = $wpdb->get_row($wpdb->prepare(
-            "SELECT 
+            "SELECT
                 COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as total_income,
                 COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expense
             FROM {$this->table_transactions}
-            WHERE user_id = %d AND status = 'Active' 
+            WHERE user_id = %d AND status = 'Active'
             AND date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)",
             $user_id, $days
         ));
-        
+
         if (!$income_expense) {
             $income_expense = (object) [
                 'total_income' => 0,
                 'total_expense' => 0
             ];
         }
-        
+
         wp_send_json_success([
             'category_data' => $category_data,
             'income_expense' => $income_expense
         ]);
         wp_die();
     }
+
     public function ajax_get_categories() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
-        
-        // Ensure user is logged in for data access
+
         if (!$user_id) {
             wp_send_json_error(['message' => 'You must be logged in to view data.']);
             wp_die();
@@ -418,7 +445,7 @@ class RizqTrack {
             ORDER BY name ASC",
             $user_id
         ));
-        
+
         wp_send_json_success($categories);
         wp_die();
     }
@@ -426,22 +453,21 @@ class RizqTrack {
     public function ajax_get_goals() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
 
-        // Ensure user is logged in for data access
         if (!$user_id) {
             wp_send_json_error(['message' => 'You must be logged in to view data.']);
             wp_die();
         }
-        
+
         $goals = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$this->table_goals}
             WHERE user_id = %d AND status = 'active'
             ORDER BY created_at DESC",
             $user_id
         ));
-        
+
         wp_send_json_success($goals);
         wp_die();
     }
@@ -449,15 +475,14 @@ class RizqTrack {
     public function ajax_get_trash() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
 
-        // Ensure user is logged in for data access
         if (!$user_id) {
             wp_send_json_error(['message' => 'You must be logged in to view data.']);
             wp_die();
         }
-        
+
         // Get trashed transactions
         $transactions = $wpdb->get_results($wpdb->prepare(
             "SELECT t.*, c.name as category_name, c.emoji as category_emoji, 'transaction' as item_type
@@ -467,7 +492,7 @@ class RizqTrack {
             ORDER BY t.created_at DESC",
             $user_id
         ));
-        
+
         // Get trashed goals
         $goals = $wpdb->get_results($wpdb->prepare(
             "SELECT id, name, target_amount, current_amount, 'goal' as item_type, created_at
@@ -476,7 +501,7 @@ class RizqTrack {
             ORDER BY created_at DESC",
             $user_id
         ));
-        
+
         wp_send_json_success([
             'transactions' => $transactions,
             'goals' => $goals
@@ -488,9 +513,14 @@ class RizqTrack {
     public function ajax_add_category() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
-        
+
+        if (!$user_id) {
+            wp_send_json_error(['message' => 'You must be logged in']);
+            return;
+        }
+
         $data = [
             'user_id' => $user_id,
             'name' => sanitize_text_field($_POST['name']),
@@ -499,7 +529,7 @@ class RizqTrack {
         ];
 
         $result = $wpdb->insert($this->table_categories, $data);
-        
+
         if ($result) {
             wp_send_json_success(['message' => 'Category added successfully']);
         } else {
@@ -511,10 +541,10 @@ class RizqTrack {
     public function ajax_update_category() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
-        
+
         $data = [
             'name' => sanitize_text_field($_POST['name']),
             'type' => sanitize_text_field($_POST['type']),
@@ -526,7 +556,7 @@ class RizqTrack {
             $data,
             ['id' => $id, 'user_id' => $user_id]
         );
-        
+
         if ($result !== false) {
             wp_send_json_success(['message' => 'Category updated successfully']);
         } else {
@@ -538,28 +568,27 @@ class RizqTrack {
     public function ajax_delete_category() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
-        
+
         // Check if category has transactions from ANY user
         $has_transactions = $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$this->table_transactions}
             WHERE category_id = %d",
             $id
         ));
-        
+
         if ($has_transactions > 0) {
             wp_send_json_error(['message' => 'Cannot delete category with existing transactions. Found ' . $has_transactions . ' transaction(s) using this category.']);
             return;
         }
-        
-        // Only allow deletion of user's own categories or default categories (if they exist)
+
         $result = $wpdb->delete(
             $this->table_categories,
             ['id' => $id]
         );
-        
+
         if ($result) {
             wp_send_json_success(['message' => 'Category deleted successfully']);
         } else {
@@ -572,9 +601,14 @@ class RizqTrack {
     public function ajax_add_goal() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
-        
+
+        if (!$user_id) {
+            wp_send_json_error(['message' => 'You must be logged in']);
+            return;
+        }
+
         $data = [
             'user_id' => $user_id,
             'name' => sanitize_text_field($_POST['name']),
@@ -585,7 +619,7 @@ class RizqTrack {
         ];
 
         $result = $wpdb->insert($this->table_goals, $data);
-        
+
         if ($result) {
             wp_send_json_success(['message' => 'Goal added successfully']);
         } else {
@@ -597,10 +631,10 @@ class RizqTrack {
     public function ajax_update_goal() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
-        
+
         $data = [
             'name' => sanitize_text_field($_POST['name']),
             'target_amount' => floatval($_POST['target_amount']),
@@ -612,7 +646,7 @@ class RizqTrack {
             $data,
             ['id' => $id, 'user_id' => $user_id]
         );
-        
+
         if ($result !== false) {
             wp_send_json_success(['message' => 'Goal updated successfully']);
         } else {
@@ -624,16 +658,16 @@ class RizqTrack {
     public function ajax_delete_goal() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
-        
+
         $result = $wpdb->update(
             $this->table_goals,
             ['status' => 'Trash'],
             ['id' => $id, 'user_id' => $user_id]
         );
-        
+
         if ($result) {
             wp_send_json_success(['message' => 'Goal moved to trash']);
         } else {
@@ -645,16 +679,16 @@ class RizqTrack {
     public function ajax_restore_goal() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
-        
+
         $result = $wpdb->update(
             $this->table_goals,
             ['status' => 'active'],
             ['id' => $id, 'user_id' => $user_id]
         );
-        
+
         if ($result) {
             wp_send_json_success(['message' => 'Goal restored']);
         } else {
@@ -666,15 +700,15 @@ class RizqTrack {
     public function ajax_permanent_delete_goal() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
-        
+
         $result = $wpdb->delete(
             $this->table_goals,
             ['id' => $id, 'user_id' => $user_id, 'status' => 'Trash']
         );
-        
+
         if ($result) {
             wp_send_json_success(['message' => 'Goal permanently deleted']);
         } else {
@@ -686,11 +720,16 @@ class RizqTrack {
     public function ajax_contribute_goal_transaction() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
         $goal_id = intval($_POST['goal_id']);
         $amount = floatval($_POST['amount']);
-        
+
+        if ($amount <= 0) {
+            wp_send_json_error(['message' => 'Contribution amount must be greater than 0']);
+            return;
+        }
+
         // Check if "Savings Goal" category exists, create if not
         $category = $wpdb->get_row($wpdb->prepare(
             "SELECT id FROM {$this->table_categories}
@@ -698,7 +737,7 @@ class RizqTrack {
             LIMIT 1",
             $user_id
         ));
-        
+
         if (!$category) {
             $wpdb->insert($this->table_categories, [
                 'user_id' => 0,
@@ -710,17 +749,17 @@ class RizqTrack {
         } else {
             $category_id = $category->id;
         }
-        
+
         // Get goal name for description
         $goal = $wpdb->get_row($wpdb->prepare(
             "SELECT name FROM {$this->table_goals}
             WHERE id = %d AND user_id = %d",
             $goal_id, $user_id
         ));
-        
+
         if (!$goal) {
-             wp_send_json_error(['message' => 'Goal not found.']);
-             wp_die();
+            wp_send_json_error(['message' => 'Goal not found.']);
+            wp_die();
         }
 
         // Create transaction
@@ -734,7 +773,7 @@ class RizqTrack {
             'description' => 'Contribution to: ' . $goal->name,
             'status' => 'Active'
         ]);
-        
+
         // Update goal current_amount
         $wpdb->query($wpdb->prepare(
             "UPDATE {$this->table_goals}
@@ -742,7 +781,7 @@ class RizqTrack {
             WHERE id = %d AND user_id = %d",
             $amount, $goal_id, $user_id
         ));
-        
+
         wp_send_json_success(['message' => 'Contribution added successfully']);
         wp_die();
     }
@@ -750,19 +789,18 @@ class RizqTrack {
     public function ajax_generate_report() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
         global $wpdb;
-        
+
         $user_id = get_current_user_id();
 
-        // Ensure user is logged in
         if (!$user_id) {
-             wp_send_json_error(['message' => 'You must be logged in to generate a report.']);
-             wp_die();
+            wp_send_json_error(['message' => 'You must be logged in to generate a report.']);
+            wp_die();
         }
-        
+
         $format = sanitize_text_field($_POST['format']);
         $start_date = sanitize_text_field($_POST['start_date']);
         $end_date = sanitize_text_field($_POST['end_date']);
-        
+
         $transactions = $wpdb->get_results($wpdb->prepare(
             "SELECT t.*, c.name as category_name, c.emoji as category_emoji
             FROM {$this->table_transactions} t
@@ -772,12 +810,11 @@ class RizqTrack {
             ORDER BY t.date DESC",
             $user_id, $start_date, $end_date
         ));
-        
+
         if ($format === 'csv') {
             $this->generate_csv_report($transactions, $start_date, $end_date);
         }
-        
-        // Fallback or non-CSV logic. Note: The CSV function exits PHP, so this is rarely reached.
+
         wp_send_json_success(['message' => 'Report generated']);
         wp_die();
     }
@@ -785,25 +822,25 @@ class RizqTrack {
     private function generate_csv_report($transactions, $start_date, $end_date) {
         header('Content-Type: text/csv');
         header('Content-Disposition: attachment; filename="rizqtrack_report_' . date('Y-m-d') . '.csv"');
-        
+
         $output = fopen('php://output', 'w');
-        
+
         fputcsv($output, ['RizqTrack Financial Report']);
         fputcsv($output, ['Period: ' . $start_date . ' to ' . $end_date]);
         fputcsv($output, []);
         fputcsv($output, ['Date', 'Type', 'Category', 'Amount', 'Payment Method', 'Description']);
-        
+
         foreach ($transactions as $t) {
             fputcsv($output, [
                 $t->date,
                 ucfirst($t->type),
-                $t->category_name, // Removed emoji
+                $t->category_name,
                 number_format($t->amount, 2),
                 $t->payment_method,
                 $t->description
             ]);
         }
-        
+
         fclose($output);
         exit;
     }
@@ -813,44 +850,28 @@ class RizqTrack {
     }
 
     /**
-     * Replaces the old login error with a link to the UM login page, 
-     * passing the current page URL as a redirect parameter.
+     * Renders the frontend dashboard or redirects directly to login
      */
     public function render_frontend_dashboard($atts) {
         // Check if user is logged in
         if (!is_user_logged_in()) {
+            // Get the current URL for redirect after login
+            $current_url = home_url(add_query_arg(null, null));
             
-            // 1. Get the current URL of the page containing the shortcode
-            // home_url( add_query_arg( null, null ) ) is a robust way to capture the current URL with all query parameters.
-            $current_url = home_url( add_query_arg( null, null ) );
-
-            // 2. Define your Ultimate Member login page URL (thejunaid.in/login)
+            // Define your Ultimate Member login page URL
             $login_page_url = home_url('/login/');
-
-            // 3. Append the 'redirect_to' parameter to the login URL
-            // Ultimate Member and most auth systems use this parameter.
-            $login_with_redirect = add_query_arg( 'redirect_to', urlencode($current_url), $login_page_url );
             
-            // 4. Return the custom, styled login prompt
-            return '
-                <div class="rizqtrack-error" style="max-width: 600px; margin: 40px auto; padding: 30px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                    <h3 style="margin-top: 0; color: #1f2937;">🔐 Dashboard Restricted</h3>
-                    <p style="margin-bottom: 20px; color: #6b7280;">Please log in to access your RizqTrack dashboard and financial data.</p>
-                    <a href="' . esc_url($login_with_redirect) . '" class="btn btn-primary" style="text-decoration: none; padding: 12px 24px; background: #6366f1; color: white; border-radius: 8px; font-weight: 600; display: inline-block;">
-                        Log In to Your Account
-                    </a>
-                    <p style="font-size: 12px; margin-top: 15px; color: #9ca3af;">You will be redirected back here after logging in.</p>
-                </div>
-            ';
+            // Append the 'redirect_to' parameter
+            $login_with_redirect = add_query_arg('redirect_to', urlencode($current_url), $login_page_url);
+            
+            // Direct redirect to login page
+            wp_redirect($login_with_redirect);
+            exit;
         }
 
-        // Start output buffering
+        // User is logged in - show the dashboard
         ob_start();
-        
-        // Include the dashboard template
         include plugin_dir_path(__FILE__) . 'templates/dashboard.php';
-        
-        // Return the buffered content
         return ob_get_clean();
     }
 }
