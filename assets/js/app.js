@@ -1,7 +1,7 @@
 (function($) {
     'use strict';
 
-    Chart.register(ChartDataLabels); // ADDED: Register the datalabels plugin
+    Chart.register(ChartDataLabels); // Register the datalabels plugin
 
     const RizqTrackApp = {
         charts: {
@@ -10,7 +10,7 @@
         },
         currentFilter: '30',
         editTransactionData: {},
-        currentPage: 1, // ADDED: For pagination
+        currentPage: 1, // For pagination
 
         init: function() {
             this.charts = {
@@ -24,7 +24,7 @@
             this.setupEventListeners();
             this.setDefaultFormValues();
             this.loadCategories();
-            this.loadTransactions(1); // UPDATED: Load page 1
+            this.loadTransactions(1); // Load page 1
             this.loadChartData();
             this.loadGoals();
         },
@@ -42,7 +42,7 @@
             $(document).on('click', '.delete-transaction', this.handleDeleteTransaction.bind(this));
             $('#edit-transaction-form').on('submit', this.handleUpdateTransaction.bind(this));
             
-            // ADDED: Pagination Listeners
+            // Pagination Listeners
             $(document).on('click', '#prev-page', () => this.loadTransactions(this.currentPage - 1));
             $(document).on('click', '#next-page', () => this.loadTransactions(this.currentPage + 1));
 
@@ -217,7 +217,7 @@
                         this.showNotification('Transaction added successfully!', 'success');
                         $('#transaction-form')[0].reset();
                         this.setDefaultFormValues();
-                        this.loadTransactions(this.currentPage); // UPDATED: Reload current page
+                        this.loadTransactions(this.currentPage); // Reload current page
                         this.loadChartData();
                     } else {
                         this.showNotification(response.data.message || 'Failed to add transaction', 'error');
@@ -230,7 +230,6 @@
             });
         },
 
-        // --- MODIFIED: loadTransactions function ---
         loadTransactions: function(page = 1) {
             this.currentPage = page; // Store the current page
 
@@ -283,7 +282,6 @@
             });
         },
 
-        // --- ADDED: renderPagination function ---
         renderPagination: function(totalTransactions) {
             const $container = $('#pagination-container');
             $container.empty();
@@ -373,7 +371,7 @@
                     if (response.success) {
                         this.showNotification('Transaction updated successfully!', 'success');
                         this.closeModals();
-                        this.loadTransactions(this.currentPage); // UPDATED: Reload current page
+                        this.loadTransactions(this.currentPage); // Reload current page
                         this.loadChartData();
                     } else {
                         this.showNotification(response.data.message, 'error');
@@ -398,7 +396,7 @@
                 success: (response) => {
                     if (response.success) {
                         this.showNotification('Transaction moved to trash', 'success');
-                        this.loadTransactions(this.currentPage); // UPDATED: Reload current page
+                        this.loadTransactions(this.currentPage); // Reload current page
                         this.loadChartData();
                         this.loadTrash();
                     } else {
@@ -437,7 +435,6 @@
             });
         },
 
-        // --- MODIFIED: renderCategoryChart function ---
         renderCategoryChart: function(data) {
             const ctx = document.getElementById('category-chart');
 
@@ -450,13 +447,13 @@
             const colors = this.generateColors(data.length);
 
             this.charts.category = new Chart(ctx, {
-                type: 'bar', // CHANGED from 'pie'
+                type: 'bar', 
                 data: {
                     labels: labels,
                     datasets: [{
                         data: values,
                         backgroundColor: colors,
-                        borderWidth: 0 // CHANGED from 2
+                        borderWidth: 0 
                     }]
                 },
                 options: {
@@ -474,16 +471,44 @@
                                     return ` Total: ₹${context.parsed.x.toFixed(2)}`;
                                 }
                             }
+                        },
+                        
+                        datalabels: {
+                            color: '#000', // Set text color to black
+                            anchor: 'end',   // Position label at the end of the bar
+                            align: 'end',    // Align text to the end of the bar
+                            offset: -8,      // Add some padding from the end
+                            font: {
+                                weight: 'bold',
+                                size: 13
+                            },
+                            formatter: (value, ctx) => {
+                                // Format the number
+                                return '₹' + value.toFixed(0); 
+                            }
                         }
+                        
                     },
                     scales: {
-                        // Configure the X-axis (now the bottom)
                         x: {
                             beginAtZero: true,
+                            /********************************/
+                            /* START: MODIFICATION HERE     */
+                            /********************************/
+                            grace: '10%', // ADDED: Extends axis 10% beyond max value
+                            /********************************/
+                            /* END: MODIFICATION HERE       */
+                            /********************************/
                             ticks: {
                                 callback: function(value) {
-                                    return '₹' + value; // Add currency symbol to the axis
-                                }
+                                    return '₹' + value; 
+                                },
+                                color: '#1f2937' // Sets X-axis text to dark
+                            }
+                        },
+                        y: { 
+                            ticks: {
+                                color: '#1f2937' // Sets Y-axis (category) text to dark
                             }
                         }
                     }
@@ -491,7 +516,6 @@
             });
         },
 
-        // --- MODIFIED: renderIncomeExpenseChart function ---
         renderIncomeExpenseChart: function(data) {
             const ctx = document.getElementById('income-expense-chart');
 
@@ -534,7 +558,6 @@
                                 }
                             }
                         },
-                        // ADDED: Datalabels configuration
                         datalabels: {
                             formatter: (value, ctx) => {
                                 // Calculate percentage
@@ -546,14 +569,14 @@
                                 let percentage = (value * 100 / sum).toFixed(1) + '%';
                                 return percentage;
                             },
-                            color: '#fff', // Label text color
+                            color: '#fff', // White text
                             font: {
                                 weight: 'bold',
                                 size: 14,
                             },
                             // Add a little shadow for readability
                             textShadowBlur: 2,
-                            textShadowColor: 'rgba(0, 0, 0, 0.5)'
+                            textShadowColor: 'rgba(0, 0, 0, 0.5)' // Black shadow
                         }
                     }
                 }
@@ -912,7 +935,7 @@
                         this.showNotification('Contribution added successfully!', 'success');
                         this.closeModals();
                         this.loadGoals();
-                        this.loadTransactions(this.currentPage); // UPDATED: Reload current page
+                        this.loadTransactions(this.currentPage); // Reload current page
                         this.loadChartData();
                     } else {
                         this.showNotification(response.data.message, 'error');
@@ -1122,7 +1145,7 @@
                     if (response.success) {
                         this.showNotification('Transaction restored', 'success');
                         this.loadTrash();
-                        this.loadTransactions(1); // UPDATED: Reload page 1
+                        this.loadTransactions(1); // Reload page 1
                         this.loadChartData();
                     } else {
                         this.showNotification(response.data.message, 'error');
