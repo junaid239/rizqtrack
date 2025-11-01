@@ -1,5 +1,35 @@
 <div class="wrap rizqtrack-dashboard">
 
+    <div class="kpi-section" id="kpi-container">
+        <div class="kpi-card">
+            <div class="kpi-icon income">⬆️</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Total Income (All Time)</span>
+                <span class="kpi-value" id="kpi-income">Loading...</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon expense">⬇️</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Total Expense (All Time)</span>
+                <span class="kpi-value" id="kpi-expense">Loading...</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon savings">💰</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Net Savings (All Time)</span>
+                <span class="kpi-value" id="kpi-savings">Loading...</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon top-spend">🎯</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Top Spend (All Time)</span>
+                <span class="kpi-value small" id="kpi-top-category">Loading...</span>
+            </div>
+        </div>
+    </div>
 
     <div class="rizqtrack-card transaction-form-card">
         <h2 class="section-title">Add Transaction</h2>
@@ -90,10 +120,37 @@
                     <canvas id="income-expense-chart"></canvas>
                 </div>
             </div>
+
+            <div class="chart-card full-width-chart">
+                <h3>📉 Spending Over Time</h3>
+                <div class="chart-wrapper">
+                    <canvas id="spending-trend-chart"></canvas>
+                </div>
+            </div>
         </div>
 
         <div class="rizqtrack-card transactions-card">
-            <h3>Recent Transactions</h3>
+            <h3>All Transactions</h3>
+            
+            <div class="filter-bar" id="transaction-filter-bar">
+                <div class="form-group filter-search">
+                    <input type="text" id="filter-search" placeholder="Search description...">
+                </div>
+                <div class="form-group">
+                    <select id="filter-category">
+                        <option value="0">All Categories</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <input type="date" id="filter-start-date">
+                </div>
+                <div class="form-group">
+                    <input type="date" id="filter-end-date">
+                </div>
+                <button class="btn btn-secondary btn-sm" id="filter-apply">Apply</button>
+                <button class="btn btn-secondary btn-sm" id="filter-reset">Reset</button>
+            </div>
+
             <div class="table-responsive">
                 <table id="transactions-table" class="rizqtrack-table">
                     <thead>
