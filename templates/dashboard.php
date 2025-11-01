@@ -1,7 +1,6 @@
 <div class="wrap rizqtrack-dashboard">
 
 
-    <!-- Section I: Transaction Capture Form -->
     <div class="rizqtrack-card transaction-form-card">
         <h2 class="section-title">Add Transaction</h2>
         <form id="transaction-form" class="transaction-form">
@@ -66,20 +65,17 @@
         </form>
     </div>
 
-    <!-- Section II: Visualization & Snapshot -->
     <div class="visualization-section">
         <h2 class="section-title">Financial Overview</h2>
 
-        <!-- Chart Filters -->
         <div class="chart-filters">
-            <button class="filter-btn active" data-filter="7">7 Days</button>
-            <button class="filter-btn" data-filter="30">30 Days</button>
+            <button class="filter-btn" data-filter="7">7 Days</button>
+            <button class="filter-btn active" data-filter="30">30 Days</button>
             <button class="filter-btn" data-filter="90">3 Months</button>
             <button class="filter-btn" data-filter="180">6 Months</button>
             <button class="filter-btn" data-filter="365">1 Year</button>
         </div>
 
-        <!-- Charts -->
         <div class="charts-container">
             <div class="chart-card">
                 <h3>📊 Category Breakdown</h3>
@@ -96,7 +92,6 @@
             </div>
         </div>
 
-        <!-- Recent Transactions -->
         <div class="rizqtrack-card transactions-card">
             <h3>Recent Transactions</h3>
             <div class="table-responsive">
@@ -118,17 +113,18 @@
                     </tbody>
                 </table>
             </div>
+
+            <div class="pagination-controls" id="pagination-container"></div>
+            
         </div>
     </div>
 
-    <!-- Section III: Financial Goals -->
     <div class="goals-section">
         <div class="section-header">
             <h2 class="section-title">Financial Goals</h2>
             <button class="btn btn-secondary" id="add-goal-btn">➕ Add New Goal</button>
         </div>
 
-        <!-- Goals Overview Summary Card -->
         <div class="goals-overview-card">
             <div class="goals-overview-header">
                 <h3>📊 Goals Overview</h3>
@@ -144,7 +140,6 @@
                 </div>
             </div>
 
-            <!-- Overall Progress Bar -->
             <div class="overall-progress-section">
                 <div class="progress-header">
                     <div class="progress-amounts">
@@ -199,7 +194,6 @@
 
         </div>
 
-        <!-- Individual Goals Header -->
         <div class="individual-goals-header">
             <h3>Individual Goals</h3>
             <div class="goals-filter">
@@ -214,7 +208,6 @@
         </div>
     </div>
 
-    <!-- Section IV: Data Management & Reporting -->
     <div class="management-section">
         <h2 class="section-title">Data Management & Reports</h2>
         <div class="action-cards">
@@ -234,7 +227,6 @@
         </div>
     </div>
 
-    <!-- Section V: Trash -->
     <div class="trash-section">
         <div class="collapsible-header" id="trash-header">
             <h2 class="section-title">🗑️ Trash</h2>
@@ -264,7 +256,6 @@
     </div>
 </div>
 
-<!-- Modal: Edit Transaction -->
 <div id="edit-transaction-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -316,7 +307,6 @@
     </div>
 </div>
 
-<!-- Modal: Manage Categories -->
 <div id="categories-modal" class="modal">
     <div class="modal-content modal-large">
         <div class="modal-header">
@@ -325,7 +315,6 @@
         </div>
 
         <div class="modal-body">
-            <!-- Add Category Form -->
             <div class="add-category-section">
                 <h3>Add New Category</h3>
                 <form id="add-category-form" class="inline-form">
@@ -343,7 +332,6 @@
                 </form>
             </div>
 
-            <!-- Categories List -->
             <div class="categories-list-section">
                 <h3>Your Categories</h3>
                 <div id="categories-list" class="categories-list">
@@ -354,7 +342,6 @@
     </div>
 </div>
 
-<!-- Modal: Add/Edit Goal -->
 <div id="goal-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -387,7 +374,6 @@
     </div>
 </div>
 
-<!-- Modal: Contribute to Goal -->
 <div id="contribute-modal" class="modal">
     <div class="modal-content modal-small">
         <div class="modal-header">
@@ -412,7 +398,6 @@
     </div>
 </div>
 
-<!-- Modal: Generate Report -->
 <div id="report-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">

@@ -1,6 +1,8 @@
 (function($) {
     'use strict';
 
+    Chart.register(ChartDataLabels); // ADDED: Register the datalabels plugin
+
     const RizqTrackApp = {
         charts: {
             category: null,
@@ -8,6 +10,7 @@
         },
         currentFilter: '30',
         editTransactionData: {},
+        currentPage: 1, // ADDED: For pagination
 
         init: function() {
             this.charts = {
@@ -21,7 +24,7 @@
             this.setupEventListeners();
             this.setDefaultFormValues();
             this.loadCategories();
-            this.loadTransactions();
+            this.loadTransactions(1); // UPDATED: Load page 1
             this.loadChartData();
             this.loadGoals();
         },
@@ -38,6 +41,10 @@
             $(document).on('click', '.edit-transaction', this.openEditModal.bind(this));
             $(document).on('click', '.delete-transaction', this.handleDeleteTransaction.bind(this));
             $('#edit-transaction-form').on('submit', this.handleUpdateTransaction.bind(this));
+            
+            // ADDED: Pagination Listeners
+            $(document).on('click', '#prev-page', () => this.loadTransactions(this.currentPage - 1));
+            $(document).on('click', '#next-page', () => this.loadTransactions(this.currentPage + 1));
 
             // Trash Actions
             $('#trash-header').on('click', this.toggleTrash.bind(this));
@@ -210,7 +217,7 @@
                         this.showNotification('Transaction added successfully!', 'success');
                         $('#transaction-form')[0].reset();
                         this.setDefaultFormValues();
-                        this.loadTransactions();
+                        this.loadTransactions(this.currentPage); // UPDATED: Reload current page
                         this.loadChartData();
                     } else {
                         this.showNotification(response.data.message || 'Failed to add transaction', 'error');
@@ -223,17 +230,23 @@
             });
         },
 
-        loadTransactions: function() {
+        // --- MODIFIED: loadTransactions function ---
+        loadTransactions: function(page = 1) {
+            this.currentPage = page; // Store the current page
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
                 data: {
                     action: 'rizqtrack_get_recent_transactions',
-                    nonce: rizqtrack.nonce
+                    nonce: rizqtrack.nonce,
+                    page: this.currentPage // Send the page number
                 },
                 success: (response) => {
                     if (response.success) {
-                        this.renderTransactions(response.data);
+                        this.renderTransactions(response.data.transactions);
+                        // Call the new pagination renderer
+                        this.renderPagination(response.data.total); 
                     }
                 }
             });
@@ -270,19 +283,54 @@
             });
         },
 
+        // --- ADDED: renderPagination function ---
+        renderPagination: function(totalTransactions) {
+            const $container = $('#pagination-container');
+            $container.empty();
+
+            const limit = 10;
+            const totalPages = Math.ceil(totalTransactions / limit);
+
+            if (totalPages <= 1) {
+                return; // Don't show pagination if there's only one page
+            }
+
+            // "Previous" Button
+            if (this.currentPage > 1) {
+                $container.append('<button class="btn btn-secondary btn-sm" id="prev-page">⬅️ Previous</button>');
+            } else {
+                // Add a disabled placeholder to keep layout
+                $container.append('<span style="width: 100px;"></span>'); 
+            }
+
+            // "Page X of Y" Text
+            $container.append(`<span>Page ${this.currentPage} of ${totalPages}</span>`);
+
+            // "Next" Button
+            if (this.currentPage < totalPages) {
+                $container.append('<button class="btn btn-secondary btn-sm" id="next-page">Next ➡️</button>');
+            } else {
+                // Add a disabled placeholder
+                $container.append('<span style="width: 100px;"></span>'); 
+            }
+        },
+
         openEditModal: function(e) {
             const transactionId = $(e.currentTarget).data('id');
 
+            // Find the transaction data from the already loaded transactions if possible
+            // This is just a fallback; a better implementation would fetch the single transaction
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
                 data: {
                     action: 'rizqtrack_get_recent_transactions',
-                    nonce: rizqtrack.nonce
+                    nonce: rizqtrack.nonce,
+                    page: this.currentPage // Check the current page
                 },
                 success: (response) => {
                     if (response.success) {
-                        const transaction = response.data.find(t => t.id == transactionId);
+                        const transaction = response.data.transactions.find(t => t.id == transactionId);
                         if (transaction) {
                             $('#edit-transaction-id').val(transaction.id);
                             $('#edit-amount').val(transaction.amount);
@@ -301,11 +349,15 @@
         handleUpdateTransaction: function(e) {
             e.preventDefault();
 
+            // Find the category type from the selected option
+            const categoryType = $('#edit-category option:selected').data('type');
+
             const formData = {
                 action: 'rizqtrack_update_transaction',
                 nonce: rizqtrack.nonce,
                 id: $('#edit-transaction-id').val(),
-                type: 'expense', // Will be determined by category
+                // Set type based on category, default to 'expense'
+                type: (categoryType === 'income' || categoryType === 'expense') ? categoryType : 'expense', 
                 amount: $('#edit-amount').val(),
                 date: $('#edit-date').val(),
                 category_id: $('#edit-category').val(),
@@ -321,7 +373,7 @@
                     if (response.success) {
                         this.showNotification('Transaction updated successfully!', 'success');
                         this.closeModals();
-                        this.loadTransactions();
+                        this.loadTransactions(this.currentPage); // UPDATED: Reload current page
                         this.loadChartData();
                     } else {
                         this.showNotification(response.data.message, 'error');
@@ -346,7 +398,7 @@
                 success: (response) => {
                     if (response.success) {
                         this.showNotification('Transaction moved to trash', 'success');
-                        this.loadTransactions();
+                        this.loadTransactions(this.currentPage); // UPDATED: Reload current page
                         this.loadChartData();
                         this.loadTrash();
                     } else {
@@ -385,6 +437,7 @@
             });
         },
 
+        // --- MODIFIED: renderCategoryChart function ---
         renderCategoryChart: function(data) {
             const ctx = document.getElementById('category-chart');
 
@@ -397,34 +450,39 @@
             const colors = this.generateColors(data.length);
 
             this.charts.category = new Chart(ctx, {
-                type: 'pie',
+                type: 'bar', // CHANGED from 'pie'
                 data: {
                     labels: labels,
                     datasets: [{
                         data: values,
                         backgroundColor: colors,
-                        borderWidth: 2,
-                        borderColor: '#fff'
+                        borderWidth: 0 // CHANGED from 2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    indexAxis: 'y', // This makes it a horizontal bar chart
                     plugins: {
                         legend: {
-                            position: 'bottom',
-                            onClick: (e, legendItem, legend) => {
-                                const index = legendItem.index;
-                                const ci = legend.chart;
-                                const meta = ci.getDatasetMeta(0);
-                                meta.data[index].hidden = !meta.data[index].hidden;
-                                ci.update();
-                            }
+                            display: false // The legend is redundant with the Y-axis
                         },
                         tooltip: {
                             callbacks: {
                                 label: (context) => {
-                                    return `${context.label}: ₹${context.parsed.toFixed(2)}`;
+                                    // Format tooltip to show currency
+                                    return ` Total: ₹${context.parsed.x.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        // Configure the X-axis (now the bottom)
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + value; // Add currency symbol to the axis
                                 }
                             }
                         }
@@ -433,6 +491,7 @@
             });
         },
 
+        // --- MODIFIED: renderIncomeExpenseChart function ---
         renderIncomeExpenseChart: function(data) {
             const ctx = document.getElementById('income-expense-chart');
 
@@ -474,6 +533,27 @@
                                     return `${context.label}: ₹${context.parsed.toFixed(2)}`;
                                 }
                             }
+                        },
+                        // ADDED: Datalabels configuration
+                        datalabels: {
+                            formatter: (value, ctx) => {
+                                // Calculate percentage
+                                let sum = 0;
+                                let dataArr = ctx.chart.data.datasets[0].data;
+                                dataArr.map(data => {
+                                    sum += data;
+                                });
+                                let percentage = (value * 100 / sum).toFixed(1) + '%';
+                                return percentage;
+                            },
+                            color: '#fff', // Label text color
+                            font: {
+                                weight: 'bold',
+                                size: 14,
+                            },
+                            // Add a little shadow for readability
+                            textShadowBlur: 2,
+                            textShadowColor: 'rgba(0, 0, 0, 0.5)'
                         }
                     }
                 }
@@ -832,7 +912,7 @@
                         this.showNotification('Contribution added successfully!', 'success');
                         this.closeModals();
                         this.loadGoals();
-                        this.loadTransactions();
+                        this.loadTransactions(this.currentPage); // UPDATED: Reload current page
                         this.loadChartData();
                     } else {
                         this.showNotification(response.data.message, 'error');
@@ -1042,7 +1122,7 @@
                     if (response.success) {
                         this.showNotification('Transaction restored', 'success');
                         this.loadTrash();
-                        this.loadTransactions();
+                        this.loadTransactions(1); // UPDATED: Reload page 1
                         this.loadChartData();
                     } else {
                         this.showNotification(response.data.message, 'error');
@@ -1203,4 +1283,3 @@
     });
 
 })(jQuery);
-

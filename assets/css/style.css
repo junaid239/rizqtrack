@@ -402,6 +402,24 @@
     color: var(--text-gray);
 }
 
+/* --- ADDED: Pagination Controls --- */
+.pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 24px;
+    margin-top: 16px;
+    border-top: 2px solid var(--border-color);
+}
+
+.pagination-controls span {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-gray);
+}
+/* --- END: Pagination Controls --- */
+
+
 /* ============================================
     FINANCIAL GOALS - COMPLETE STYLING
     ============================================ */
@@ -1370,6 +1388,12 @@
     .goals-mini-chart {
         height: 220px;
     }
+
+    /* Responsive Pagination */
+    .pagination-controls {
+        flex-direction: column;
+        gap: 16px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1414,50 +1438,31 @@
     display: none !important;
 }
 
-/* Astra Theme Override - Force select visibility */
-body.admin-bar .rizqtrack-dashboard select,
-body .rizqtrack-dashboard select,
-.rizqtrack-dashboard select,
-select#category,
-select#payment-method,
-select#report-timeframe,
-select#report-format,
-select#edit-category,
-select#edit-payment-method,
-select#new-category-type {
-    color: #1f2937 !important;
-    background-color: #ffffff !important;
-    -webkit-appearance: menulist !important;
-    -moz-appearance: menulist !important;
-    appearance: menulist !important;
-}
-
-/* Force option text visibility */
-body .rizqtrack-dashboard select option,
-.rizqtrack-dashboard select option,
-select option {
+/* Theme Override Fixes */
+.rizqtrack-dashboard select {
     color: #1f2937 !important;
     background-color: #ffffff !important;
 }
 
-/* Input text visibility */
-body .rizqtrack-dashboard input[type="text"],
-body .rizqtrack-dashboard input[type="number"],
-body .rizqtrack-dashboard input[type="date"] {
+.rizqtrack-dashboard select option {
     color: #1f2937 !important;
     background-color: #ffffff !important;
 }
 
-/* RizqTrack - Force text visibility over Astra theme */
-.rizqtrack-dashboard select,
-.rizqtrack-dashboard select option,
-.modal select,
+.modal select {
+    color: #1f2937 !important;
+    background-color: #ffffff !important;
+}
+
 .modal select option {
     color: #1f2937 !important;
     background-color: #ffffff !important;
 }
 
-.rizqtrack-dashboard input {
+.rizqtrack-dashboard input[type="text"],
+.rizqtrack-dashboard input[type="number"],
+.rizqtrack-dashboard input[type="date"],
+.rizqtrack-dashboard textarea {
     color: #1f2937 !important;
 }
 
