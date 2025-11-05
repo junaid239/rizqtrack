@@ -1,15 +1,16 @@
 /* RizqTrack Premium Styles */
 
 :root {
-    --primary-color: #4f46e5;
-    --primary-dark: #4338ca;
-    --primary-light: #6366f1;
-    --primary-hover: #3730a3;
+    --primary-color: #0891b2;
+    --primary-dark: #0e7490;
+    --primary-light: #06b6d4;
+    --primary-hover: #155e75;
     --success-color: #10b981;
     --success-hover: #059669;
     --danger-color: #ef4444;
     --danger-hover: #dc2626;
     --warning-color: #f59e0b;
+    --info-color: #3b82f6;
     --text-dark: #1f2937;
     --text-gray: #6b7280;
     --bg-light: #f9fafb;
@@ -81,10 +82,65 @@
     margin: 0 0 16px 0;
 }
 
+/* Motivational Quote Card */
+.motivational-quote-card {
+    background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.quote-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+}
+
+.quote-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.quote-text {
+    color: white;
+    font-size: 15px;
+    font-weight: 500;
+    margin: 0;
+    font-style: italic;
+    line-height: 1.5;
+}
+
+.btn-refresh-quote {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 16px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-refresh-quote:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(180deg);
+}
+
 /* KPI Section */
 .kpi-section {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
     margin-bottom: 20px;
 }
@@ -92,13 +148,14 @@
 .kpi-card {
     background: var(--white);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 18px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-color);
     transition: all 0.3s ease;
+    min-height: 100px;
 }
 
 .kpi-card:hover {
@@ -107,9 +164,9 @@
 }
 
 .kpi-icon {
-    font-size: 32px;
-    width: 50px;
-    height: 50px;
+    font-size: 28px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -126,7 +183,7 @@
 }
 
 .kpi-icon.savings {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
 }
 
 .kpi-icon.top-spend {
@@ -134,7 +191,7 @@
 }
 
 .kpi-icon.avg-transaction {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 }
 
 .kpi-icon.transaction-count {
@@ -146,25 +203,33 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .kpi-label {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-gray);
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .kpi-value {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
     color: var(--text-dark);
     font-family: 'Poppins', sans-serif;
+    word-break: break-word;
+    line-height: 1.2;
 }
 
 .kpi-value.small {
-    font-size: 16px;
+    font-size: 14px;
+    line-height: 1.3;
 }
 
 /* Cards */
@@ -282,15 +347,21 @@
     transition: all 0.2s ease;
 }
 
-.toggle-btn:hover {
+.toggle-btn:hover:not(.active) {
     border-color: var(--primary-color);
-    background: rgba(99, 102, 241, 0.05);
+    background: #ecfeff;
+    color: var(--text-dark);
 }
 
 .toggle-btn.active {
     background: var(--primary-color);
     color: var(--white);
     border-color: var(--primary-color);
+}
+
+.toggle-btn.active:hover {
+    background: var(--primary-dark);
+    color: var(--white);
 }
 
 /* Buttons */
@@ -503,6 +574,7 @@
     align-items: center;
     padding-top: 24px;
     margin-top: 16px;
+    margin-bottom: 24px;
     border-top: 2px solid var(--border-color);
 }
 
@@ -512,6 +584,24 @@
     color: var(--text-gray);
 }
 /* --- END: Pagination Controls --- */
+
+/* Transaction Filter Bar */
+.filter-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.filter-bar .form-group {
+    margin-bottom: 0;
+}
+
+.filter-search {
+    flex: 1;
+    min-width: 200px;
+}
 
 
 /* ============================================
@@ -534,14 +624,14 @@
 
 /* Goals Overview Card - Beautiful Gradient */
 .goals-overview-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
     color: white;
     margin-bottom: 32px;
     position: relative;
     overflow: hidden;
     border-radius: 16px;
     padding: 32px;
-    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 10px 40px rgba(8, 145, 178, 0.3);
 }
 
 .goals-overview-card::before {
@@ -674,8 +764,9 @@
 }
 
 .amount-value.current {
-    color: #10b981;
-    text-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+    color: #fbbf24;
+    text-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
+    font-weight: 900;
 }
 
 .amount-value.target {
@@ -1362,7 +1453,7 @@
     }
 
     .kpi-section {
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -1408,11 +1499,17 @@
     }
 
     .kpi-card {
-        padding: 16px;
+        padding: 14px;
     }
 
     .kpi-value {
-        font-size: 20px;
+        font-size: 18px;
+    }
+
+    .kpi-icon {
+        width: 44px;
+        height: 44px;
+        font-size: 24px;
     }
 
     .chart-card {

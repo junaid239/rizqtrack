@@ -373,7 +373,7 @@ class RizqTrack {
         }
 
         // --- START: Pagination Logic ---
-        $limit = 10; // Keep showing 10 transactions per page
+        $limit = 5; // Show 5 transactions per page
         $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
         $offset = ($page - 1) * $limit;
         // --- END: Pagination Logic ---
@@ -455,9 +455,24 @@ class RizqTrack {
             ];
         }
 
+        // Spending trend over time
+        $spending_trend = $wpdb->get_results($wpdb->prepare(
+            "SELECT
+                DATE(date) as date,
+                COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as income,
+                COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as expense
+            FROM {$this->table_transactions}
+            WHERE user_id = %d AND status = 'Active'
+            AND date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
+            GROUP BY DATE(date)
+            ORDER BY date ASC",
+            $user_id, $days
+        ));
+
         wp_send_json_success([
             'category_data' => $category_data,
-            'income_expense' => $income_expense
+            'income_expense' => $income_expense,
+            'spending_trend' => $spending_trend
         ]);
         wp_die();
     }

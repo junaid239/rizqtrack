@@ -1,5 +1,13 @@
 <div class="wrap rizqtrack-dashboard">
 
+    <div class="motivational-quote-card" id="motivation-card">
+        <div class="quote-icon">💡</div>
+        <div class="quote-content">
+            <p class="quote-text" id="quote-text">Loading...</p>
+            <button class="btn-refresh-quote" id="refresh-quote" title="Get new quote">🔄</button>
+        </div>
+    </div>
+
     <div class="kpi-section" id="kpi-container">
         <div class="kpi-card">
             <div class="kpi-icon income">⬆️</div>

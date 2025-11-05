@@ -11,6 +11,23 @@
         currentFilter: '30',
         editTransactionData: {},
         currentPage: 1, // For pagination
+        quotes: [
+            "💰 A penny saved is a penny earned.",
+            "🎯 The best time to save was yesterday. The next best time is today.",
+            "📊 Don't save what is left after spending; spend what is left after saving.",
+            "💡 An investment in knowledge pays the best interest.",
+            "🌟 Financial freedom is available to those who learn about it and work for it.",
+            "🎯 The goal isn't more money. The goal is living life on your terms.",
+            "💪 You must gain control over your money or the lack of it will forever control you.",
+            "🌱 Wealth is the ability to fully experience life.",
+            "📈 It's not how much money you make, but how much money you keep.",
+            "🎁 Every dollar you don't spend is a dollar that works for you.",
+            "⚡ Small daily improvements over time lead to stunning results.",
+            "🔥 Your financial future depends on the financial decisions you make today.",
+            "🌈 The secret to getting ahead is getting started.",
+            "✨ Track your expenses. Review them weekly. Improve monthly.",
+            "🎯 Budget: Telling your money where to go instead of wondering where it went."
+        ],
 
         init: function() {
             this.charts = {
@@ -23,6 +40,7 @@
 
             this.setupEventListeners();
             this.setDefaultFormValues();
+            this.showRandomQuote();
             this.loadCategories();
             this.loadKPIData();
             this.loadTransactions(1); // Load page 1
@@ -75,6 +93,14 @@
             // Modal Controls
             $('.close, .cancel-btn').on('click', this.closeModals.bind(this));
             $(window).on('click', this.handleModalBackdropClick.bind(this));
+
+            // Motivational Quote
+            $('#refresh-quote').on('click', this.showRandomQuote.bind(this));
+        },
+
+        showRandomQuote: function() {
+            const randomIndex = Math.floor(Math.random() * this.quotes.length);
+            $('#quote-text').text(this.quotes[randomIndex]);
         },
 
         setDefaultFormValues: function() {
@@ -313,7 +339,7 @@
             const $container = $('#pagination-container');
             $container.empty();
 
-            const limit = 10;
+            const limit = 5;
             const totalPages = Math.ceil(totalTransactions / limit);
 
             if (totalPages <= 1) {
@@ -459,6 +485,7 @@
                     if (response.success) {
                         this.renderCategoryChart(response.data.category_data);
                         this.renderIncomeExpenseChart(response.data.income_expense);
+                        this.renderSpendingTrendChart(response.data.spending_trend);
                     }
                 }
             });
@@ -556,22 +583,34 @@
             const expense = parseFloat(data.total_expense) || 0;
 
             this.charts.incomeExpense = new Chart(ctx, {
-                type: 'pie',
+                type: 'doughnut',
                 data: {
                     labels: ['Income', 'Expense'],
                     datasets: [{
                         data: [income, expense],
                         backgroundColor: ['#10b981', '#ef4444'],
-                        borderWidth: 2,
-                        borderColor: '#fff'
+                        borderWidth: 3,
+                        borderColor: '#fff',
+                        hoverOffset: 10
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true
+                    },
                     plugins: {
                         legend: {
                             position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 13
+                                },
+                                usePointStyle: true
+                            },
                             onClick: (e, legendItem, legend) => {
                                 const index = legendItem.index;
                                 const ci = legend.chart;
@@ -581,31 +620,147 @@
                             }
                         },
                         tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: {
+                                size: 14
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
                             callbacks: {
                                 label: (context) => {
-                                    return `${context.label}: ₹${context.parsed.toFixed(2)}`;
+                                    let label = context.label || '';
+                                    let value = context.parsed || 0;
+                                    let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    let percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ₹${value.toLocaleString()} (${percentage}%)`;
                                 }
                             }
                         },
                         datalabels: {
                             formatter: (value, ctx) => {
-                                // Calculate percentage
-                                let sum = 0;
-                                let dataArr = ctx.chart.data.datasets[0].data;
-                                dataArr.map(data => {
-                                    sum += data;
-                                });
-                                let percentage = (value * 100 / sum).toFixed(1) + '%';
-                                return percentage;
+                                let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                let percentage = ((value / sum) * 100).toFixed(1);
+                                return percentage + '%';
                             },
-                            color: '#fff', // White text
+                            color: '#fff',
                             font: {
                                 weight: 'bold',
-                                size: 14,
+                                size: 16,
                             },
-                            // Add a little shadow for readability
-                            textShadowBlur: 2,
-                            textShadowColor: 'rgba(0, 0, 0, 0.5)' // Black shadow
+                            textShadowBlur: 3,
+                            textShadowColor: 'rgba(0, 0, 0, 0.6)'
+                        }
+                    }
+                }
+            });
+        },
+
+        renderSpendingTrendChart: function(data) {
+            const ctx = document.getElementById('spending-trend-chart');
+            if (!ctx) return;
+
+            if (this.charts.spendingTrend) {
+                this.charts.spendingTrend.destroy();
+            }
+
+            if (!data || data.length === 0) {
+                return;
+            }
+
+            const dates = data.map(d => d.date);
+            const incomes = data.map(d => parseFloat(d.income) || 0);
+            const expenses = data.map(d => parseFloat(d.expense) || 0);
+
+            this.charts.spendingTrend = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: incomes,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#10b981',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Expense',
+                            data: expenses,
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#ef4444',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true,
+                                font: {
+                                    size: 13
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            callbacks: {
+                                label: (context) => {
+                                    return `${context.dataset.label}: ₹${context.parsed.y.toLocaleString()}`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + value.toLocaleString();
+                                },
+                                color: '#1f2937'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#1f2937',
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: {
+                                display: false
+                            }
                         }
                     }
                 }
