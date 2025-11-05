@@ -127,7 +127,7 @@ class RizqTrack {
             start_date date NOT NULL,
             end_date date NOT NULL,
             frequency varchar(20) DEFAULT 'weekly',
-            status enum('active','completed','paused','failed') DEFAULT 'active',
+            status enum('active','completed','paused','failed','deleted') DEFAULT 'active',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY user_id (user_id),
@@ -143,13 +143,12 @@ class RizqTrack {
             start_date date NOT NULL,
             rollover tinyint(1) DEFAULT 0,
             alert_threshold int DEFAULT 80,
-            status enum('active','inactive') DEFAULT 'active',
+            status enum('active','deleted') DEFAULT 'active',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY user_id (user_id),
             KEY category_id (category_id),
-            KEY status (status),
-            UNIQUE KEY user_category_budget (user_id, category_id, period)
+            KEY status (status)
         ) $charset;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');

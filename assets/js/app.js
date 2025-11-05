@@ -156,7 +156,6 @@
             this.loadTransactions(1); // Load page 1
             this.loadChartData();
             this.loadGoals();
-            this.loadChallenges();
             this.loadBudgets();
             this.checkBudgetAlerts();
         },
@@ -218,13 +217,6 @@
 
             // Motivational Quote
             $('#refresh-quote').on('click', this.showRandomQuote.bind(this));
-
-            // Challenges
-            $('#start-challenge-btn').on('click', this.openChallengeModal.bind(this));
-            $('#challenge-form').on('submit', this.handleStartChallenge.bind(this));
-            $('#challenge-type').on('change', this.handleChallengeTypeChange.bind(this));
-            $(document).on('click', '.complete-challenge-btn', this.handleCompleteChallenge.bind(this));
-            $(document).on('click', '.delete-challenge-btn', this.handleDeleteChallenge.bind(this));
 
             // Budgets
             $('#add-budget-btn').on('click', this.openBudgetModal.bind(this));

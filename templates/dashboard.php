@@ -344,28 +344,7 @@
         </div>
     </div>
 
-    <div class="challenges-section" style="margin-top: 32px;">
-        <div class="section-header">
-            <h2 class="section-title">🎯 Savings Challenges</h2>
-            <button class="btn btn-secondary" id="start-challenge-btn">➕ Start Challenge</button>
-        </div>
-
-        <div id="challenges-container" class="challenges-grid">
-            <div class="loading-message">Loading challenges...</div>
-        </div>
-
-        <div class="challenge-templates-info" style="margin-top: 16px; padding: 16px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0891b2;">
-            <strong>💡 Available Challenges:</strong>
-            <ul style="margin: 8px 0 0 20px; color: #1f2937;">
-                <li><strong>52-Week Savings</strong> - Save incrementally each week (₹13,780 total)</li>
-                <li><strong>30-Day No-Spend</strong> - Minimize unnecessary spending for a month</li>
-                <li><strong>₹1000/Month Challenge</strong> - Save ₹1000 monthly for a year (₹12,000 total)</li>
-                <li><strong>Emergency Fund</strong> - Build a 3-month emergency fund</li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="budget-section">
+    <div class="budget-section" style="margin-top: 32px;">
         <div class="section-header">
             <h2 class="section-title">💰 Budget Management</h2>
             <button class="btn btn-secondary" id="add-budget-btn">➕ Set Budget</button>
@@ -702,27 +681,18 @@
         </div>
         <form id="email-report-form">
             <div class="form-group">
-                <label for="email-frequency">Report Frequency</label>
-                <select id="email-frequency" required>
-                    <option value="none">Disabled</option>
-                    <option value="weekly">Weekly (Every Monday)</option>
-                    <option value="monthly">Monthly (1st of Month)</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="email-address">Email Address</label>
+                <label for="email-address">Email Address <span class="required">*</span></label>
                 <input type="email" id="email-address" placeholder="your@email.com" required>
-                <small>Reports will be sent to this email address</small>
+                <small>Enter the email address where you want to receive the report</small>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="email-start-date">Report Start Date</label>
+                    <label for="email-start-date">Start Date <span class="required">*</span></label>
                     <input type="date" id="email-start-date" required>
                 </div>
                 <div class="form-group">
-                    <label for="email-end-date">Report End Date</label>
+                    <label for="email-end-date">End Date <span class="required">*</span></label>
                     <input type="date" id="email-end-date" required>
                 </div>
             </div>
@@ -730,74 +700,16 @@
             <div class="info-box">
                 <strong>📊 Report will include:</strong>
                 <ul>
-                    <li>📈 All financial charts (Category Breakdown, Frequent Categories, Spending Trend)</li>
-                    <li>💰 Income vs Expense summary with date range</li>
-                    <li>🎯 Financial goals progress</li>
-                    <li>💪 Active savings challenges</li>
-                    <li>📊 Budget status and alerts</li>
+                    <li>💰 Income vs Expense summary for the selected date range</li>
                     <li>🏆 Top spending categories</li>
+                    <li>📊 Budget status and progress</li>
+                    <li>📈 Transaction summary</li>
                 </ul>
             </div>
 
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
-                <button type="button" class="btn btn-success" id="send-email-now-btn">📨 Send Now</button>
-                <button type="submit" class="btn btn-primary">Save Settings</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div id="challenge-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>🎯 Start a Savings Challenge</h2>
-            <span class="close">&times;</span>
-        </div>
-        <form id="challenge-form">
-            <div class="form-group">
-                <label for="challenge-type">Select Challenge <span class="required">*</span></label>
-                <select id="challenge-type" required>
-                    <option value="">Choose a challenge...</option>
-                    <option value="52_week">💰 52-Week Savings Challenge (₹13,780)</option>
-                    <option value="no_spend">🚫 30-Day No-Spend Challenge</option>
-                    <option value="1000_month">📊 Save ₹1000/Month for a Year (₹12,000)</option>
-                    <option value="emergency_fund">🚨 3-Month Emergency Fund</option>
-                    <option value="custom">🎯 Custom Challenge</option>
-                </select>
-            </div>
-
-            <div id="emergency-fund-amount" style="display: none;">
-                <div class="form-group">
-                    <label for="challenge-target">Target Amount (₹)</label>
-                    <input type="number" id="challenge-target" step="any" min="1" placeholder="30000">
-                    <small>Enter your 3-month expense amount</small>
-                </div>
-            </div>
-
-            <div id="custom-challenge-fields" style="display: none;">
-                <div class="form-group">
-                    <label for="custom-challenge-name">Challenge Name <span class="required">*</span></label>
-                    <input type="text" id="custom-challenge-name" placeholder="My Savings Goal" maxlength="100">
-                </div>
-                <div class="form-group">
-                    <label for="custom-challenge-amount">Target Amount (₹) <span class="required">*</span></label>
-                    <input type="number" id="custom-challenge-amount" step="any" min="1" placeholder="10000">
-                </div>
-                <div class="form-group">
-                    <label for="custom-challenge-weeks">Duration (weeks) <span class="required">*</span></label>
-                    <input type="number" id="custom-challenge-weeks" step="1" min="1" max="104" placeholder="12">
-                    <small>Choose duration between 1-104 weeks (up to 2 years)</small>
-                </div>
-            </div>
-
-            <div class="info-box" id="challenge-description">
-                <p style="margin: 0; color: #6b7280;">Select a challenge to see details</p>
-            </div>
-
-            <div class="modal-actions">
-                <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
-                <button type="submit" class="btn btn-primary">Start Challenge</button>
+                <button type="button" class="btn btn-success" id="send-email-now-btn">📨 Send Report</button>
             </div>
         </form>
     </div>
