@@ -195,6 +195,11 @@
                     <canvas id="spending-trend-chart"></canvas>
                 </div>
             </div>
+
+            <div class="chart-card full-width-chart">
+                <h3>🗺️ Category Distribution Treemap</h3>
+                <div id="treemap-container" class="treemap-container"></div>
+            </div>
         </div>
 
         <div class="rizqtrack-card transactions-card">

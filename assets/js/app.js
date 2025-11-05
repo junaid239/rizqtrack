@@ -224,6 +224,7 @@
             $('#challenge-form').on('submit', this.handleStartChallenge.bind(this));
             $('#challenge-type').on('change', this.handleChallengeTypeChange.bind(this));
             $(document).on('click', '.complete-challenge-btn', this.handleCompleteChallenge.bind(this));
+            $(document).on('click', '.delete-challenge-btn', this.handleDeleteChallenge.bind(this));
 
             // Budgets
             $('#add-budget-btn').on('click', this.openBudgetModal.bind(this));
@@ -856,10 +857,19 @@
                 return;
             }
 
+            // Sort by count descending (already sorted from backend but ensure it)
+            const sortedData = data.sort((a, b) => parseInt(b.count) - parseInt(a.count));
+
             // Get top 10 most frequent categories
-            const labels = data.map(d => `${d.emoji} ${d.name}`);
-            const counts = data.map(d => parseInt(d.count) || 0);
-            const amounts = data.map(d => parseFloat(d.total_amount) || 0);
+            const labels = sortedData.map(d => `${d.emoji} ${d.name}`);
+            const counts = sortedData.map(d => parseInt(d.count) || 0);
+            const amounts = sortedData.map(d => parseFloat(d.total_amount) || 0);
+
+            // Generate vibrant colors
+            const colors = sortedData.map((_, i) => {
+                const hue = (i * 360 / sortedData.length) % 360;
+                return `hsla(${hue}, 70%, 60%, 0.8)`;
+            });
 
             this.charts.topFrequent = new Chart(ctx, {
                 type: 'bar',
@@ -868,12 +878,12 @@
                     datasets: [{
                         label: 'Transaction Count',
                         data: counts,
-                        backgroundColor: 'rgba(99, 102, 241, 0.8)',
-                        borderColor: 'rgb(99, 102, 241)',
+                        backgroundColor: colors,
+                        borderColor: colors.map(c => c.replace('0.8', '1')),
                         borderWidth: 2,
-                        borderRadius: 6,
+                        borderRadius: 8,
                         barThickness: 'flex',
-                        maxBarThickness: 50
+                        maxBarThickness: 40
                     }]
                 },
                 options: {
@@ -885,9 +895,9 @@
                             display: false
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
-                            titleFont: { size: 14 },
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            padding: 14,
+                            titleFont: { size: 14, weight: 'bold' },
                             bodyFont: { size: 13 },
                             callbacks: {
                                 label: (context) => {
@@ -895,8 +905,9 @@
                                     const count = counts[index];
                                     const total = amounts[index];
                                     return [
-                                        `Count: ${count} transactions`,
-                                        `Total: ₹${total.toLocaleString()}`
+                                        `Transactions: ${count}`,
+                                        `Total Amount: ₹${total.toLocaleString()}`,
+                                        `Average: ₹${(total / count).toLocaleString(undefined, {maximumFractionDigits: 0})}`
                                     ];
                                 }
                             }
@@ -905,6 +916,11 @@
                     scales: {
                         x: {
                             beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Transactions',
+                                font: { size: 12, weight: 'bold' }
+                            },
                             ticks: {
                                 precision: 0,
                                 font: { size: 11 }
@@ -914,11 +930,16 @@
                             }
                         },
                         y: {
+                            title: {
+                                display: true,
+                                text: 'Category',
+                                font: { size: 12, weight: 'bold' }
+                            },
                             ticks: {
                                 font: { size: 11 },
                                 callback: function(value, index) {
                                     const label = this.getLabelForValue(value);
-                                    return label.length > 20 ? label.substring(0, 20) + '...' : label;
+                                    return label.length > 25 ? label.substring(0, 25) + '...' : label;
                                 }
                             },
                             grid: {
@@ -927,6 +948,50 @@
                         }
                     }
                 }
+            });
+
+            // Render treemap with the same data
+            this.renderTreemap(sortedData);
+        },
+
+        renderTreemap: function(data) {
+            const container = document.getElementById('treemap-container');
+            if (!container || !data || data.length === 0) return;
+
+            container.innerHTML = '';
+
+            // Calculate total for percentage
+            const total = data.reduce((sum, d) => sum + parseInt(d.count), 0);
+
+            // Create treemap blocks
+            data.forEach((item, index) => {
+                const percentage = (parseInt(item.count) / total) * 100;
+                const hue = (index * 360 / data.length) % 360;
+                const color = `hsl(${hue}, 70%, 60%)`;
+
+                const block = document.createElement('div');
+                block.className = 'treemap-block';
+                block.style.flex = item.count;
+                block.style.background = color;
+                block.setAttribute('data-count', item.count);
+                block.setAttribute('data-amount', item.total_amount);
+                block.setAttribute('data-name', item.name);
+
+                block.innerHTML = `
+                    <div class="treemap-content">
+                        <div class="treemap-emoji">${item.emoji}</div>
+                        <div class="treemap-label">${item.name}</div>
+                        <div class="treemap-value">${item.count}</div>
+                    </div>
+                    <div class="treemap-tooltip">
+                        <strong>${item.emoji} ${item.name}</strong><br>
+                        Transactions: ${item.count}<br>
+                        Total: ₹${parseFloat(item.total_amount).toLocaleString()}<br>
+                        ${percentage.toFixed(1)}% of total
+                    </div>
+                `;
+
+                container.appendChild(block);
             });
         },
 
@@ -2155,6 +2220,9 @@
                                 <button class="btn btn-primary btn-sm complete-challenge-btn" data-id="${challenge.id}">
                                     ✓ Mark Complete
                                 </button>
+                                <button class="btn btn-secondary btn-sm delete-challenge-btn" data-id="${challenge.id}">
+                                    🗑️ Delete
+                                </button>
                             </div>
                         ` : ''}
                     </div>
@@ -2263,6 +2331,32 @@
                 type: 'POST',
                 data: {
                     action: 'rizqtrack_complete_challenge',
+                    nonce: rizqtrack.nonce,
+                    challenge_id: challengeId
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification(response.data.message, 'success');
+                        this.loadChallenges();
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                }
+            });
+        },
+
+        handleDeleteChallenge: function(e) {
+            const challengeId = $(e.currentTarget).data('id');
+
+            if (!confirm('Are you sure you want to delete this challenge? It will be moved to trash.')) {
+                return;
+            }
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_delete_challenge',
                     nonce: rizqtrack.nonce,
                     challenge_id: challengeId
                 },

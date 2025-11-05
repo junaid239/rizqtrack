@@ -278,7 +278,7 @@ class RizqTrack {
             'contribute_goal_transaction', 'generate_report', 'get_kpi_data',
             'get_email_settings', 'save_email_settings', 'test_email', 'send_email_now',
             'get_achievements', 'check_achievements',
-            'get_challenges', 'start_challenge', 'update_challenge', 'complete_challenge',
+            'get_challenges', 'start_challenge', 'update_challenge', 'complete_challenge', 'delete_challenge',
             'get_budgets', 'add_budget', 'update_budget', 'delete_budget', 'check_budget_alerts', 'get_budget_vs_actual'
         ];
 
@@ -1858,6 +1858,27 @@ HTML;
         wp_die();
     }
 
+    public function ajax_delete_challenge() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $challenge_id = intval($_POST['challenge_id']);
+
+        $result = $wpdb->update(
+            $this->table_challenges,
+            ['status' => 'deleted'],
+            ['id' => $challenge_id, 'user_id' => $user_id]
+        );
+
+        if ($result) {
+            wp_send_json_success(['message' => 'Challenge moved to trash successfully!']);
+        } else {
+            wp_send_json_error(['message' => 'Failed to delete challenge']);
+        }
+        wp_die();
+    }
+
     // Budget Management Functions
     public function ajax_get_budgets() {
         check_ajax_referer('rizqtrack_nonce', 'nonce');
@@ -1974,12 +1995,12 @@ HTML;
 
         $result = $wpdb->update(
             $this->table_budgets,
-            ['status' => 'inactive'],
+            ['status' => 'deleted'],
             ['id' => $budget_id, 'user_id' => $user_id]
         );
 
         if ($result) {
-            wp_send_json_success(['message' => 'Budget deleted successfully!']);
+            wp_send_json_success(['message' => 'Budget moved to trash successfully!']);
         } else {
             wp_send_json_error(['message' => 'Failed to delete budget']);
         }

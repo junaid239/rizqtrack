@@ -733,6 +733,114 @@
     font-style: italic;
 }
 
+/* Treemap Visualization */
+.treemap-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 200px;
+    padding: 10px;
+}
+
+.treemap-block {
+    position: relative;
+    min-width: 80px;
+    min-height: 80px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.treemap-block:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+}
+
+.treemap-content {
+    text-align: center;
+    color: white;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    padding: 8px;
+}
+
+.treemap-emoji {
+    font-size: 28px;
+    margin-bottom: 4px;
+}
+
+.treemap-label {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    line-height: 1.2;
+}
+
+.treemap-value {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.treemap-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+    margin-bottom: 8px;
+}
+
+.treemap-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+}
+
+.treemap-block:hover .treemap-tooltip {
+    opacity: 1;
+}
+
+@media (max-width: 768px) {
+    .treemap-block {
+        min-width: 60px;
+        min-height: 60px;
+    }
+
+    .treemap-emoji {
+        font-size: 20px;
+    }
+
+    .treemap-label {
+        font-size: 10px;
+    }
+
+    .treemap-value {
+        font-size: 13px;
+    }
+
+    .treemap-tooltip {
+        font-size: 11px;
+    }
+}
+
 /* Category Details Section */
 .category-details-wrapper {
     margin-top: 16px;
