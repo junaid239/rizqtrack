@@ -1919,7 +1919,12 @@ HTML;
         if ($result) {
             wp_send_json_success(['message' => 'Budget added successfully!']);
         } else {
-            wp_send_json_error(['message' => 'Failed to add budget']);
+            // Show the actual database error for debugging
+            $error_msg = 'Failed to add budget';
+            if (!empty($wpdb->last_error)) {
+                $error_msg .= ': ' . $wpdb->last_error;
+            }
+            wp_send_json_error(['message' => $error_msg]);
         }
         wp_die();
     }
