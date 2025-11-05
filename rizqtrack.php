@@ -86,6 +86,10 @@ class RizqTrack {
             target_amount decimal(10,2) NOT NULL,
             current_amount decimal(10,2) DEFAULT 0,
             deadline date,
+            category varchar(50),
+            priority varchar(20),
+            start_date date,
+            notes text,
             status enum('active','completed','archived','Trash') DEFAULT 'active',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -465,6 +469,8 @@ class RizqTrack {
             '150' => 150,
             '180' => 180,
             '210' => 210,
+            '240' => 240,
+            '270' => 270,
             '300' => 300,
             '330' => 330,
             '365' => 365
@@ -779,6 +785,10 @@ class RizqTrack {
             'target_amount' => floatval($_POST['target_amount']),
             'current_amount' => 0,
             'deadline' => sanitize_text_field($_POST['deadline'] ?? null),
+            'category' => sanitize_text_field($_POST['category'] ?? null),
+            'priority' => sanitize_text_field($_POST['priority'] ?? null),
+            'start_date' => sanitize_text_field($_POST['start_date'] ?? null),
+            'notes' => sanitize_textarea_field($_POST['notes'] ?? ''),
             'status' => 'active'
         ];
 
@@ -802,7 +812,11 @@ class RizqTrack {
         $data = [
             'name' => sanitize_text_field($_POST['name']),
             'target_amount' => floatval($_POST['target_amount']),
-            'deadline' => sanitize_text_field($_POST['deadline'] ?? null)
+            'deadline' => sanitize_text_field($_POST['deadline'] ?? null),
+            'category' => sanitize_text_field($_POST['category'] ?? null),
+            'priority' => sanitize_text_field($_POST['priority'] ?? null),
+            'start_date' => sanitize_text_field($_POST['start_date'] ?? null),
+            'notes' => sanitize_textarea_field($_POST['notes'] ?? '')
         ];
 
         $result = $wpdb->update(
@@ -964,16 +978,34 @@ class RizqTrack {
         $format = sanitize_text_field($_POST['format']);
         $start_date = sanitize_text_field($_POST['start_date']);
         $end_date = sanitize_text_field($_POST['end_date']);
+        $category = sanitize_text_field($_POST['category'] ?? 'all');
+        $type = sanitize_text_field($_POST['type'] ?? 'all');
 
-        $transactions = $wpdb->get_results($wpdb->prepare(
-            "SELECT t.*, c.name as category_name, c.emoji as category_emoji
+        // Build dynamic query with filters
+        $where_clauses = ["t.user_id = %d", "t.status = 'Active'", "t.date BETWEEN %s AND %s"];
+        $params = [$user_id, $start_date, $end_date];
+
+        // Category filter
+        if ($category !== 'all' && !empty($category)) {
+            $where_clauses[] = "t.category_id = %d";
+            $params[] = intval($category);
+        }
+
+        // Type filter
+        if ($type !== 'all' && !empty($type)) {
+            $where_clauses[] = "t.type = %s";
+            $params[] = $type;
+        }
+
+        $where_sql = implode(' AND ', $where_clauses);
+
+        $query = "SELECT t.*, c.name as category_name, c.emoji as category_emoji
             FROM {$this->table_transactions} t
             LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
-            WHERE t.user_id = %d AND t.status = 'Active'
-            AND t.date BETWEEN %s AND %s
-            ORDER BY t.date DESC",
-            $user_id, $start_date, $end_date
-        ));
+            WHERE {$where_sql}
+            ORDER BY t.date DESC";
+
+        $transactions = $wpdb->get_results($wpdb->prepare($query, $params));
 
         if ($format === 'csv') {
             $this->generate_csv_report($transactions, $start_date, $end_date);
@@ -1085,7 +1117,7 @@ class RizqTrack {
 
         $days = ($period === 'weekly') ? 7 : 30;
 
-        // Get data
+        // Get transaction summary
         $summary = $wpdb->get_row($wpdb->prepare(
             "SELECT
                 COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as total_income,
@@ -1097,6 +1129,7 @@ class RizqTrack {
             $user_id, $days
         ));
 
+        // Get top spending categories
         $top_categories = $wpdb->get_results($wpdb->prepare(
             "SELECT c.name, c.emoji, SUM(t.amount) as total
             FROM {$this->table_transactions} t
@@ -1109,14 +1142,24 @@ class RizqTrack {
             $user_id, $days
         ));
 
+        // Get active goals
+        $goals = $wpdb->get_results($wpdb->prepare(
+            "SELECT name, target_amount, current_amount, deadline, category, priority
+            FROM {$this->table_goals}
+            WHERE user_id = %d AND status = 'active'
+            ORDER BY priority DESC, created_at DESC
+            LIMIT 5",
+            $user_id
+        ));
+
         $subject = sprintf('RizqTrack %s Report - %s', ucfirst($period), date('F j, Y'));
-        $message = $this->generate_email_html($summary, $top_categories, $period);
+        $message = $this->generate_email_html($summary, $top_categories, $goals, $period);
 
         $headers = ['Content-Type: text/html; charset=UTF-8'];
         wp_mail($email, $subject, $message, $headers);
     }
 
-    private function generate_email_html($summary, $top_categories, $period) {
+    private function generate_email_html($summary, $top_categories, $goals, $period) {
         $income = number_format($summary->total_income, 2);
         $expense = number_format($summary->total_expense, 2);
         $savings = number_format($summary->total_income - $summary->total_expense, 2);
@@ -1130,6 +1173,49 @@ class RizqTrack {
                 $cat->name,
                 number_format($cat->total, 2)
             );
+        }
+
+        // Generate goals HTML
+        $goals_html = '';
+        if (!empty($goals)) {
+            foreach ($goals as $goal) {
+                $progress = ($goal->target_amount > 0) ? ($goal->current_amount / $goal->target_amount * 100) : 0;
+                $progress_rounded = round($progress, 1);
+                $progress_width = min($progress, 100);
+
+                $priority_badge = '';
+                if ($goal->priority === 'high') {
+                    $priority_badge = '<span style="background: #fef2f2; color: #ef4444; padding: 3px 8px; border-radius: 8px; font-size: 10px; font-weight: 700;">🔴 HIGH</span>';
+                } elseif ($goal->priority === 'medium') {
+                    $priority_badge = '<span style="background: #fef3c7; color: #f59e0b; padding: 3px 8px; border-radius: 8px; font-size: 10px; font-weight: 700;">🟡 MEDIUM</span>';
+                } elseif ($goal->priority === 'low') {
+                    $priority_badge = '<span style="background: #ecfdf5; color: #10b981; padding: 3px 8px; border-radius: 8px; font-size: 10px; font-weight: 700;">🟢 LOW</span>';
+                }
+
+                $goals_html .= sprintf('
+                    <div style="margin-bottom: 16px; padding: 12px; background: #f9fafb; border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <strong style="color: #1f2937; font-size: 14px;">%s</strong>
+                            %s
+                        </div>
+                        <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">
+                            ₹%s / ₹%s (%s%%)
+                        </div>
+                        <div style="background: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div style="background: #0891b2; height: 100%%; width: %s%%;"></div>
+                        </div>
+                    </div>
+                ',
+                    $goal->name,
+                    $priority_badge,
+                    number_format($goal->current_amount, 2),
+                    number_format($goal->target_amount, 2),
+                    $progress_rounded,
+                    $progress_width
+                );
+            }
+        } else {
+            $goals_html = '<p style="color: #6b7280; font-size: 14px; text-align: center; padding: 20px;">No active goals. Set goals to track your savings progress!</p>';
         }
 
         return <<<HTML
@@ -1176,6 +1262,11 @@ class RizqTrack {
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
                 {$categories_html}
             </table>
+
+            <h2 style="color: #1f2937;">🎯 Your Goals Progress</h2>
+            <div style="margin-bottom: 30px;">
+                {$goals_html}
+            </div>
 
             <div style="background: #ecfeff; border-left: 4px solid #0891b2; padding: 15px; border-radius: 5px;">
                 <p style="margin: 0; font-size: 14px; color: #1f2937;">

@@ -1159,8 +1159,7 @@
 .filter-chip:hover {
     border-color: var(--primary-color);
     color: var(--primary-color);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    background: #ecfeff;
 }
 
 .filter-chip.active {

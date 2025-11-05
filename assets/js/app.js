@@ -1098,6 +1098,38 @@
                     progressClass = 'low';
                 }
 
+                // Priority badge
+                let priorityBadge = '';
+                if (goal.priority) {
+                    const priorityMap = {
+                        'high': { emoji: '🔴', text: 'High', color: '#ef4444' },
+                        'medium': { emoji: '🟡', text: 'Medium', color: '#f59e0b' },
+                        'low': { emoji: '🟢', text: 'Low', color: '#10b981' }
+                    };
+                    const p = priorityMap[goal.priority];
+                    if (p) {
+                        priorityBadge = `<span style="background: ${p.color}15; color: ${p.color}; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;">${p.emoji} ${p.text}</span>`;
+                    }
+                }
+
+                // Category badge
+                let categoryBadge = '';
+                if (goal.category) {
+                    const categoryMap = {
+                        'savings': '💰 Savings',
+                        'investment': '📈 Investment',
+                        'purchase': '🛒 Purchase',
+                        'emergency': '🚨 Emergency',
+                        'education': '🎓 Education',
+                        'travel': '✈️ Travel',
+                        'home': '🏠 Home',
+                        'vehicle': '🚗 Vehicle',
+                        'other': '📌 Other'
+                    };
+                    const categoryText = categoryMap[goal.category] || goal.category;
+                    categoryBadge = `<span style="background: #ecfeff; color: #0891b2; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">${categoryText}</span>`;
+                }
+
                 // Calculate deadline info
                 let deadlineHtml = '';
                 if (goal.deadline && goal.deadline !== '0000-00-00') {
@@ -1114,12 +1146,24 @@
                     }
                 }
 
+                // Notes preview (first 100 chars)
+                let notesHtml = '';
+                if (goal.notes && goal.notes.trim()) {
+                    const notePreview = goal.notes.length > 100 ? goal.notes.substring(0, 100) + '...' : goal.notes;
+                    notesHtml = `<div style="font-size: 13px; color: var(--text-gray); margin-bottom: 12px; font-style: italic;">📝 ${notePreview}</div>`;
+                }
+
                 $container.append(`
                     <div class="goal-card ${cardClass}" data-goal-id="${goal.id}" data-progress="${progressCapped}" style="animation-delay: ${index * 0.1}s">
                         <h4>
                             ${goal.name}
                             ${statusBadge}
                         </h4>
+                        <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
+                            ${categoryBadge}
+                            ${priorityBadge}
+                        </div>
+                        ${notesHtml}
                         <div class="goal-amount">
                             <div>
                                 <strong>₹${this.formatCurrency(current)}</strong>
@@ -1260,13 +1304,63 @@
                 $('#goal-name').val(goalData.name);
                 $('#goal-target').val(goalData.target_amount);
                 $('#goal-deadline').val(goalData.deadline || '');
+                $('#goal-category').val(goalData.category || '');
+                $('#goal-priority').val(goalData.priority || '');
+                $('#goal-start-date').val(goalData.start_date || '');
+                $('#goal-notes').val(goalData.notes || '');
             } else {
                 $('#goal-modal-title').text('Add New Goal');
                 $('#goal-form')[0].reset();
                 $('#goal-id').val('');
             }
 
+            // Setup monthly savings calculator
+            this.setupMonthlySavingsCalculator();
+
             $('#goal-modal').addClass('active');
+        },
+
+        setupMonthlySavingsCalculator: function() {
+            const calculateMonthlySavings = () => {
+                const targetAmount = parseFloat($('#goal-target').val()) || 0;
+                const deadline = $('#goal-deadline').val();
+
+                if (targetAmount > 0 && deadline) {
+                    const today = new Date();
+                    const deadlineDate = new Date(deadline);
+                    const monthsDiff = (deadlineDate.getFullYear() - today.getFullYear()) * 12 +
+                                      (deadlineDate.getMonth() - today.getMonth());
+
+                    if (monthsDiff > 0) {
+                        const monthlySavings = targetAmount / monthsDiff;
+                        $('#monthly-savings-info')
+                            .text(`💡 You need to save ₹${this.formatCurrency(monthlySavings)} per month to reach this goal`)
+                            .css('color', '#0891b2')
+                            .show();
+                    } else if (monthsDiff === 0) {
+                        $('#monthly-savings-info')
+                            .text('⚠️ Deadline is this month or in the past')
+                            .css('color', '#ef4444')
+                            .show();
+                    } else {
+                        $('#monthly-savings-info')
+                            .text('⚠️ Deadline is in the past')
+                            .css('color', '#ef4444')
+                            .show();
+                    }
+                } else {
+                    $('#monthly-savings-info').hide();
+                }
+            };
+
+            // Remove previous event listeners to avoid duplicates
+            $('#goal-target, #goal-deadline').off('input change');
+
+            // Add new event listeners
+            $('#goal-target, #goal-deadline').on('input change', calculateMonthlySavings);
+
+            // Calculate on modal open if values exist
+            calculateMonthlySavings();
         },
 
         handleSaveGoal: function(e) {
@@ -1280,7 +1374,11 @@
                 nonce: rizqtrack.nonce,
                 name: $('#goal-name').val(),
                 target_amount: $('#goal-target').val(),
-                deadline: $('#goal-deadline').val()
+                deadline: $('#goal-deadline').val(),
+                category: $('#goal-category').val(),
+                priority: $('#goal-priority').val(),
+                start_date: $('#goal-start-date').val(),
+                notes: $('#goal-notes').val()
             };
 
             if (goalId) {
@@ -1629,6 +1727,20 @@
             $('#report-timeframe').val('30');
             $('#custom-date-range').hide();
 
+            // Populate category dropdown
+            const $reportCategory = $('#report-category');
+            $reportCategory.find('option:not(:first)').remove();
+
+            // Get categories from the main category select
+            $('#category option:not(:first)').each(function() {
+                const $option = $(this);
+                $reportCategory.append(
+                    $('<option></option>')
+                        .val($option.val())
+                        .text($option.text())
+                );
+            });
+
             $('#report-modal').addClass('active');
         },
 
@@ -1656,6 +1768,8 @@
             const startDate = $('#report-start-date').val();
             const endDate = $('#report-end-date').val();
             const format = $('#report-format').val();
+            const category = $('#report-category').val();
+            const type = $('#report-type').val();
 
             if (!startDate || !endDate) {
                 this.showNotification('Please select date range', 'error');
@@ -1673,6 +1787,8 @@
             form.append($('<input>', { type: 'hidden', name: 'start_date', value: startDate }));
             form.append($('<input>', { type: 'hidden', name: 'end_date', value: endDate }));
             form.append($('<input>', { type: 'hidden', name: 'format', value: format }));
+            form.append($('<input>', { type: 'hidden', name: 'category', value: category }));
+            form.append($('<input>', { type: 'hidden', name: 'type', value: type }));
 
             $('body').append(form);
             form.submit();

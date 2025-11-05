@@ -137,6 +137,8 @@
                     <button class="filter-btn" data-filter="150">5 Months</button>
                     <button class="filter-btn" data-filter="180">6 Months</button>
                     <button class="filter-btn" data-filter="210">7 Months</button>
+                    <button class="filter-btn" data-filter="240">8 Months</button>
+                    <button class="filter-btn" data-filter="270">9 Months</button>
                     <button class="filter-btn" data-filter="300">10 Months</button>
                     <button class="filter-btn" data-filter="330">11 Months</button>
                     <button class="filter-btn" data-filter="365">1 Year</button>
@@ -458,7 +460,7 @@
 </div>
 
 <div id="goal-modal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content modal-large">
         <div class="modal-header">
             <h2 id="goal-modal-title">Add New Goal</h2>
             <span class="close">&times;</span>
@@ -466,19 +468,63 @@
         <form id="goal-form">
             <input type="hidden" id="goal-id">
 
-            <div class="form-group">
-                <label for="goal-name">Goal Name</label>
-                <input type="text" id="goal-name" maxlength="200" required placeholder="e.g., Emergency Fund, Vacation">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="goal-name">Goal Name <span class="required">*</span></label>
+                    <input type="text" id="goal-name" maxlength="200" required placeholder="e.g., Emergency Fund, Vacation">
+                </div>
+
+                <div class="form-group">
+                    <label for="goal-category">Category <span class="required">*</span></label>
+                    <select id="goal-category" required>
+                        <option value="">Select Category</option>
+                        <option value="savings">💰 Savings</option>
+                        <option value="investment">📈 Investment</option>
+                        <option value="purchase">🛒 Purchase</option>
+                        <option value="emergency">🚨 Emergency Fund</option>
+                        <option value="education">🎓 Education</option>
+                        <option value="travel">✈️ Travel</option>
+                        <option value="home">🏠 Home</option>
+                        <option value="vehicle">🚗 Vehicle</option>
+                        <option value="other">📌 Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="goal-target">Target Amount <span class="required">*</span></label>
+                    <input type="number" id="goal-target" step="0.01" min="0" required placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label for="goal-priority">Priority <span class="required">*</span></label>
+                    <select id="goal-priority" required>
+                        <option value="">Select Priority</option>
+                        <option value="high">🔴 High Priority</option>
+                        <option value="medium">🟡 Medium Priority</option>
+                        <option value="low">🟢 Low Priority</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="goal-deadline">Target Deadline (Optional)</label>
+                    <input type="date" id="goal-deadline">
+                    <small id="monthly-savings-info" style="color: var(--text-gray); display: none; margin-top: 8px;"></small>
+                </div>
+
+                <div class="form-group">
+                    <label for="goal-start-date">Start Date (Optional)</label>
+                    <input type="date" id="goal-start-date">
+                </div>
             </div>
 
             <div class="form-group">
-                <label for="goal-target">Target Amount</label>
-                <input type="number" id="goal-target" step="0.01" min="0" required>
-            </div>
-
-            <div class="form-group">
-                <label for="goal-deadline">Deadline (Optional)</label>
-                <input type="date" id="goal-deadline">
+                <label for="goal-notes">Notes / Description (Optional)</label>
+                <textarea id="goal-notes" rows="3" maxlength="500" placeholder="Add any notes or details about this goal..."></textarea>
+                <small style="color: var(--text-gray);">500 characters maximum</small>
             </div>
 
             <div class="modal-actions">
@@ -514,7 +560,7 @@
 </div>
 
 <div id="report-modal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content modal-large">
         <div class="modal-header">
             <h2>📋 Generate Financial Report</h2>
             <span class="close">&times;</span>
@@ -540,6 +586,24 @@
                 <div class="form-group">
                     <label for="report-end-date">End Date</label>
                     <input type="date" id="report-end-date">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="report-category">Filter by Category (Optional)</label>
+                    <select id="report-category">
+                        <option value="all">All Categories</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="report-type">Transaction Type (Optional)</label>
+                    <select id="report-type">
+                        <option value="all">All Transactions</option>
+                        <option value="income">Income Only</option>
+                        <option value="expense">Expense Only</option>
+                    </select>
                 </div>
             </div>
 
