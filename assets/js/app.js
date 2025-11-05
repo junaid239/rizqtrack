@@ -158,7 +158,6 @@
             this.loadGoals();
             this.loadAchievements();
             this.loadChallenges();
-            this.checkAchievements(); // Check for new achievements on load
             this.loadBudgets();
             this.checkBudgetAlerts();
         },
@@ -300,11 +299,11 @@
                         $('#kpi-top-category').text(data.top_category);
                         $('#kpi-most-frequent-category').text(data.most_frequent_category);
                         $('#kpi-days-without-spending').text(data.days_without_spending);
-                        $('#kpi-income-streams').text(data.income_streams);
+                        $('#kpi-busiest-day').text(data.busiest_day);
                     }
                 },
                 error: () => {
-                    $('#kpi-income, #kpi-expense, #kpi-savings, #kpi-transaction-count, #kpi-avg-transaction, #kpi-top-category, #kpi-most-frequent-category, #kpi-days-without-spending, #kpi-income-streams').text('Error');
+                    $('#kpi-income, #kpi-expense, #kpi-savings, #kpi-transaction-count, #kpi-avg-transaction, #kpi-top-category, #kpi-most-frequent-category, #kpi-days-without-spending, #kpi-busiest-day').text('Error');
                 }
             });
         },
@@ -2104,17 +2103,25 @@
                 '52_week': '<strong>📅 52-Week Challenge:</strong> Save incrementally each week. Week 1: ₹1, Week 2: ₹2... Week 52: ₹52. Total saved: ₹13,780!',
                 'no_spend': '<strong>🚫 No-Spend Challenge:</strong> Commit to 30 days of minimal spending. Only essentials allowed. Save more by cutting unnecessary expenses.',
                 '1000_month': '<strong>💰 Monthly Savings:</strong> Save ₹1000 every month for a year. Build the habit of consistent saving. Total: ₹12,000.',
-                'emergency_fund': '<strong>🚨 Emergency Fund:</strong> Build your safety net. Save enough to cover 3 months of expenses. Financial security starts here!'
+                'emergency_fund': '<strong>🚨 Emergency Fund:</strong> Build your safety net. Save enough to cover 3 months of expenses. Financial security starts here!',
+                'custom': '<strong>🎯 Custom Challenge:</strong> Create your own personalized savings challenge with a custom name, target amount, and duration!'
             };
 
+            // Hide all optional fields first
+            $('#emergency-fund-amount').hide();
+            $('#custom-challenge-fields').hide();
+
+            // Show appropriate fields based on selection
             if (type === 'emergency_fund') {
                 $('#emergency-fund-amount').show();
-            } else {
-                $('#emergency-fund-amount').hide();
+            } else if (type === 'custom') {
+                $('#custom-challenge-fields').show();
             }
 
             if (descriptions[type]) {
                 $('#challenge-description').html(`<p style="margin: 0; color: #1f2937;">${descriptions[type]}</p>`);
+            } else {
+                $('#challenge-description').html('<p style="margin: 0; color: #6b7280;">Select a challenge to see details</p>');
             }
         },
 
@@ -2122,22 +2129,44 @@
             e.preventDefault();
 
             const challengeType = $('#challenge-type').val();
-            const targetAmount = $('#challenge-target').val();
 
             if (!challengeType) {
                 this.showNotification('Please select a challenge', 'error');
                 return;
             }
 
+            let data = {
+                action: 'rizqtrack_start_challenge',
+                nonce: rizqtrack.nonce,
+                challenge_type: challengeType
+            };
+
+            // Handle different challenge types
+            if (challengeType === 'emergency_fund') {
+                data.target_amount = $('#challenge-target').val();
+                if (!data.target_amount) {
+                    this.showNotification('Please enter target amount', 'error');
+                    return;
+                }
+            } else if (challengeType === 'custom') {
+                const customName = $('#custom-challenge-name').val();
+                const customAmount = $('#custom-challenge-amount').val();
+                const customWeeks = $('#custom-challenge-weeks').val();
+
+                if (!customName || !customAmount || !customWeeks) {
+                    this.showNotification('Please fill in all custom challenge fields', 'error');
+                    return;
+                }
+
+                data.custom_name = customName;
+                data.target_amount = customAmount;
+                data.custom_weeks = customWeeks;
+            }
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
-                data: {
-                    action: 'rizqtrack_start_challenge',
-                    nonce: rizqtrack.nonce,
-                    challenge_type: challengeType,
-                    target_amount: targetAmount
-                },
+                data: data,
                 success: (response) => {
                     if (response.success) {
                         this.showNotification(response.data.message, 'success');

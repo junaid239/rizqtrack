@@ -698,11 +698,14 @@ class RizqTrack {
             $days_without_spending = $interval->days;
         }
 
-        // Get number of income streams (distinct income categories used)
-        $income_streams = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(DISTINCT category_id)
+        // Get busiest spending day (day of week with most expense transactions)
+        $busiest_day = $wpdb->get_row($wpdb->prepare(
+            "SELECT DAYNAME(date) as day_name, COUNT(*) as count
             FROM {$this->table_transactions}
-            WHERE user_id = %d AND status = 'Active' AND type = 'income'",
+            WHERE user_id = %d AND status = 'Active' AND type = 'expense'
+            GROUP BY DAYOFWEEK(date), DAYNAME(date)
+            ORDER BY count DESC
+            LIMIT 1",
             $user_id
         ));
 
@@ -715,7 +718,7 @@ class RizqTrack {
             'top_category' => $top_category ? $top_category->emoji . ' ' . $top_category->name : 'N/A',
             'most_frequent_category' => $most_frequent_category ? $most_frequent_category->emoji . ' ' . $most_frequent_category->name : 'N/A',
             'days_without_spending' => intval($days_without_spending),
-            'income_streams' => intval($income_streams)
+            'busiest_day' => $busiest_day ? $busiest_day->day_name : 'N/A'
         ];
 
         wp_send_json_success($kpi_data);
@@ -1600,6 +1603,12 @@ HTML;
                 'target' => floatval($_POST['target_amount'] ?? 30000),
                 'weeks' => 26, // 6 months to build
                 'description' => 'Build an emergency fund covering 3 months of expenses'
+            ],
+            'custom' => [
+                'name' => sanitize_text_field($_POST['custom_name'] ?? 'Custom Challenge'),
+                'target' => floatval($_POST['target_amount'] ?? 10000),
+                'weeks' => intval($_POST['custom_weeks'] ?? 12),
+                'description' => 'Custom savings challenge'
             ]
         ];
 

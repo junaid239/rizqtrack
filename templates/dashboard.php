@@ -51,14 +51,14 @@
             <div class="kpi-icon top-spend">🎯</div>
             <div class="kpi-content">
                 <span class="kpi-label">Top Category</span>
-                <span class="kpi-value small" id="kpi-top-category">Loading...</span>
+                <span class="kpi-value" id="kpi-top-category">Loading...</span>
             </div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon frequent-category">🔁</div>
             <div class="kpi-content">
                 <span class="kpi-label">Most Frequent</span>
-                <span class="kpi-value small" id="kpi-most-frequent-category">Loading...</span>
+                <span class="kpi-value" id="kpi-most-frequent-category">Loading...</span>
             </div>
         </div>
         <div class="kpi-card">
@@ -69,15 +69,15 @@
             </div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-icon income-streams">💼</div>
+            <div class="kpi-icon busiest-day">📅</div>
             <div class="kpi-content">
-                <span class="kpi-label">Income Streams</span>
-                <span class="kpi-value" id="kpi-income-streams">Loading...</span>
+                <span class="kpi-label">Busiest Day</span>
+                <span class="kpi-value" id="kpi-busiest-day">Loading...</span>
             </div>
         </div>
     </div>
 
-    <div class="rizqtrack-card transaction-form-card">
+    <div class="rizqtrack-card transaction-form-card" style="margin-top: 32px;">
         <h2 class="section-title">Add Transaction</h2>
         <form id="transaction-form" class="transaction-form">
             <div class="form-row">
@@ -136,12 +136,12 @@
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">✅ Save Transaction</button>
+                <button type="submit" class="btn btn-primary">Save Transaction</button>
             </div>
         </form>
     </div>
 
-    <div class="visualization-section">
+    <div class="visualization-section" style="margin-top: 32px;">
         <h2 class="section-title">Financial Overview</h2>
 
         <!-- Unified Filters Section -->
@@ -766,6 +766,7 @@
                     <option value="no_spend">🚫 30-Day No-Spend Challenge</option>
                     <option value="1000_month">📊 Save ₹1000/Month for a Year (₹12,000)</option>
                     <option value="emergency_fund">🚨 3-Month Emergency Fund</option>
+                    <option value="custom">🎯 Custom Challenge</option>
                 </select>
             </div>
 
@@ -774,6 +775,22 @@
                     <label for="challenge-target">Target Amount (₹)</label>
                     <input type="number" id="challenge-target" step="1000" placeholder="30000">
                     <small>Enter your 3-month expense amount</small>
+                </div>
+            </div>
+
+            <div id="custom-challenge-fields" style="display: none;">
+                <div class="form-group">
+                    <label for="custom-challenge-name">Challenge Name <span class="required">*</span></label>
+                    <input type="text" id="custom-challenge-name" placeholder="My Savings Goal" maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label for="custom-challenge-amount">Target Amount (₹) <span class="required">*</span></label>
+                    <input type="number" id="custom-challenge-amount" step="100" min="1" placeholder="10000">
+                </div>
+                <div class="form-group">
+                    <label for="custom-challenge-weeks">Duration (weeks) <span class="required">*</span></label>
+                    <input type="number" id="custom-challenge-weeks" step="1" min="1" max="104" placeholder="12">
+                    <small>Choose duration between 1-104 weeks (up to 2 years)</small>
                 </div>
             </div>
 
