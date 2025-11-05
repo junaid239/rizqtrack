@@ -2311,7 +2311,8 @@
                 amount: $('#budget-amount').val(),
                 period: $('#budget-period').val(),
                 alert_threshold: $('#budget-threshold').val(),
-                rollover: $('#budget-rollover').is(':checked') ? 1 : 0
+                rollover: $('#budget-rollover').is(':checked') ? 1 : 0,
+                start_date: new Date().toISOString().split('T')[0]
             };
 
             if (budgetId) {
