@@ -232,7 +232,6 @@
             $(document).on('click', '.delete-budget-btn', this.handleDeleteBudget.bind(this));
 
             // Email Reports
-            $('#test-email-btn').on('click', this.handleTestEmail.bind(this));
             $('#send-email-now-btn').on('click', this.handleSendEmailNow.bind(this));
         },
 
@@ -857,8 +856,8 @@
                 return;
             }
 
-            // Get top 10 most frequent expenses
-            const labels = data.map(d => d.description);
+            // Get top 10 most frequent categories
+            const labels = data.map(d => `${d.emoji} ${d.name}`);
             const counts = data.map(d => parseInt(d.count) || 0);
             const amounts = data.map(d => parseFloat(d.total_amount) || 0);
 
@@ -2543,49 +2542,18 @@
         // ===========================================
         // EMAIL REPORT FUNCTIONS
         // ===========================================
-        handleTestEmail: function() {
-            const emailAddress = $('#email-address').val();
-
-            if (!emailAddress) {
-                this.showNotification('Please enter an email address first', 'error');
-                return;
-            }
-
-            // Basic email validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(emailAddress)) {
-                this.showNotification('Please enter a valid email address', 'error');
-                return;
-            }
-
-            this.showNotification('Sending test email...', 'info');
-
-            $.ajax({
-                url: rizqtrack.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'rizqtrack_test_email',
-                    nonce: rizqtrack.nonce,
-                    email: emailAddress
-                },
-                success: (response) => {
-                    if (response.success) {
-                        this.showNotification(response.data.message, 'success');
-                    } else {
-                        this.showNotification(response.data.message, 'error');
-                    }
-                },
-                error: () => {
-                    this.showNotification('Failed to send test email. Please try again.', 'error');
-                }
-            });
-        },
-
         handleSendEmailNow: function() {
             const emailAddress = $('#email-address').val();
+            const startDate = $('#email-start-date').val();
+            const endDate = $('#email-end-date').val();
 
             if (!emailAddress) {
-                this.showNotification('Please enter an email address first', 'error');
+                this.showNotification('Please enter an email address', 'error');
+                return;
+            }
+
+            if (!startDate || !endDate) {
+                this.showNotification('Please select both start and end dates', 'error');
                 return;
             }
 
@@ -2596,11 +2564,17 @@
                 return;
             }
 
-            if (!confirm('Send a financial report to ' + emailAddress + '?')) {
+            // Date validation
+            if (new Date(startDate) > new Date(endDate)) {
+                this.showNotification('Start date must be before end date', 'error');
                 return;
             }
 
-            this.showNotification('Generating and sending report...', 'info');
+            if (!confirm('Send a financial report to ' + emailAddress + ' for the period ' + startDate + ' to ' + endDate + '?')) {
+                return;
+            }
+
+            this.showNotification('Generating and sending comprehensive report...', 'info');
 
             $.ajax({
                 url: rizqtrack.ajax_url,
@@ -2608,7 +2582,9 @@
                 data: {
                     action: 'rizqtrack_send_email_now',
                     nonce: rizqtrack.nonce,
-                    email: emailAddress
+                    email: emailAddress,
+                    start_date: startDate,
+                    end_date: endDate
                 },
                 success: (response) => {
                     if (response.success) {

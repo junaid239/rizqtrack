@@ -183,7 +183,7 @@
             </div>
 
             <div class="chart-card">
-                <h3>🔄 Top Frequent Expenses</h3>
+                <h3>🔄 Most Frequent Categories</h3>
                 <div class="chart-wrapper">
                     <canvas id="top-frequent-chart"></canvas>
                 </div>
@@ -193,16 +193,6 @@
                 <h3>📉 Spending Over Time</h3>
                 <div class="chart-wrapper">
                     <canvas id="spending-trend-chart"></canvas>
-                </div>
-            </div>
-
-            <div class="chart-card full-width-chart">
-                <h3 id="category-details-title">📋 Category Details</h3>
-                <p class="chart-subtitle">Click on a category in the breakdown chart to view detailed transactions</p>
-                <div class="category-details-wrapper">
-                    <div id="category-details-container">
-                        <div class="no-data">Select a category from the breakdown chart to view transaction details</div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -721,19 +711,31 @@
                 <small>Reports will be sent to this email address</small>
             </div>
 
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="email-start-date">Report Start Date</label>
+                    <input type="date" id="email-start-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="email-end-date">Report End Date</label>
+                    <input type="date" id="email-end-date" required>
+                </div>
+            </div>
+
             <div class="info-box">
                 <strong>📊 Report will include:</strong>
                 <ul>
-                    <li>Income vs Expense summary</li>
-                    <li>Top spending categories</li>
-                    <li>Financial goals progress</li>
-                    <li>Transaction highlights</li>
+                    <li>📈 All financial charts (Category Breakdown, Frequent Categories, Spending Trend)</li>
+                    <li>💰 Income vs Expense summary with date range</li>
+                    <li>🎯 Financial goals progress</li>
+                    <li>💪 Active savings challenges</li>
+                    <li>📊 Budget status and alerts</li>
+                    <li>🏆 Top spending categories</li>
                 </ul>
             </div>
 
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
-                <button type="button" class="btn btn-info" id="test-email-btn">🧪 Test Email</button>
                 <button type="button" class="btn btn-success" id="send-email-now-btn">📨 Send Now</button>
                 <button type="submit" class="btn btn-primary">Save Settings</button>
             </div>

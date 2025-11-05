@@ -592,15 +592,14 @@ class RizqTrack {
         $category_params = array_merge([$user_id, $days], $category_filter_params);
         $category_data = $wpdb->get_results($wpdb->prepare($category_query, $category_params));
 
-        // Top Frequent Expenses (with category filter)
-        $top_frequent_query = "SELECT t.description, COUNT(*) as count, SUM(t.amount) as total_amount
+        // Top Frequent Categories (with category filter)
+        $top_frequent_query = "SELECT c.name, c.emoji, COUNT(*) as count, SUM(t.amount) as total_amount
             FROM {$this->table_transactions} t
             LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
             WHERE t.user_id = %d AND t.status = 'Active' AND t.type = 'expense'
             AND t.date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
-            AND t.description IS NOT NULL AND t.description != ''
             $category_filter_sql
-            GROUP BY t.description
+            GROUP BY c.id, c.name, c.emoji
             ORDER BY count DESC, total_amount DESC
             LIMIT 10";
 
@@ -1768,6 +1767,18 @@ HTML;
         $start_date = date('Y-m-d');
         $end_date = date('Y-m-d', strtotime("+{$template['weeks']} weeks"));
 
+        // Check if user already has an active challenge of this type
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$this->table_challenges}
+            WHERE user_id = %d AND challenge_type = %s AND status = 'active'",
+            $user_id, $challenge_type
+        ));
+
+        if ($existing) {
+            wp_send_json_error(['message' => 'You already have an active ' . $template['name'] . '. Complete or cancel it before starting a new one.']);
+            wp_die();
+        }
+
         $result = $wpdb->insert($this->table_challenges, [
             'user_id' => $user_id,
             'challenge_type' => $challenge_type,
@@ -1783,7 +1794,7 @@ HTML;
         if ($result) {
             wp_send_json_success(['message' => 'Challenge started!', 'challenge_id' => $wpdb->insert_id]);
         } else {
-            wp_send_json_error(['message' => 'Failed to start challenge']);
+            wp_send_json_error(['message' => 'Failed to start challenge. Error: ' . $wpdb->last_error]);
         }
         wp_die();
     }
@@ -1875,18 +1886,32 @@ HTML;
 
         if (empty($_POST['category_id']) || empty($_POST['amount'])) {
             wp_send_json_error(['message' => 'Please fill in all required fields']);
-            return;
+            wp_die();
         }
 
+        $category_id = intval($_POST['category_id']);
         $amount = floatval($_POST['amount']);
+
         if ($amount <= 0) {
             wp_send_json_error(['message' => 'Budget amount must be greater than 0']);
-            return;
+            wp_die();
+        }
+
+        // Check if budget already exists for this category
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$this->table_budgets}
+            WHERE user_id = %d AND category_id = %d AND status = 'active'",
+            $user_id, $category_id
+        ));
+
+        if ($existing) {
+            wp_send_json_error(['message' => 'This category already has an active budget. Please edit the existing budget instead.']);
+            wp_die();
         }
 
         $result = $wpdb->insert($this->table_budgets, [
             'user_id' => $user_id,
-            'category_id' => intval($_POST['category_id']),
+            'category_id' => $category_id,
             'amount' => $amount,
             'period' => sanitize_text_field($_POST['period'] ?? 'monthly'),
             'start_date' => sanitize_text_field($_POST['start_date'] ?? date('Y-m-d')),
@@ -1898,7 +1923,7 @@ HTML;
         if ($result) {
             wp_send_json_success(['message' => 'Budget added successfully!']);
         } else {
-            wp_send_json_error(['message' => 'Failed to add budget. This category may already have a budget.']);
+            wp_send_json_error(['message' => 'Failed to add budget. Error: ' . $wpdb->last_error]);
         }
         wp_die();
     }
