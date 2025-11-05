@@ -159,6 +159,8 @@
             this.loadAchievements();
             this.loadChallenges();
             this.checkAchievements(); // Check for new achievements on load
+            this.loadBudgets();
+            this.checkBudgetAlerts();
         },
 
         setupEventListeners: function() {
@@ -227,6 +229,12 @@
             $('#challenge-form').on('submit', this.handleStartChallenge.bind(this));
             $('#challenge-type').on('change', this.handleChallengeTypeChange.bind(this));
             $(document).on('click', '.complete-challenge-btn', this.handleCompleteChallenge.bind(this));
+
+            // Budgets
+            $('#add-budget-btn').on('click', this.openBudgetModal.bind(this));
+            $('#budget-form').on('submit', this.handleSaveBudget.bind(this));
+            $(document).on('click', '.edit-budget-btn', this.handleEditBudget.bind(this));
+            $(document).on('click', '.delete-budget-btn', this.handleDeleteBudget.bind(this));
         },
 
         showRandomQuote: function() {
@@ -2159,6 +2167,268 @@
                         this.showNotification(response.data.message, 'success');
                         this.loadChallenges();
                         this.checkAchievements(); // Check for new achievements
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                }
+            });
+        },
+
+        // Budget Management Functions
+        loadBudgets: function() {
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_get_budget_vs_actual',
+                    nonce: rizqtrack.nonce
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.renderBudgets(response.data);
+                    }
+                }
+            });
+        },
+
+        renderBudgets: function(budgets) {
+            const $container = $('#budget-container');
+            $container.empty();
+
+            if (budgets.length === 0) {
+                $container.append('<div class="no-data">No budgets set. Click "Set Budget" to create your first budget!</div>');
+                return;
+            }
+
+            budgets.forEach(budget => {
+                const progressCapped = Math.min(budget.percentage, 100);
+                let statusClass = '';
+
+                if (budget.is_over_budget) {
+                    statusClass = 'danger';
+                } else if (budget.is_warning) {
+                    statusClass = 'warning';
+                }
+
+                const remainingText = budget.remaining >= 0
+                    ? `₹${this.formatCurrency(budget.remaining)} remaining`
+                    : `₹${this.formatCurrency(Math.abs(budget.remaining))} over budget`;
+
+                $container.append(`
+                    <div class="budget-card ${statusClass}">
+                        <div class="budget-header">
+                            <div class="budget-category">
+                                <span class="budget-category-emoji">${budget.category_emoji}</span>
+                                <div>
+                                    <div class="budget-category-name">${budget.category_name}</div>
+                                    <div class="budget-period">${budget.period}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="budget-amounts">
+                            <span class="budget-spent">₹${this.formatCurrency(budget.actual_amount)}</span>
+                            <span class="budget-limit">of ₹${this.formatCurrency(budget.budget_amount)}</span>
+                        </div>
+                        <div class="budget-progress-bar">
+                            <div class="budget-progress-fill" style="width: ${progressCapped}%"></div>
+                        </div>
+                        <div class="budget-stats">
+                            <span class="budget-remaining">${remainingText}</span>
+                            <span class="budget-percentage">${budget.percentage}%</span>
+                        </div>
+                        <div class="budget-actions">
+                            <button class="btn btn-sm btn-secondary edit-budget-btn"
+                                    data-id="${budget.budget_id}"
+                                    data-category="${budget.category_id}"
+                                    data-amount="${budget.budget_amount}"
+                                    data-period="${budget.period}"
+                                    data-threshold="${budget.alert_threshold}">
+                                ✏️ Edit
+                            </button>
+                            <button class="btn btn-sm btn-danger delete-budget-btn" data-id="${budget.budget_id}">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </div>
+                `);
+            });
+        },
+
+        checkBudgetAlerts: function() {
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_check_budget_alerts',
+                    nonce: rizqtrack.nonce
+                },
+                success: (response) => {
+                    if (response.success && response.data.alerts.length > 0) {
+                        this.showBudgetAlerts(response.data.alerts);
+                    } else {
+                        $('#budget-alerts-container').hide();
+                    }
+                }
+            });
+        },
+
+        showBudgetAlerts: function(alerts) {
+            const $container = $('#budget-alerts-container');
+            $container.empty();
+
+            let alertHTML = `
+                <div class="budget-alert-title">⚠️ Budget Alerts</div>
+                <ul class="budget-alert-list">
+            `;
+
+            alerts.forEach(alert => {
+                const statusText = alert.is_over_budget
+                    ? `${alert.percentage}% - OVER BUDGET!`
+                    : `${alert.percentage}% spent`;
+
+                alertHTML += `
+                    <li class="budget-alert-item">
+                        <span class="budget-alert-category">
+                            ${alert.category_emoji} ${alert.category_name}
+                        </span>
+                        <span class="budget-alert-status">${statusText}</span>
+                    </li>
+                `;
+            });
+
+            alertHTML += '</ul>';
+            $container.html(alertHTML).show();
+        },
+
+        openBudgetModal: function() {
+            $('#budget-modal-title').text('💰 Set Budget');
+            $('#budget-form')[0].reset();
+            $('#budget-id').val('');
+
+            // Load categories for budget dropdown
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_get_categories',
+                    nonce: rizqtrack.nonce
+                },
+                success: (response) => {
+                    if (response.success) {
+                        const $select = $('#budget-category');
+                        $select.find('option:not(:first)').remove();
+
+                        // Only show expense categories
+                        const expenseCategories = response.data.filter(cat =>
+                            cat.type === 'expense' || cat.type === 'both'
+                        );
+
+                        expenseCategories.forEach(category => {
+                            $select.append(`<option value="${category.id}">${category.emoji} ${category.name}</option>`);
+                        });
+                    }
+                }
+            });
+
+            $('#budget-modal').show();
+        },
+
+        handleSaveBudget: function(e) {
+            e.preventDefault();
+
+            const budgetId = $('#budget-id').val();
+            const action = budgetId ? 'rizqtrack_update_budget' : 'rizqtrack_add_budget';
+
+            const data = {
+                action: action,
+                nonce: rizqtrack.nonce,
+                category_id: $('#budget-category').val(),
+                amount: $('#budget-amount').val(),
+                period: $('#budget-period').val(),
+                alert_threshold: $('#budget-threshold').val(),
+                rollover: $('#budget-rollover').is(':checked') ? 1 : 0
+            };
+
+            if (budgetId) {
+                data.budget_id = budgetId;
+            }
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: data,
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification(response.data.message, 'success');
+                        $('#budget-modal').hide();
+                        this.loadBudgets();
+                        this.checkBudgetAlerts();
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                }
+            });
+        },
+
+        handleEditBudget: function(e) {
+            const $btn = $(e.currentTarget);
+
+            $('#budget-modal-title').text('✏️ Edit Budget');
+            $('#budget-id').val($btn.data('id'));
+            $('#budget-category').val($btn.data('category')).prop('disabled', true);
+            $('#budget-amount').val($btn.data('amount'));
+            $('#budget-period').val($btn.data('period'));
+            $('#budget-threshold').val($btn.data('threshold'));
+
+            // Load categories
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_get_categories',
+                    nonce: rizqtrack.nonce
+                },
+                success: (response) => {
+                    if (response.success) {
+                        const $select = $('#budget-category');
+                        $select.find('option:not(:first)').remove();
+
+                        const expenseCategories = response.data.filter(cat =>
+                            cat.type === 'expense' || cat.type === 'both'
+                        );
+
+                        expenseCategories.forEach(category => {
+                            $select.append(`<option value="${category.id}">${category.emoji} ${category.name}</option>`);
+                        });
+
+                        $select.val($btn.data('category'));
+                    }
+                }
+            });
+
+            $('#budget-modal').show();
+        },
+
+        handleDeleteBudget: function(e) {
+            const budgetId = $(e.currentTarget).data('id');
+
+            if (!confirm('Are you sure you want to delete this budget?')) {
+                return;
+            }
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_delete_budget',
+                    nonce: rizqtrack.nonce,
+                    budget_id: budgetId
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification(response.data.message, 'success');
+                        this.loadBudgets();
+                        this.checkBudgetAlerts();
                     } else {
                         this.showNotification(response.data.message, 'error');
                     }

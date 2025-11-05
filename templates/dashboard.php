@@ -361,6 +361,31 @@
         </div>
     </div>
 
+    <div class="budget-section">
+        <div class="section-header">
+            <h2 class="section-title">💰 Budget Management</h2>
+            <button class="btn btn-secondary" id="add-budget-btn">➕ Set Budget</button>
+        </div>
+
+        <div id="budget-alerts-container" class="budget-alerts" style="display: none;">
+            <!-- Budget alerts will appear here -->
+        </div>
+
+        <div id="budget-container" class="budget-grid">
+            <div class="loading-message">Loading budgets...</div>
+        </div>
+
+        <div class="budget-info" style="margin-top: 16px; padding: 16px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+            <strong>💡 Budget Tips:</strong>
+            <ul style="margin: 8px 0 0 20px; color: #1f2937;">
+                <li>Set realistic budgets for each expense category</li>
+                <li>Get alerts when spending reaches 80% of budget</li>
+                <li>Track budget vs actual spending in real-time</li>
+                <li>Monthly or yearly budget periods available</li>
+            </ul>
+        </div>
+    </div>
+
     <div class="management-section">
         <h2 class="section-title">Data Management & Reports</h2>
         <div class="action-cards">
@@ -738,6 +763,57 @@
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
                 <button type="submit" class="btn btn-primary">Start Challenge</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="budget-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="budget-modal-title">💰 Set Budget</h2>
+            <span class="close">&times;</span>
+        </div>
+        <form id="budget-form">
+            <input type="hidden" id="budget-id">
+
+            <div class="form-group">
+                <label for="budget-category">Category <span class="required">*</span></label>
+                <select id="budget-category" required>
+                    <option value="">Choose a category...</option>
+                    <!-- Categories will be loaded dynamically -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="budget-amount">Budget Amount (₹) <span class="required">*</span></label>
+                <input type="number" id="budget-amount" step="100" min="1" required placeholder="5000">
+            </div>
+
+            <div class="form-group">
+                <label for="budget-period">Period <span class="required">*</span></label>
+                <select id="budget-period" required>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="budget-threshold">Alert Threshold (%)</label>
+                <input type="number" id="budget-threshold" min="50" max="100" value="80" step="5">
+                <small>Get notified when spending reaches this percentage</small>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="budget-rollover">
+                    Rollover unused budget to next period
+                </label>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Budget</button>
             </div>
         </form>
     </div>

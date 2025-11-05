@@ -19,6 +19,7 @@ class RizqTrack {
     private $table_goals;
     private $table_achievements;
     private $table_challenges;
+    private $table_budgets;
 
     public static function get_instance() {
         if (self::$instance == null) {
@@ -34,6 +35,7 @@ class RizqTrack {
         $this->table_goals = $wpdb->prefix . 'rizqtrack_goals';
         $this->table_achievements = $wpdb->prefix . 'rizqtrack_achievements';
         $this->table_challenges = $wpdb->prefix . 'rizqtrack_challenges';
+        $this->table_budgets = $wpdb->prefix . 'rizqtrack_budgets';
 
         register_activation_hook(__FILE__, [$this, 'activate']);
         add_action('admin_menu', [$this, 'add_menu']);
@@ -132,12 +134,31 @@ class RizqTrack {
             KEY status (status)
         ) $charset;";
 
+        $sql_budgets = "CREATE TABLE IF NOT EXISTS {$this->table_budgets} (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) NOT NULL,
+            category_id bigint(20) NOT NULL,
+            amount decimal(10,2) NOT NULL,
+            period enum('monthly','yearly') DEFAULT 'monthly',
+            start_date date NOT NULL,
+            rollover tinyint(1) DEFAULT 0,
+            alert_threshold int DEFAULT 80,
+            status enum('active','inactive') DEFAULT 'active',
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY user_id (user_id),
+            KEY category_id (category_id),
+            KEY status (status),
+            UNIQUE KEY user_category_budget (user_id, category_id, period)
+        ) $charset;";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql_transactions);
         dbDelta($sql_categories);
         dbDelta($sql_goals);
         dbDelta($sql_achievements);
         dbDelta($sql_challenges);
+        dbDelta($sql_budgets);
     }
 
     private function create_default_categories() {
@@ -220,6 +241,31 @@ class RizqTrack {
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('rizqtrack_nonce')
         ]);
+
+        // PWA Support - Add manifest link and service worker
+        add_action('wp_head', function() {
+            echo '<link rel="manifest" href="' . plugin_dir_url(__FILE__) . 'assets/manifest.json">';
+            echo '<meta name="theme-color" content="#0891b2">';
+            echo '<meta name="apple-mobile-web-app-capable" content="yes">';
+            echo '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">';
+            echo '<meta name="apple-mobile-web-app-title" content="RizqTrack">';
+            echo '<link rel="apple-touch-icon" href="' . plugin_dir_url(__FILE__) . 'assets/icons/icon-192x192.png">';
+        });
+
+        // Register service worker inline script
+        wp_add_inline_script('rizqtrack-script', "
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('" . plugin_dir_url(__FILE__) . "assets/sw.js')
+                        .then(function(registration) {
+                            console.log('[RizqTrack] Service Worker registered:', registration.scope);
+                        })
+                        .catch(function(error) {
+                            console.log('[RizqTrack] Service Worker registration failed:', error);
+                        });
+                });
+            }
+        ", 'after');
     }
 
     private function register_ajax_endpoints() {
@@ -232,7 +278,8 @@ class RizqTrack {
             'contribute_goal_transaction', 'generate_report', 'get_kpi_data',
             'get_email_settings', 'save_email_settings',
             'get_achievements', 'check_achievements',
-            'get_challenges', 'start_challenge', 'update_challenge', 'complete_challenge'
+            'get_challenges', 'start_challenge', 'update_challenge', 'complete_challenge',
+            'get_budgets', 'add_budget', 'update_budget', 'delete_budget', 'check_budget_alerts', 'get_budget_vs_actual'
         ];
 
         foreach ($endpoints as $endpoint) {
@@ -1603,6 +1650,241 @@ HTML;
         } else {
             wp_send_json_error(['message' => 'Failed to complete challenge']);
         }
+        wp_die();
+    }
+
+    // Budget Management Functions
+    public function ajax_get_budgets() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+
+        $budgets = $wpdb->get_results($wpdb->prepare(
+            "SELECT b.*, c.name as category_name, c.emoji as category_emoji
+            FROM {$this->table_budgets} b
+            LEFT JOIN {$this->table_categories} c ON b.category_id = c.id
+            WHERE b.user_id = %d AND b.status = 'active'
+            ORDER BY c.name",
+            $user_id
+        ));
+
+        wp_send_json_success($budgets);
+        wp_die();
+    }
+
+    public function ajax_add_budget() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+
+        if (empty($_POST['category_id']) || empty($_POST['amount'])) {
+            wp_send_json_error(['message' => 'Please fill in all required fields']);
+            return;
+        }
+
+        $amount = floatval($_POST['amount']);
+        if ($amount <= 0) {
+            wp_send_json_error(['message' => 'Budget amount must be greater than 0']);
+            return;
+        }
+
+        $result = $wpdb->insert($this->table_budgets, [
+            'user_id' => $user_id,
+            'category_id' => intval($_POST['category_id']),
+            'amount' => $amount,
+            'period' => sanitize_text_field($_POST['period'] ?? 'monthly'),
+            'start_date' => sanitize_text_field($_POST['start_date'] ?? date('Y-m-d')),
+            'rollover' => isset($_POST['rollover']) ? 1 : 0,
+            'alert_threshold' => intval($_POST['alert_threshold'] ?? 80),
+            'status' => 'active'
+        ]);
+
+        if ($result) {
+            wp_send_json_success(['message' => 'Budget added successfully!']);
+        } else {
+            wp_send_json_error(['message' => 'Failed to add budget. This category may already have a budget.']);
+        }
+        wp_die();
+    }
+
+    public function ajax_update_budget() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $budget_id = intval($_POST['budget_id']);
+
+        if (empty($_POST['amount'])) {
+            wp_send_json_error(['message' => 'Budget amount is required']);
+            return;
+        }
+
+        $amount = floatval($_POST['amount']);
+        if ($amount <= 0) {
+            wp_send_json_error(['message' => 'Budget amount must be greater than 0']);
+            return;
+        }
+
+        $result = $wpdb->update(
+            $this->table_budgets,
+            [
+                'amount' => $amount,
+                'period' => sanitize_text_field($_POST['period'] ?? 'monthly'),
+                'rollover' => isset($_POST['rollover']) ? 1 : 0,
+                'alert_threshold' => intval($_POST['alert_threshold'] ?? 80)
+            ],
+            ['id' => $budget_id, 'user_id' => $user_id]
+        );
+
+        if ($result !== false) {
+            wp_send_json_success(['message' => 'Budget updated successfully!']);
+        } else {
+            wp_send_json_error(['message' => 'Failed to update budget']);
+        }
+        wp_die();
+    }
+
+    public function ajax_delete_budget() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $budget_id = intval($_POST['budget_id']);
+
+        $result = $wpdb->update(
+            $this->table_budgets,
+            ['status' => 'inactive'],
+            ['id' => $budget_id, 'user_id' => $user_id]
+        );
+
+        if ($result) {
+            wp_send_json_success(['message' => 'Budget deleted successfully!']);
+        } else {
+            wp_send_json_error(['message' => 'Failed to delete budget']);
+        }
+        wp_die();
+    }
+
+    public function ajax_get_budget_vs_actual() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+
+        // Get all active budgets
+        $budgets = $wpdb->get_results($wpdb->prepare(
+            "SELECT b.*, c.name as category_name, c.emoji as category_emoji
+            FROM {$this->table_budgets} b
+            LEFT JOIN {$this->table_categories} c ON b.category_id = c.id
+            WHERE b.user_id = %d AND b.status = 'active'",
+            $user_id
+        ));
+
+        $results = [];
+
+        foreach ($budgets as $budget) {
+            // Calculate date range based on period
+            if ($budget->period === 'monthly') {
+                $start_date = date('Y-m-01');
+                $end_date = date('Y-m-t');
+            } else { // yearly
+                $start_date = date('Y-01-01');
+                $end_date = date('Y-12-31');
+            }
+
+            // Get actual spending for this category
+            $actual = $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(amount), 0)
+                FROM {$this->table_transactions}
+                WHERE user_id = %d
+                AND category_id = %d
+                AND type = 'expense'
+                AND status = 'Active'
+                AND date >= %s
+                AND date <= %s",
+                $user_id, $budget->category_id, $start_date, $end_date
+            ));
+
+            $percentage = ($actual / $budget->amount) * 100;
+            $remaining = $budget->amount - $actual;
+
+            $results[] = [
+                'budget_id' => $budget->id,
+                'category_id' => $budget->category_id,
+                'category_name' => $budget->category_name,
+                'category_emoji' => $budget->category_emoji,
+                'budget_amount' => floatval($budget->amount),
+                'actual_amount' => floatval($actual),
+                'remaining' => floatval($remaining),
+                'percentage' => round($percentage, 1),
+                'period' => $budget->period,
+                'alert_threshold' => $budget->alert_threshold,
+                'is_over_budget' => $actual > $budget->amount,
+                'is_warning' => $percentage >= $budget->alert_threshold
+            ];
+        }
+
+        wp_send_json_success($results);
+        wp_die();
+    }
+
+    public function ajax_check_budget_alerts() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+
+        // Get budget vs actual data
+        $budgets = $wpdb->get_results($wpdb->prepare(
+            "SELECT b.*, c.name as category_name, c.emoji as category_emoji
+            FROM {$this->table_budgets} b
+            LEFT JOIN {$this->table_categories} c ON b.category_id = c.id
+            WHERE b.user_id = %d AND b.status = 'active'",
+            $user_id
+        ));
+
+        $alerts = [];
+
+        foreach ($budgets as $budget) {
+            // Calculate date range
+            if ($budget->period === 'monthly') {
+                $start_date = date('Y-m-01');
+                $end_date = date('Y-m-t');
+            } else {
+                $start_date = date('Y-01-01');
+                $end_date = date('Y-12-31');
+            }
+
+            // Get actual spending
+            $actual = $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(amount), 0)
+                FROM {$this->table_transactions}
+                WHERE user_id = %d
+                AND category_id = %d
+                AND type = 'expense'
+                AND status = 'Active'
+                AND date >= %s
+                AND date <= %s",
+                $user_id, $budget->category_id, $start_date, $end_date
+            ));
+
+            $percentage = ($actual / $budget->amount) * 100;
+
+            if ($percentage >= $budget->alert_threshold) {
+                $alerts[] = [
+                    'category_name' => $budget->category_name,
+                    'category_emoji' => $budget->category_emoji,
+                    'budget_amount' => floatval($budget->amount),
+                    'actual_amount' => floatval($actual),
+                    'percentage' => round($percentage, 1),
+                    'is_over_budget' => $actual > $budget->amount
+                ];
+            }
+        }
+
+        wp_send_json_success(['alerts' => $alerts]);
         wp_die();
     }
 }
