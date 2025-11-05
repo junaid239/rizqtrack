@@ -745,6 +745,8 @@
 
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
+                <button type="button" class="btn btn-info" id="test-email-btn">🧪 Test Email</button>
+                <button type="button" class="btn btn-success" id="send-email-now-btn">📨 Send Now</button>
                 <button type="submit" class="btn btn-primary">Save Settings</button>
             </div>
         </form>

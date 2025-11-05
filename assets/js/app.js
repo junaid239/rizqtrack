@@ -2362,7 +2362,7 @@
                 }
             });
 
-            $('#budget-modal').show();
+            $('#budget-modal').addClass('active');
         },
 
         handleSaveBudget: function(e) {
@@ -2392,7 +2392,7 @@
                 success: (response) => {
                     if (response.success) {
                         this.showNotification(response.data.message, 'success');
-                        $('#budget-modal').hide();
+                        this.closeModals();
                         this.loadBudgets();
                         this.checkBudgetAlerts();
                     } else {
@@ -2438,7 +2438,7 @@
                 }
             });
 
-            $('#budget-modal').show();
+            $('#budget-modal').addClass('active');
         },
 
         handleDeleteBudget: function(e) {

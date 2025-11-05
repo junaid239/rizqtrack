@@ -378,6 +378,25 @@
     min-height: 80px;
 }
 
+/* Checkbox Styling */
+.form-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+.form-group label:has(input[type="checkbox"]) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-direction: row;
+    cursor: pointer;
+    margin-bottom: 0;
+}
+
 /* Type Toggle */
 .type-toggle {
     grid-column: 1 / -1;
@@ -474,6 +493,16 @@
 
 .btn-success:hover {
     background: var(--success-hover);
+    transform: translateY(-1px);
+}
+
+.btn-info {
+    background: var(--info-color);
+    color: var(--white);
+}
+
+.btn-info:hover {
+    background: #2563eb;
     transform: translateY(-1px);
 }
 
@@ -1528,14 +1557,18 @@
 
 .close {
     font-size: 32px;
-    font-weight: 300;
-    color: var(--text-gray);
+    font-weight: 700;
+    color: var(--text-dark);
     cursor: pointer;
-    transition: color 0.2s ease;
+    transition: all 0.2s ease;
+    line-height: 1;
+    padding: 0 8px;
+    border-radius: 4px;
 }
 
 .close:hover {
-    color: var(--text-dark);
+    color: var(--danger-color);
+    background: rgba(239, 68, 68, 0.1);
 }
 
 .modal-body {
