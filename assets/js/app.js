@@ -156,6 +156,9 @@
             this.loadTransactions(1); // Load page 1
             this.loadChartData();
             this.loadGoals();
+            this.loadAchievements();
+            this.loadChallenges();
+            this.checkAchievements(); // Check for new achievements on load
         },
 
         setupEventListeners: function() {
@@ -215,6 +218,15 @@
 
             // Motivational Quote
             $('#refresh-quote').on('click', this.showRandomQuote.bind(this));
+
+            // Achievements
+            $('#close-achievement-popup').on('click', this.closeAchievementPopup.bind(this));
+
+            // Challenges
+            $('#start-challenge-btn').on('click', this.openChallengeModal.bind(this));
+            $('#challenge-form').on('submit', this.handleStartChallenge.bind(this));
+            $('#challenge-type').on('change', this.handleChallengeTypeChange.bind(this));
+            $(document).on('click', '.complete-challenge-btn', this.handleCompleteChallenge.bind(this));
         },
 
         showRandomQuote: function() {
@@ -1900,6 +1912,258 @@
             }
             const options = { year: 'numeric', month: 'short', day: 'numeric' };
             return date.toLocaleDateString('en-US', options);
+        },
+
+        // ===========================================
+        // ACHIEVEMENTS SYSTEM
+        // ===========================================
+        loadAchievements: function() {
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_get_achievements',
+                    nonce: rizqtrack.nonce
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.renderAchievements(response.data);
+                    }
+                }
+            });
+        },
+
+        renderAchievements: function(achievements) {
+            const $container = $('#achievements-container');
+            $container.empty();
+
+            // Update count
+            $('#achievement-count').text(`${achievements.length} earned`);
+
+            if (achievements.length === 0) {
+                $container.append('<div class="no-data">No achievements yet. Keep tracking to unlock badges!</div>');
+                return;
+            }
+
+            achievements.forEach(achievement => {
+                const earnedDate = new Date(achievement.earned_date);
+                const dateStr = earnedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+                $container.append(`
+                    <div class="achievement-badge" style="border-color: ${achievement.badge_color};">
+                        <div class="achievement-icon">${achievement.badge_icon}</div>
+                        <div class="achievement-name">${achievement.achievement_name}</div>
+                        <div class="achievement-description">${achievement.achievement_description}</div>
+                        <div class="achievement-date">Earned on ${dateStr}</div>
+                    </div>
+                `);
+            });
+        },
+
+        checkAchievements: function() {
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_check_achievements',
+                    nonce: rizqtrack.nonce
+                },
+                success: (response) => {
+                    if (response.success && response.data.new_achievements.length > 0) {
+                        // Show popup for new achievements
+                        this.showAchievementPopup(response.data.new_achievements);
+                        // Reload achievements list
+                        this.loadAchievements();
+                    }
+                }
+            });
+        },
+
+        showAchievementPopup: function(achievements) {
+            const achievement = achievements[0]; // Show first achievement
+
+            $('#popup-achievement-details').html(`
+                <div style="font-size: 64px; margin: 16px 0;">${achievement.icon}</div>
+                <h4 style="font-size: 20px; font-weight: 700; color: ${achievement.color}; margin-bottom: 8px;">
+                    ${achievement.name}
+                </h4>
+                <p style="color: #6b7280; font-size: 14px;">${achievement.description}</p>
+            `);
+
+            $('#new-achievement-popup').show();
+        },
+
+        closeAchievementPopup: function() {
+            $('#new-achievement-popup').hide();
+        },
+
+        // ===========================================
+        // CHALLENGES SYSTEM
+        // ===========================================
+        loadChallenges: function() {
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_get_challenges',
+                    nonce: rizqtrack.nonce
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.renderChallenges(response.data);
+                    }
+                }
+            });
+        },
+
+        renderChallenges: function(challenges) {
+            const $container = $('#challenges-container');
+            $container.empty();
+
+            if (challenges.length === 0) {
+                $container.append('<div class="no-data">No active challenges. Start one to level up your savings game!</div>');
+                return;
+            }
+
+            challenges.forEach(challenge => {
+                const progress = (challenge.current_amount / challenge.target_amount * 100).toFixed(1);
+                const progressCapped = Math.min(progress, 100);
+
+                const startDate = new Date(challenge.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const endDate = new Date(challenge.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+                const statusClass = challenge.status;
+                let statusBadge = '';
+
+                if (challenge.status === 'active') {
+                    statusBadge = '<span class="challenge-status-badge active">Active</span>';
+                } else if (challenge.status === 'completed') {
+                    statusBadge = '<span class="challenge-status-badge completed">Completed</span>';
+                } else if (challenge.status === 'paused') {
+                    statusBadge = '<span class="challenge-status-badge paused">Paused</span>';
+                } else if (challenge.status === 'failed') {
+                    statusBadge = '<span class="challenge-status-badge failed">Failed</span>';
+                }
+
+                $container.append(`
+                    <div class="challenge-card ${statusClass}">
+                        <div class="challenge-header">
+                            <div>
+                                <div class="challenge-name">${challenge.challenge_name}</div>
+                                <div class="challenge-dates">${startDate} - ${endDate}</div>
+                            </div>
+                            ${statusBadge}
+                        </div>
+
+                        <div class="challenge-progress-section">
+                            <div class="challenge-amounts">
+                                <span class="challenge-current">₹${this.formatCurrency(challenge.current_amount)}</span>
+                                <span class="challenge-target">/ ₹${this.formatCurrency(challenge.target_amount)}</span>
+                            </div>
+                            <div class="challenge-progress-bar">
+                                <div class="challenge-progress-fill" style="width: ${progressCapped}%"></div>
+                            </div>
+                            <div style="text-align: center; margin-top: 8px; font-size: 14px; font-weight: 600; color: var(--primary-color);">
+                                ${progressCapped}% Complete
+                            </div>
+                        </div>
+
+                        ${challenge.status === 'active' ? `
+                            <div class="challenge-actions">
+                                <button class="btn btn-primary btn-sm complete-challenge-btn" data-id="${challenge.id}">
+                                    ✓ Mark Complete
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `);
+            });
+        },
+
+        openChallengeModal: function() {
+            $('#challenge-form')[0].reset();
+            $('#emergency-fund-amount').hide();
+            $('#challenge-description').html('<p style="margin: 0; color: #6b7280;">Select a challenge to see details</p>');
+            $('#challenge-modal').addClass('active');
+        },
+
+        handleChallengeTypeChange: function(e) {
+            const type = $(e.currentTarget).val();
+            const descriptions = {
+                '52_week': '<strong>📅 52-Week Challenge:</strong> Save incrementally each week. Week 1: ₹1, Week 2: ₹2... Week 52: ₹52. Total saved: ₹13,780!',
+                'no_spend': '<strong>🚫 No-Spend Challenge:</strong> Commit to 30 days of minimal spending. Only essentials allowed. Save more by cutting unnecessary expenses.',
+                '1000_month': '<strong>💰 Monthly Savings:</strong> Save ₹1000 every month for a year. Build the habit of consistent saving. Total: ₹12,000.',
+                'emergency_fund': '<strong>🚨 Emergency Fund:</strong> Build your safety net. Save enough to cover 3 months of expenses. Financial security starts here!'
+            };
+
+            if (type === 'emergency_fund') {
+                $('#emergency-fund-amount').show();
+            } else {
+                $('#emergency-fund-amount').hide();
+            }
+
+            if (descriptions[type]) {
+                $('#challenge-description').html(`<p style="margin: 0; color: #1f2937;">${descriptions[type]}</p>`);
+            }
+        },
+
+        handleStartChallenge: function(e) {
+            e.preventDefault();
+
+            const challengeType = $('#challenge-type').val();
+            const targetAmount = $('#challenge-target').val();
+
+            if (!challengeType) {
+                this.showNotification('Please select a challenge', 'error');
+                return;
+            }
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_start_challenge',
+                    nonce: rizqtrack.nonce,
+                    challenge_type: challengeType,
+                    target_amount: targetAmount
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification(response.data.message, 'success');
+                        this.closeModals();
+                        this.loadChallenges();
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                }
+            });
+        },
+
+        handleCompleteChallenge: function(e) {
+            const challengeId = $(e.currentTarget).data('id');
+
+            if (!confirm('Mark this challenge as completed?')) {
+                return;
+            }
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_complete_challenge',
+                    nonce: rizqtrack.nonce,
+                    challenge_id: challengeId
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification(response.data.message, 'success');
+                        this.loadChallenges();
+                        this.checkAchievements(); // Check for new achievements
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                }
+            });
         }
     };
 
