@@ -131,6 +131,9 @@
         <div class="charts-container">
             <div class="chart-card">
                 <h3>📊 Category Breakdown</h3>
+                <div class="chart-slicer" id="category-slicers">
+                    <!-- Power BI-style category filters will be rendered here -->
+                </div>
                 <div class="chart-wrapper">
                     <canvas id="category-chart"></canvas>
                 </div>
@@ -156,21 +159,27 @@
             
             <div class="filter-bar" id="transaction-filter-bar">
                 <div class="form-group filter-search">
+                    <label for="filter-search">Search</label>
                     <input type="text" id="filter-search" placeholder="Search description...">
                 </div>
                 <div class="form-group">
+                    <label for="filter-category">Category</label>
                     <select id="filter-category">
                         <option value="0">All Categories</option>
                     </select>
                 </div>
                 <div class="form-group">
+                    <label for="filter-start-date">Start Date</label>
                     <input type="date" id="filter-start-date">
                 </div>
                 <div class="form-group">
+                    <label for="filter-end-date">End Date</label>
                     <input type="date" id="filter-end-date">
                 </div>
-                <button class="btn btn-secondary btn-sm" id="filter-apply">Apply</button>
-                <button class="btn btn-secondary btn-sm" id="filter-reset">Reset</button>
+                <div class="filter-actions">
+                    <button class="btn btn-secondary btn-sm" id="filter-apply">Apply</button>
+                    <button class="btn btn-secondary btn-sm" id="filter-reset">Reset</button>
+                </div>
             </div>
 
             <div class="table-responsive">

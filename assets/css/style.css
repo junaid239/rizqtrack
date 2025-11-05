@@ -478,6 +478,55 @@
     margin-bottom: 20px;
 }
 
+/* Chart Slicer/Filter Controls - Power BI Style */
+.chart-slicer {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.slicer-chip {
+    padding: 8px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 20px;
+    background: var(--white);
+    color: var(--text-dark);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.slicer-chip:hover {
+    border-color: var(--primary-color);
+    background: #ecfeff;
+}
+
+.slicer-chip.active {
+    background: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.chart-title-section {
+    flex: 1;
+}
+
+.chart-controls {
+    display: flex;
+    gap: 8px;
+}
+
 .chart-card {
     background: var(--white);
     border-radius: var(--radius);
@@ -591,16 +640,44 @@
     gap: 12px;
     margin-bottom: 20px;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: flex-end;
 }
 
 .filter-bar .form-group {
     margin-bottom: 0;
+    flex: 1;
+    min-width: 150px;
+}
+
+.filter-bar .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-gray);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-bar input[type="date"],
+.filter-bar select,
+.filter-bar input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
 }
 
 .filter-search {
-    flex: 1;
+    flex: 2;
     min-width: 200px;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
 }
 
 
@@ -1542,6 +1619,33 @@
 
     .chart-card h3 {
         font-size: 16px;
+    }
+
+    /* Filter Bar Mobile */
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-bar .form-group {
+        width: 100%;
+        min-width: 100%;
+        flex: none;
+    }
+
+    .filter-search {
+        width: 100%;
+        min-width: 100%;
+        flex: none;
+    }
+
+    .filter-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .filter-actions button {
+        flex: 1;
     }
 
     .section-header {

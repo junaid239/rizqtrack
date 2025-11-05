@@ -538,82 +538,160 @@
             });
         },
 
-        renderCategoryChart: function(data) {
+        renderCategoryChart: function(data, selectedCategories = []) {
             const ctx = document.getElementById('category-chart');
 
             if (this.charts.category) {
                 this.charts.category.destroy();
             }
 
-            const labels = data.map(d => `${d.emoji} ${d.name}`);
-            const values = data.map(d => parseFloat(d.total));
-            const colors = this.generateColors(data.length);
+            // Store full data for filtering
+            this.categoryChartData = data;
+
+            // Filter data if categories are selected
+            let filteredData = data;
+            if (selectedCategories.length > 0) {
+                filteredData = data.filter(d => selectedCategories.includes(d.name));
+            }
+
+            // Take top 10 for mobile, all for desktop
+            const isMobile = window.innerWidth < 768;
+            const displayData = isMobile ? filteredData.slice(0, 10) : filteredData;
+
+            const labels = displayData.map(d => `${d.emoji} ${d.name}`);
+            const values = displayData.map(d => parseFloat(d.total));
+            const colors = this.generateColors(displayData.length);
+
+            // Responsive font sizes
+            const labelFontSize = isMobile ? 10 : 12;
+            const dataLabelFontSize = isMobile ? 10 : 13;
 
             this.charts.category = new Chart(ctx, {
-                type: 'bar', 
+                type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [{
                         data: values,
                         backgroundColor: colors,
-                        borderWidth: 0 
+                        borderWidth: 0
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    indexAxis: 'y', // This makes it a horizontal bar chart
+                    indexAxis: 'y',
+                    layout: {
+                        padding: {
+                            right: isMobile ? 60 : 80 // Extra space for labels
+                        }
+                    },
                     plugins: {
                         legend: {
-                            display: false // The legend is redundant with the Y-axis
+                            display: false
                         },
                         tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
                             callbacks: {
                                 label: (context) => {
-                                    // Format tooltip to show currency
-                                    return ` Total: ₹${context.parsed.x.toFixed(2)}`;
+                                    return ` Total: ₹${context.parsed.x.toLocaleString()}`;
                                 }
                             }
                         },
-                        
                         datalabels: {
-                            color: '#000', // Set text color to black
-                            anchor: 'end',   // Position label at the end of the bar
-                            align: 'end',    // Align text to the end of the bar
-                            offset: -8,      // Add some padding from the end
+                            color: '#000',
+                            anchor: 'end',
+                            align: 'end',
+                            offset: -6,
                             font: {
                                 weight: 'bold',
-                                size: 13
+                                size: dataLabelFontSize
                             },
                             formatter: (value, ctx) => {
-                                // Format the number
-                                return '₹' + value.toFixed(0); 
+                                if (isMobile && value < 1000) {
+                                    return '₹' + value.toFixed(0);
+                                }
+                                return '₹' + (value / 1000).toFixed(value >= 1000 ? 1 : 0) + 'k';
                             }
                         }
-                        
                     },
                     scales: {
                         x: {
                             beginAtZero: true,
-                            /********************************/
-                            /* START: MODIFICATION HERE     */
-                            /********************************/
-                            grace: '10%', // ADDED: Extends axis 10% beyond max value
-                            /********************************/
-                            /* END: MODIFICATION HERE       */
-                            /********************************/
+                            grace: '20%', // More space to prevent cutoff
                             ticks: {
                                 callback: function(value) {
-                                    return '₹' + value; 
+                                    if (isMobile && value >= 1000) {
+                                        return '₹' + (value / 1000) + 'k';
+                                    }
+                                    return '₹' + value;
                                 },
-                                color: '#1f2937' // Sets X-axis text to dark
+                                color: '#1f2937',
+                                font: {
+                                    size: labelFontSize
+                                }
                             }
                         },
-                        y: { 
+                        y: {
                             ticks: {
-                                color: '#1f2937' // Sets Y-axis (category) text to dark
+                                color: '#1f2937',
+                                font: {
+                                    size: labelFontSize
+                                }
                             }
                         }
+                    }
+                }
+            });
+
+            // Render category slicers
+            this.renderCategorySlicers(data);
+        },
+
+        renderCategorySlicers: function(data) {
+            const $container = $('#category-slicers');
+            if (!$container.length) return;
+
+            $container.empty();
+
+            // Add "All" chip
+            $container.append(`
+                <div class="slicer-chip active" data-category="all">
+                    All Categories
+                </div>
+            `);
+
+            // Add category chips
+            data.forEach(cat => {
+                $container.append(`
+                    <div class="slicer-chip" data-category="${cat.name}">
+                        ${cat.emoji} ${cat.name}
+                    </div>
+                `);
+            });
+
+            // Handle chip clicks
+            $(document).off('click', '.slicer-chip').on('click', '.slicer-chip', (e) => {
+                const $chip = $(e.currentTarget);
+                const category = $chip.data('category');
+
+                if (category === 'all') {
+                    $('.slicer-chip').removeClass('active');
+                    $chip.addClass('active');
+                    this.renderCategoryChart(this.categoryChartData, []);
+                } else {
+                    $('.slicer-chip[data-category="all"]').removeClass('active');
+                    $chip.toggleClass('active');
+
+                    const selectedCategories = $('.slicer-chip.active:not([data-category="all"])')
+                        .map(function() { return $(this).data('category'); })
+                        .get();
+
+                    if (selectedCategories.length === 0) {
+                        $('.slicer-chip[data-category="all"]').addClass('active');
+                        this.renderCategoryChart(this.categoryChartData, []);
+                    } else {
+                        this.renderCategoryChart(this.categoryChartData, selectedCategories);
                     }
                 }
             });
