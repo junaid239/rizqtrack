@@ -86,17 +86,17 @@
 .motivational-quote-card {
     background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
     border-radius: var(--radius);
-    padding: 20px 24px;
+    padding: 24px 28px;
     margin-bottom: 20px;
     box-shadow: var(--shadow-md);
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 20px;
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .quote-icon {
-    font-size: 32px;
+    font-size: 42px;
     flex-shrink: 0;
 }
 
@@ -104,37 +104,79 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 20px;
+}
+
+.quote-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .quote-text {
     color: white;
-    font-size: 15px;
+    font-size: 18px;
     font-weight: 500;
     margin: 0;
     font-style: italic;
-    line-height: 1.5;
+    line-height: 1.6;
+}
+
+.quote-source {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 14px;
+    font-weight: 400;
+    margin: 0;
+    font-style: normal;
 }
 
 .btn-refresh-quote {
     background: rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: white;
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 16px;
+    font-size: 20px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    line-height: 1;
 }
 
 .btn-refresh-quote:hover {
     background: rgba(255, 255, 255, 0.3);
     transform: rotate(180deg);
+}
+
+/* Mobile adjustments for quote card */
+@media (max-width: 768px) {
+    .motivational-quote-card {
+        padding: 18px 20px;
+        gap: 14px;
+    }
+
+    .quote-icon {
+        font-size: 32px;
+    }
+
+    .quote-text {
+        font-size: 15px;
+    }
+
+    .quote-source {
+        font-size: 12px;
+    }
+
+    .btn-refresh-quote {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
 }
 
 /* KPI Section */

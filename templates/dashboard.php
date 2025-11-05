@@ -3,7 +3,10 @@
     <div class="motivational-quote-card" id="motivation-card">
         <div class="quote-icon">💡</div>
         <div class="quote-content">
-            <p class="quote-text" id="quote-text">Loading...</p>
+            <div class="quote-wrapper">
+                <p class="quote-text" id="quote-text">Loading...</p>
+                <p class="quote-source" id="quote-source"></p>
+            </div>
             <button class="btn-refresh-quote" id="refresh-quote" title="Get new quote">🔄</button>
         </div>
     </div>

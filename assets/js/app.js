@@ -14,21 +14,59 @@
         editTransactionData: {},
         currentPage: 1, // For pagination
         quotes: [
-            "💰 A penny saved is a penny earned.",
-            "🎯 The best time to save was yesterday. The next best time is today.",
-            "📊 Don't save what is left after spending; spend what is left after saving.",
-            "💡 An investment in knowledge pays the best interest.",
-            "🌟 Financial freedom is available to those who learn about it and work for it.",
-            "🎯 The goal isn't more money. The goal is living life on your terms.",
-            "💪 You must gain control over your money or the lack of it will forever control you.",
-            "🌱 Wealth is the ability to fully experience life.",
-            "📈 It's not how much money you make, but how much money you keep.",
-            "🎁 Every dollar you don't spend is a dollar that works for you.",
-            "⚡ Small daily improvements over time lead to stunning results.",
-            "🔥 Your financial future depends on the financial decisions you make today.",
-            "🌈 The secret to getting ahead is getting started.",
-            "✨ Track your expenses. Review them weekly. Improve monthly.",
-            "🎯 Budget: Telling your money where to go instead of wondering where it went."
+            // Quran & Islamic Wisdom
+            { text: "And whatever you spend in good, it will be repaid to you in full, and you shall not be wronged.", source: "Quran 2:272" },
+            { text: "Wealth and children are the adornment of the life of this world.", source: "Quran 18:46" },
+            { text: "And do not make your hand [as] chained to your neck or extend it completely and [thereby] become blamed and insolvent.", source: "Quran 17:29" },
+            { text: "And establish prayer and give zakah, and whatever good you put forward for yourselves - you will find it with Allah.", source: "Quran 2:110" },
+            { text: "The upper hand is better than the lower hand. The upper hand is the one that gives, and the lower hand is the one that receives.", source: "Prophet Muhammad (Sahih Bukhari)" },
+            { text: "Richness is not having many possessions, but richness is contentment of the soul.", source: "Prophet Muhammad (Sahih Muslim)" },
+            { text: "Be in this world as though you are a stranger or a traveler.", source: "Prophet Muhammad (Sahih Bukhari)" },
+            { text: "Whoever is satisfied with what Allah has given him will be the richest of people.", source: "Prophet Muhammad (At-Tirmidhi)" },
+            { text: "Take account of yourselves before you are taken to account.", source: "Umar ibn Al-Khattab" },
+
+            // Bible & Christian Wisdom
+            { text: "The borrower is slave to the lender.", source: "Proverbs 22:7" },
+            { text: "For the love of money is a root of all kinds of evil.", source: "1 Timothy 6:10" },
+            { text: "Dishonest money dwindles away, but whoever gathers money little by little makes it grow.", source: "Proverbs 13:11" },
+            { text: "Give, and it will be given to you. A good measure, pressed down, shaken together and running over.", source: "Luke 6:38" },
+
+            // Hindu Wisdom
+            { text: "Artha (wealth) is one of the four goals of human life, but it must be earned righteously.", source: "Hindu Philosophy" },
+            { text: "Do your duty without attachment to the results, whether they be success or failure.", source: "Bhagavad Gita 2:47" },
+
+            // Buddhist Wisdom
+            { text: "Wealth is the ability to fully experience life with peace of mind.", source: "Buddhist Teaching" },
+            { text: "He who has few desires is satisfied with simple things.", source: "Buddha" },
+
+            // Wealthy People & Financial Experts
+            { text: "Do not save what is left after spending, but spend what is left after saving.", source: "Warren Buffett" },
+            { text: "Someone is sitting in the shade today because someone planted a tree a long time ago.", source: "Warren Buffett" },
+            { text: "Price is what you pay. Value is what you get.", source: "Warren Buffett" },
+            { text: "The stock market is a device for transferring money from the impatient to the patient.", source: "Warren Buffett" },
+            { text: "An investment in knowledge pays the best interest.", source: "Benjamin Franklin" },
+            { text: "A penny saved is a penny earned.", source: "Benjamin Franklin" },
+            { text: "Beware of little expenses; a small leak will sink a great ship.", source: "Benjamin Franklin" },
+            { text: "If you buy things you do not need, soon you will have to sell things you need.", source: "Warren Buffett" },
+            { text: "The goal isn't more money. The goal is living life on your terms.", source: "Chris Brogan" },
+            { text: "Financial freedom is available to those who learn about it and work for it.", source: "Robert Kiyosaki" },
+            { text: "It's not how much money you make, but how much money you keep, how hard it works for you, and how many generations you keep it for.", source: "Robert Kiyosaki" },
+            { text: "Don't let the fear of losing be greater than the excitement of winning.", source: "Robert Kiyosaki" },
+            { text: "Formal education will make you a living; self-education will make you a fortune.", source: "Jim Rohn" },
+            { text: "You must gain control over your money or the lack of it will forever control you.", source: "Dave Ramsey" },
+            { text: "The rich invest in time, the poor invest in money.", source: "Warren Buffett" },
+            { text: "Wealth is not about having a lot of money; it's about having a lot of options.", source: "Chris Rock" },
+
+            // General Wisdom
+            { text: "The best time to plant a tree was 20 years ago. The second best time is now.", source: "Chinese Proverb" },
+            { text: "A journey of a thousand miles begins with a single step.", source: "Lao Tzu" },
+            { text: "He who knows he has enough is rich.", source: "Lao Tzu (Tao Te Ching)" },
+            { text: "Small daily improvements over time lead to stunning results.", source: "Robin Sharma" },
+            { text: "The secret to getting ahead is getting started.", source: "Mark Twain" },
+            { text: "Budget: Telling your money where to go instead of wondering where it went.", source: "John C. Maxwell" },
+            { text: "Track your expenses. Review them weekly. Improve monthly.", source: "Financial Wisdom" },
+            { text: "Every dollar you don't spend is a dollar that works for you.", source: "Financial Principle" },
+            { text: "Your financial future depends on the financial decisions you make today.", source: "Financial Wisdom" }
         ],
 
         init: function() {
@@ -117,7 +155,9 @@
 
         showRandomQuote: function() {
             const randomIndex = Math.floor(Math.random() * this.quotes.length);
-            $('#quote-text').text(this.quotes[randomIndex]);
+            const quote = this.quotes[randomIndex];
+            $('#quote-text').text(quote.text);
+            $('#quote-source').text('— ' + quote.source);
         },
 
         setDefaultFormValues: function() {
