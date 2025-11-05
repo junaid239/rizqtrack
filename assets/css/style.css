@@ -402,6 +402,11 @@
     cursor: pointer;
     accent-color: var(--primary-color);
     flex-shrink: 0;
+    -webkit-appearance: checkbox;
+    -moz-appearance: checkbox;
+    appearance: checkbox;
+    border: 2px solid #d1d5db;
+    border-radius: 3px;
 }
 
 .checkbox-text {

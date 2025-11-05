@@ -2393,7 +2393,7 @@
             $container.empty();
 
             if (budgets.length === 0) {
-                $container.append('<div class="no-data">No budgets set. Click "Set Budget" to create your first budget!</div>');
+                $container.append('<div class="no-data">No budgets yet. Click "Set Budget" to start!</div>');
                 return;
             }
 
