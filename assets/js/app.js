@@ -1399,7 +1399,8 @@
 
                 totalSaved += current;
                 totalTarget += target;
-                totalProgress += progress;
+                // Cap progress at 100% for average calculation to prevent over-funded goals from inflating the average
+                totalProgress += Math.min(progress, 100);
 
                 if (progress >= 100) {
                     completedCount++;
@@ -1422,16 +1423,16 @@
             $('#total-target-amount').text('₹' + this.formatCurrency(totalTarget));
             $('#remaining-amount').text('₹' + this.formatCurrency(remaining));
 
-            // Update progress percentage
-            $('#overall-progress-percentage').text(overallProgress.toFixed(0) + '%');
+            // Update progress percentage (cap at 100% for display)
+            $('#overall-progress-percentage').text(Math.min(overallProgress, 100).toFixed(0) + '%');
 
             // Update progress bar with animation
             setTimeout(() => {
                 $('#overall-progress-fill').css('width', Math.min(overallProgress, 100) + '%');
             }, 100);
 
-            // Update insights
-            $('#average-progress').text(averageProgress.toFixed(0) + '%');
+            // Update insights (cap average progress at 100% for display)
+            $('#average-progress').text(Math.min(averageProgress, 100).toFixed(0) + '%');
             $('#goals-on-track').text(onTrackCount + '/' + goals.length);
 
             // Add color coding to progress bar
@@ -2311,7 +2312,8 @@
                 amount: $('#budget-amount').val(),
                 period: $('#budget-period').val(),
                 alert_threshold: $('#budget-threshold').val(),
-                rollover: $('#budget-rollover').is(':checked') ? 1 : 0
+                rollover: $('#budget-rollover').is(':checked') ? 1 : 0,
+                start_date: new Date().toISOString().split('T')[0]
             };
 
             if (budgetId) {

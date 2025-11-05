@@ -1899,9 +1899,22 @@ HTML;
 
         $category_id = intval($_POST['category_id']);
         $amount = floatval($_POST['amount']);
+        $period = sanitize_text_field($_POST['period'] ?? 'monthly');
 
         if ($amount <= 0) {
             wp_send_json_error(['message' => 'Budget amount must be greater than 0']);
+            wp_die();
+        }
+
+        // Check if budget already exists for this category and period
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$this->table_budgets}
+            WHERE user_id = %d AND category_id = %d AND period = %s AND status = 'active'",
+            $user_id, $category_id, $period
+        ));
+
+        if ($existing) {
+            wp_send_json_error(['message' => 'A budget already exists for this category. Please edit the existing budget or delete it first.']);
             wp_die();
         }
 
@@ -1909,7 +1922,7 @@ HTML;
             'user_id' => $user_id,
             'category_id' => $category_id,
             'amount' => $amount,
-            'period' => sanitize_text_field($_POST['period'] ?? 'monthly'),
+            'period' => $period,
             'start_date' => sanitize_text_field($_POST['start_date'] ?? date('Y-m-d')),
             'rollover' => isset($_POST['rollover']) ? 1 : 0,
             'alert_threshold' => intval($_POST['alert_threshold'] ?? 80),
@@ -1919,7 +1932,12 @@ HTML;
         if ($result) {
             wp_send_json_success(['message' => 'Budget added successfully!']);
         } else {
-            wp_send_json_error(['message' => 'Failed to add budget']);
+            // Show the actual database error for debugging
+            $error_msg = 'Failed to add budget';
+            if (!empty($wpdb->last_error)) {
+                $error_msg .= ': ' . $wpdb->last_error;
+            }
+            wp_send_json_error(['message' => $error_msg]);
         }
         wp_die();
     }
