@@ -1446,6 +1446,30 @@
     text-align: center;
 }
 
+.info-box {
+    background: #ecfeff;
+    border-left: 4px solid var(--primary-color);
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    margin-top: 20px;
+}
+
+.info-box strong {
+    color: var(--primary-dark);
+    display: block;
+    margin-bottom: 8px;
+}
+
+.info-box ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.info-box li {
+    color: var(--text-dark);
+    margin-bottom: 4px;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
     .goals-grid {

@@ -188,12 +188,17 @@ class RizqTrack {
             'get_chart_data', 'get_categories', 'get_goals', 'get_trash',
             'add_category', 'update_category', 'delete_category',
             'add_goal', 'update_goal', 'delete_goal', 'restore_goal', 'permanent_delete_goal',
-            'contribute_goal_transaction', 'generate_report', 'get_kpi_data'
+            'contribute_goal_transaction', 'generate_report', 'get_kpi_data',
+            'get_email_settings', 'save_email_settings'
         ];
 
         foreach ($endpoints as $endpoint) {
             add_action("wp_ajax_rizqtrack_{$endpoint}", [$this, "ajax_{$endpoint}"]);
         }
+
+        // Register cron hooks
+        add_action('rizqtrack_send_weekly_email', [$this, 'send_weekly_report']);
+        add_action('rizqtrack_send_monthly_email', [$this, 'send_monthly_report']);
     }
 
     // Transaction AJAX Handlers
@@ -378,34 +383,63 @@ class RizqTrack {
         $offset = ($page - 1) * $limit;
         // --- END: Pagination Logic ---
 
+        // --- START: Filter Logic ---
+        $where_clauses = ["t.user_id = %d", "t.status = 'Active'"];
+        $prepare_values = [$user_id];
 
-        // Query for the transactions with pagination
-        $transactions = $wpdb->get_results($wpdb->prepare(
-            "SELECT t.*, c.name as category_name, c.emoji as category_emoji
+        // Search filter
+        if (!empty($_POST['search'])) {
+            $search = '%' . $wpdb->esc_like(sanitize_text_field($_POST['search'])) . '%';
+            $where_clauses[] = "t.description LIKE %s";
+            $prepare_values[] = $search;
+        }
+
+        // Category filter
+        if (!empty($_POST['category_id']) && $_POST['category_id'] != '0') {
+            $where_clauses[] = "t.category_id = %d";
+            $prepare_values[] = intval($_POST['category_id']);
+        }
+
+        // Date range filter
+        if (!empty($_POST['start_date'])) {
+            $where_clauses[] = "t.date >= %s";
+            $prepare_values[] = sanitize_text_field($_POST['start_date']);
+        }
+
+        if (!empty($_POST['end_date'])) {
+            $where_clauses[] = "t.date <= %s";
+            $prepare_values[] = sanitize_text_field($_POST['end_date']);
+        }
+
+        $where_sql = implode(' AND ', $where_clauses);
+        // --- END: Filter Logic ---
+
+        // Query for the transactions with pagination and filters
+        $query = "SELECT t.*, c.name as category_name, c.emoji as category_emoji
             FROM {$this->table_transactions} t
             LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
-            WHERE t.user_id = %d AND t.status = 'Active'
+            WHERE {$where_sql}
             ORDER BY t.date DESC, t.created_at DESC
-            LIMIT %d OFFSET %d", // <-- UPDATED
-            $user_id,
-            $limit,     // <-- NEW
-            $offset     // <-- NEW
-        ));
+            LIMIT %d OFFSET %d";
 
-        // New query to get the total count for pagination
-        $total_count = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*)
-            FROM {$this->table_transactions}
-            WHERE user_id = %d AND status = 'Active'",
-            $user_id
-        ));
+        $prepare_values[] = $limit;
+        $prepare_values[] = $offset;
+
+        $transactions = $wpdb->get_results($wpdb->prepare($query, $prepare_values));
+
+        // Get total count with same filters
+        $count_query = "SELECT COUNT(*)
+            FROM {$this->table_transactions} t
+            WHERE {$where_sql}";
+
+        $total_count = $wpdb->get_var($wpdb->prepare($count_query, array_slice($prepare_values, 0, -2)));
 
         // Return both transactions and total count
         wp_send_json_success([
             'transactions' => $transactions,
             'total' => $total_count
         ]);
-        
+
         wp_die();
     }
 
@@ -940,6 +974,191 @@ class RizqTrack {
 
         fclose($output);
         exit;
+    }
+
+    public function ajax_get_email_settings() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        $user_id = get_current_user_id();
+
+        if (!$user_id) {
+            wp_send_json_error(['message' => 'You must be logged in.']);
+            wp_die();
+        }
+
+        $settings = [
+            'frequency' => get_user_meta($user_id, 'rizqtrack_email_frequency', true),
+            'email' => get_user_meta($user_id, 'rizqtrack_email_address', true) ?: wp_get_current_user()->user_email
+        ];
+
+        wp_send_json_success($settings);
+        wp_die();
+    }
+
+    public function ajax_save_email_settings() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        $user_id = get_current_user_id();
+
+        if (!$user_id) {
+            wp_send_json_error(['message' => 'You must be logged in.']);
+            wp_die();
+        }
+
+        $frequency = sanitize_text_field($_POST['frequency']);
+        $email = sanitize_email($_POST['email']);
+
+        if (!is_email($email)) {
+            wp_send_json_error(['message' => 'Invalid email address']);
+            wp_die();
+        }
+
+        update_user_meta($user_id, 'rizqtrack_email_frequency', $frequency);
+        update_user_meta($user_id, 'rizqtrack_email_address', $email);
+
+        // Schedule/unschedule cron jobs
+        $this->update_user_cron($user_id, $frequency);
+
+        wp_send_json_success(['message' => 'Settings saved successfully']);
+        wp_die();
+    }
+
+    private function update_user_cron($user_id, $frequency) {
+        // Remove existing schedules
+        wp_clear_scheduled_hook('rizqtrack_send_weekly_email', [$user_id]);
+        wp_clear_scheduled_hook('rizqtrack_send_monthly_email', [$user_id]);
+
+        // Schedule new ones
+        if ($frequency === 'weekly') {
+            $next_monday = strtotime('next Monday 9:00');
+            wp_schedule_event($next_monday, 'weekly', 'rizqtrack_send_weekly_email', [$user_id]);
+        } elseif ($frequency === 'monthly') {
+            $next_month = strtotime('first day of next month 9:00');
+            wp_schedule_event($next_month, 'monthly', 'rizqtrack_send_monthly_email', [$user_id]);
+        }
+    }
+
+    public function send_weekly_report($user_id) {
+        $this->send_email_report($user_id, 'weekly');
+    }
+
+    public function send_monthly_report($user_id) {
+        $this->send_email_report($user_id, 'monthly');
+    }
+
+    private function send_email_report($user_id, $period) {
+        global $wpdb;
+
+        $email = get_user_meta($user_id, 'rizqtrack_email_address', true);
+        if (!$email) return;
+
+        $days = ($period === 'weekly') ? 7 : 30;
+
+        // Get data
+        $summary = $wpdb->get_row($wpdb->prepare(
+            "SELECT
+                COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as total_income,
+                COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expense,
+                COUNT(*) as transaction_count
+            FROM {$this->table_transactions}
+            WHERE user_id = %d AND status = 'Active'
+            AND date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)",
+            $user_id, $days
+        ));
+
+        $top_categories = $wpdb->get_results($wpdb->prepare(
+            "SELECT c.name, c.emoji, SUM(t.amount) as total
+            FROM {$this->table_transactions} t
+            LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
+            WHERE t.user_id = %d AND t.status = 'Active' AND t.type = 'expense'
+            AND t.date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
+            GROUP BY c.id
+            ORDER BY total DESC
+            LIMIT 5",
+            $user_id, $days
+        ));
+
+        $subject = sprintf('RizqTrack %s Report - %s', ucfirst($period), date('F j, Y'));
+        $message = $this->generate_email_html($summary, $top_categories, $period);
+
+        $headers = ['Content-Type: text/html; charset=UTF-8'];
+        wp_mail($email, $subject, $message, $headers);
+    }
+
+    private function generate_email_html($summary, $top_categories, $period) {
+        $income = number_format($summary->total_income, 2);
+        $expense = number_format($summary->total_expense, 2);
+        $savings = number_format($summary->total_income - $summary->total_expense, 2);
+        $savings_color = ($summary->total_income - $summary->total_expense >= 0) ? '#10b981' : '#ef4444';
+
+        $categories_html = '';
+        foreach ($top_categories as $cat) {
+            $categories_html .= sprintf(
+                '<tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">%s %s</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">₹%s</td></tr>',
+                $cat->emoji,
+                $cat->name,
+                number_format($cat->total, 2)
+            );
+        }
+
+        return <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%); color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">💰 RizqTrack</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Your {$period} Financial Report</p>
+        </div>
+
+        <div style="padding: 30px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Summary</h2>
+
+            <table style="width: 100%; margin-bottom: 30px;">
+                <tr>
+                    <td style="padding: 15px; background: #ecfdf5; border-radius: 8px; margin-bottom: 10px;">
+                        <div style="font-size: 14px; color: #6b7280;">Total Income</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #10b981;">₹{$income}</div>
+                    </td>
+                </tr>
+                <tr><td style="height: 10px;"></td></tr>
+                <tr>
+                    <td style="padding: 15px; background: #fef2f2; border-radius: 8px;">
+                        <div style="font-size: 14px; color: #6b7280;">Total Expense</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #ef4444;">₹{$expense}</div>
+                    </td>
+                </tr>
+                <tr><td style="height: 10px;"></td></tr>
+                <tr>
+                    <td style="padding: 15px; background: #f0f9ff; border-radius: 8px;">
+                        <div style="font-size: 14px; color: #6b7280;">Net Savings</div>
+                        <div style="font-size: 24px; font-weight: bold; color: {$savings_color};">₹{$savings}</div>
+                    </td>
+                </tr>
+            </table>
+
+            <h2 style="color: #1f2937;">Top Spending Categories</h2>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                {$categories_html}
+            </table>
+
+            <div style="background: #ecfeff; border-left: 4px solid #0891b2; padding: 15px; border-radius: 5px;">
+                <p style="margin: 0; font-size: 14px; color: #1f2937;">
+                    <strong>💡 Tip:</strong> Track your expenses daily to stay on top of your finances!
+                </p>
+            </div>
+        </div>
+
+        <div style="background: #f9fafb; padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">
+            <p style="margin: 0;">This is an automated report from RizqTrack</p>
+            <p style="margin: 5px 0 0 0;">© 2024 RizqTrack. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
+HTML;
     }
 
     public function render_dashboard() {

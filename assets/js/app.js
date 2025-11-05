@@ -65,6 +65,11 @@
             $(document).on('click', '#prev-page', () => this.loadTransactions(this.currentPage - 1));
             $(document).on('click', '#next-page', () => this.loadTransactions(this.currentPage + 1));
 
+            // Transaction Filters
+            $('#filter-apply').on('click', this.applyTransactionFilters.bind(this));
+            $('#filter-reset').on('click', this.resetTransactionFilters.bind(this));
+            $('#filter-search').on('keyup', this.debounce(this.applyTransactionFilters.bind(this), 500));
+
             // Trash Actions
             $('#trash-header').on('click', this.toggleTrash.bind(this));
             $(document).on('click', '.restore-transaction', this.handleRestoreTransaction.bind(this));
@@ -89,6 +94,10 @@
             $('#generate-report-card').on('click', this.openReportModal.bind(this));
             $('#report-form').on('submit', this.handleGenerateReport.bind(this));
             $('#report-timeframe').on('change', this.handleReportTimeframeChange.bind(this));
+
+            // Email Reports
+            $('#email-report-card').on('click', this.openEmailReportModal.bind(this));
+            $('#email-report-form').on('submit', this.handleSaveEmailSettings.bind(this));
 
             // Modal Controls
             $('.close, .cancel-btn').on('click', this.closeModals.bind(this));
@@ -183,7 +192,7 @@
         },
 
         populateCategorySelects: function(categories) {
-            const selects = ['#category', '#edit-category'];
+            const selects = ['#category', '#edit-category', '#filter-category'];
 
             selects.forEach(selector => {
                 const $select = $(selector);
@@ -283,25 +292,63 @@
             });
         },
 
-        loadTransactions: function(page = 1) {
+        loadTransactions: function(page = 1, filters = {}) {
             this.currentPage = page; // Store the current page
+
+            const data = {
+                action: 'rizqtrack_get_recent_transactions',
+                nonce: rizqtrack.nonce,
+                page: this.currentPage
+            };
+
+            // Add filters if provided
+            if (filters.search) data.search = filters.search;
+            if (filters.category_id) data.category_id = filters.category_id;
+            if (filters.start_date) data.start_date = filters.start_date;
+            if (filters.end_date) data.end_date = filters.end_date;
 
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
-                data: {
-                    action: 'rizqtrack_get_recent_transactions',
-                    nonce: rizqtrack.nonce,
-                    page: this.currentPage // Send the page number
-                },
+                data: data,
                 success: (response) => {
                     if (response.success) {
                         this.renderTransactions(response.data.transactions);
-                        // Call the new pagination renderer
-                        this.renderPagination(response.data.total); 
+                        this.renderPagination(response.data.total);
                     }
                 }
             });
+        },
+
+        applyTransactionFilters: function() {
+            const filters = {
+                search: $('#filter-search').val().trim(),
+                category_id: $('#filter-category').val(),
+                start_date: $('#filter-start-date').val(),
+                end_date: $('#filter-end-date').val()
+            };
+
+            this.loadTransactions(1, filters);
+        },
+
+        resetTransactionFilters: function() {
+            $('#filter-search').val('');
+            $('#filter-category').val('0');
+            $('#filter-start-date').val('');
+            $('#filter-end-date').val('');
+            this.loadTransactions(1);
+        },
+
+        debounce: function(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
         },
 
         renderTransactions: function(transactions) {
@@ -1424,6 +1471,51 @@
 
             this.closeModals();
             this.showNotification('Report generated successfully!', 'success');
+        },
+
+        openEmailReportModal: function() {
+            // Load current settings
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_get_email_settings',
+                    nonce: rizqtrack.nonce
+                },
+                success: (response) => {
+                    if (response.success) {
+                        $('#email-frequency').val(response.data.frequency || 'none');
+                        $('#email-address').val(response.data.email || '');
+                    }
+                    $('#email-report-modal').addClass('active');
+                }
+            });
+        },
+
+        handleSaveEmailSettings: function(e) {
+            e.preventDefault();
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_save_email_settings',
+                    nonce: rizqtrack.nonce,
+                    frequency: $('#email-frequency').val(),
+                    email: $('#email-address').val()
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification('Email report settings saved!', 'success');
+                        this.closeModals();
+                    } else {
+                        this.showNotification(response.data.message || 'Failed to save settings', 'error');
+                    }
+                },
+                error: () => {
+                    this.showNotification('Connection error', 'error');
+                }
+            });
         },
 
         closeModals: function() {

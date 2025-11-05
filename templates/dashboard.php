@@ -303,6 +303,13 @@
                 <p>Export your financial data to CSV</p>
                 <button class="btn btn-secondary">Generate Report</button>
             </div>
+
+            <div class="action-card" id="email-report-card">
+                <div class="action-icon">📧</div>
+                <h3>Email Reports</h3>
+                <p>Configure automatic email reports</p>
+                <button class="btn btn-secondary">Configure Email</button>
+            </div>
         </div>
     </div>
 
@@ -517,6 +524,46 @@
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
                 <button type="submit" class="btn btn-primary">Generate Report</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="email-report-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>📧 Configure Email Reports</h2>
+            <span class="close">&times;</span>
+        </div>
+        <form id="email-report-form">
+            <div class="form-group">
+                <label for="email-frequency">Report Frequency</label>
+                <select id="email-frequency" required>
+                    <option value="none">Disabled</option>
+                    <option value="weekly">Weekly (Every Monday)</option>
+                    <option value="monthly">Monthly (1st of Month)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="email-address">Email Address</label>
+                <input type="email" id="email-address" placeholder="your@email.com" required>
+                <small>Reports will be sent to this email address</small>
+            </div>
+
+            <div class="info-box">
+                <strong>📊 Report will include:</strong>
+                <ul>
+                    <li>Income vs Expense summary</li>
+                    <li>Top spending categories</li>
+                    <li>Financial goals progress</li>
+                    <li>Transaction highlights</li>
+                </ul>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Settings</button>
             </div>
         </form>
     </div>
