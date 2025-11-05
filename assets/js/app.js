@@ -12,6 +12,7 @@
         selectedCategories: [], // Global state for selected categories
         editTransactionData: {},
         currentPage: 1, // For pagination
+        currentFilters: {}, // Store current transaction filters
         quotes: [
             // Quran - More Verses on Wealth & Charity
             { text: "And whatever you spend in good, it will be repaid to you in full, and you shall not be wronged.", source: "Quran 2:272" },
@@ -174,8 +175,8 @@
             $('#edit-transaction-form').on('submit', this.handleUpdateTransaction.bind(this));
             
             // Pagination Listeners
-            $(document).on('click', '#prev-page', () => this.loadTransactions(this.currentPage - 1));
-            $(document).on('click', '#next-page', () => this.loadTransactions(this.currentPage + 1));
+            $(document).on('click', '#prev-page', () => this.loadTransactions(this.currentPage - 1, this.currentFilters));
+            $(document).on('click', '#next-page', () => this.loadTransactions(this.currentPage + 1, this.currentFilters));
 
             // Transaction Filters
             $('#filter-apply').on('click', this.applyTransactionFilters.bind(this));
@@ -454,6 +455,7 @@
                 end_date: $('#filter-end-date').val()
             };
 
+            this.currentFilters = filters; // Store filters
             this.loadTransactions(1, filters);
         },
 
@@ -462,6 +464,7 @@
             $('#filter-category').val('0');
             $('#filter-start-date').val('');
             $('#filter-end-date').val('');
+            this.currentFilters = {}; // Clear stored filters
             this.loadTransactions(1);
         },
 
