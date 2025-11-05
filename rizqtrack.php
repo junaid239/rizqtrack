@@ -659,7 +659,7 @@ class RizqTrack {
             $user_id
         ));
 
-        // Get top spending category
+        // Get top spending category (by amount)
         $top_category = $wpdb->get_row($wpdb->prepare(
             "SELECT c.name, c.emoji, SUM(t.amount) as total
             FROM {$this->table_transactions} t
@@ -671,13 +671,51 @@ class RizqTrack {
             $user_id
         ));
 
+        // Get most frequent expense category (by transaction count)
+        $most_frequent_category = $wpdb->get_row($wpdb->prepare(
+            "SELECT c.name, c.emoji, COUNT(*) as count
+            FROM {$this->table_transactions} t
+            LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
+            WHERE t.user_id = %d AND t.status = 'Active' AND t.type = 'expense'
+            GROUP BY c.id, c.name, c.emoji
+            ORDER BY count DESC
+            LIMIT 1",
+            $user_id
+        ));
+
+        // Get days without spending (days since last expense)
+        $last_expense = $wpdb->get_var($wpdb->prepare(
+            "SELECT MAX(date) FROM {$this->table_transactions}
+            WHERE user_id = %d AND status = 'Active' AND type = 'expense'",
+            $user_id
+        ));
+
+        $days_without_spending = 0;
+        if ($last_expense) {
+            $last_expense_date = new DateTime($last_expense);
+            $today = new DateTime();
+            $interval = $today->diff($last_expense_date);
+            $days_without_spending = $interval->days;
+        }
+
+        // Get number of income streams (distinct income categories used)
+        $income_streams = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(DISTINCT category_id)
+            FROM {$this->table_transactions}
+            WHERE user_id = %d AND status = 'Active' AND type = 'income'",
+            $user_id
+        ));
+
         $kpi_data = [
             'total_income' => floatval($summary->total_income),
             'total_expense' => floatval($summary->total_expense),
             'net_savings' => floatval($summary->total_income) - floatval($summary->total_expense),
             'transaction_count' => intval($summary->transaction_count),
             'avg_transaction' => floatval($summary->avg_transaction),
-            'top_category' => $top_category ? $top_category->emoji . ' ' . $top_category->name : 'N/A'
+            'top_category' => $top_category ? $top_category->emoji . ' ' . $top_category->name : 'N/A',
+            'most_frequent_category' => $most_frequent_category ? $most_frequent_category->emoji . ' ' . $most_frequent_category->name : 'N/A',
+            'days_without_spending' => intval($days_without_spending),
+            'income_streams' => intval($income_streams)
         ];
 
         wp_send_json_success($kpi_data);

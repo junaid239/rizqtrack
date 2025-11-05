@@ -54,6 +54,27 @@
                 <span class="kpi-value small" id="kpi-top-category">Loading...</span>
             </div>
         </div>
+        <div class="kpi-card">
+            <div class="kpi-icon frequent-category">🔁</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Most Frequent</span>
+                <span class="kpi-value small" id="kpi-most-frequent-category">Loading...</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon days-no-spend">🌟</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Days No Spending</span>
+                <span class="kpi-value" id="kpi-days-without-spending">Loading...</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon income-streams">💼</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Income Streams</span>
+                <span class="kpi-value" id="kpi-income-streams">Loading...</span>
+            </div>
+        </div>
     </div>
 
     <div class="rizqtrack-card transaction-form-card">

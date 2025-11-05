@@ -298,10 +298,13 @@
                         $('#kpi-transaction-count').text(data.transaction_count);
                         $('#kpi-avg-transaction').text('₹' + this.formatCurrency(data.avg_transaction));
                         $('#kpi-top-category').text(data.top_category);
+                        $('#kpi-most-frequent-category').text(data.most_frequent_category);
+                        $('#kpi-days-without-spending').text(data.days_without_spending);
+                        $('#kpi-income-streams').text(data.income_streams);
                     }
                 },
                 error: () => {
-                    $('#kpi-income, #kpi-expense, #kpi-savings, #kpi-transaction-count, #kpi-avg-transaction, #kpi-top-category').text('Error');
+                    $('#kpi-income, #kpi-expense, #kpi-savings, #kpi-transaction-count, #kpi-avg-transaction, #kpi-top-category, #kpi-most-frequent-category, #kpi-days-without-spending, #kpi-income-streams').text('Error');
                 }
             });
         },
