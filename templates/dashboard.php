@@ -129,9 +129,16 @@
                 <label class="filter-label">📅 Time Period:</label>
                 <div class="chart-filters">
                     <button class="filter-btn" data-filter="7">7 Days</button>
+                    <button class="filter-btn" data-filter="15">15 Days</button>
                     <button class="filter-btn active" data-filter="30">30 Days</button>
+                    <button class="filter-btn" data-filter="60">2 Months</button>
                     <button class="filter-btn" data-filter="90">3 Months</button>
+                    <button class="filter-btn" data-filter="120">4 Months</button>
+                    <button class="filter-btn" data-filter="150">5 Months</button>
                     <button class="filter-btn" data-filter="180">6 Months</button>
+                    <button class="filter-btn" data-filter="210">7 Months</button>
+                    <button class="filter-btn" data-filter="300">10 Months</button>
+                    <button class="filter-btn" data-filter="330">11 Months</button>
                     <button class="filter-btn" data-filter="365">1 Year</button>
                 </div>
             </div>

@@ -455,7 +455,20 @@ class RizqTrack {
         }
 
         $filter = sanitize_text_field($_POST['filter'] ?? '30');
-        $days_map = ['7' => 7, '30' => 30, '90' => 90, '180' => 180, '365' => 365];
+        $days_map = [
+            '7' => 7,
+            '15' => 15,
+            '30' => 30,
+            '60' => 60,
+            '90' => 90,
+            '120' => 120,
+            '150' => 150,
+            '180' => 180,
+            '210' => 210,
+            '300' => 300,
+            '330' => 330,
+            '365' => 365
+        ];
         $days = $days_map[$filter] ?? 30;
 
         // Get selected categories if provided
