@@ -20,10 +20,11 @@
             };
             this.currentFilter = '30';
             this.editTransactionData = {};
-            
+
             this.setupEventListeners();
             this.setDefaultFormValues();
             this.loadCategories();
+            this.loadKPIData();
             this.loadTransactions(1); // Load page 1
             this.loadChartData();
             this.loadGoals();
@@ -111,6 +112,31 @@
             });
 
             $select.val('');
+        },
+
+        loadKPIData: function() {
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_get_kpi_data',
+                    nonce: rizqtrack.nonce
+                },
+                success: (response) => {
+                    if (response.success) {
+                        const data = response.data;
+                        $('#kpi-income').text('₹' + this.formatCurrency(data.total_income));
+                        $('#kpi-expense').text('₹' + this.formatCurrency(data.total_expense));
+                        $('#kpi-savings').text('₹' + this.formatCurrency(data.net_savings));
+                        $('#kpi-transaction-count').text(data.transaction_count);
+                        $('#kpi-avg-transaction').text('₹' + this.formatCurrency(data.avg_transaction));
+                        $('#kpi-top-category').text(data.top_category);
+                    }
+                },
+                error: () => {
+                    $('#kpi-income, #kpi-expense, #kpi-savings, #kpi-transaction-count, #kpi-avg-transaction, #kpi-top-category').text('Error');
+                }
+            });
         },
 
         loadCategories: function() {
@@ -217,6 +243,7 @@
                         this.showNotification('Transaction added successfully!', 'success');
                         $('#transaction-form')[0].reset();
                         this.setDefaultFormValues();
+                        this.loadKPIData();
                         this.loadTransactions(this.currentPage); // Reload current page
                         this.loadChartData();
                     } else {
@@ -371,6 +398,7 @@
                     if (response.success) {
                         this.showNotification('Transaction updated successfully!', 'success');
                         this.closeModals();
+                        this.loadKPIData();
                         this.loadTransactions(this.currentPage); // Reload current page
                         this.loadChartData();
                     } else {
@@ -396,6 +424,7 @@
                 success: (response) => {
                     if (response.success) {
                         this.showNotification('Transaction moved to trash', 'success');
+                        this.loadKPIData();
                         this.loadTransactions(this.currentPage); // Reload current page
                         this.loadChartData();
                         this.loadTrash();
@@ -935,6 +964,7 @@
                         this.showNotification('Contribution added successfully!', 'success');
                         this.closeModals();
                         this.loadGoals();
+                        this.loadKPIData();
                         this.loadTransactions(this.currentPage); // Reload current page
                         this.loadChartData();
                     } else {
@@ -1145,6 +1175,7 @@
                     if (response.success) {
                         this.showNotification('Transaction restored', 'success');
                         this.loadTrash();
+                        this.loadKPIData();
                         this.loadTransactions(1); // Reload page 1
                         this.loadChartData();
                     } else {

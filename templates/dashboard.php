@@ -4,28 +4,42 @@
         <div class="kpi-card">
             <div class="kpi-icon income">⬆️</div>
             <div class="kpi-content">
-                <span class="kpi-label">Total Income (All Time)</span>
+                <span class="kpi-label">Total Income</span>
                 <span class="kpi-value" id="kpi-income">Loading...</span>
             </div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon expense">⬇️</div>
             <div class="kpi-content">
-                <span class="kpi-label">Total Expense (All Time)</span>
+                <span class="kpi-label">Total Expense</span>
                 <span class="kpi-value" id="kpi-expense">Loading...</span>
             </div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon savings">💰</div>
             <div class="kpi-content">
-                <span class="kpi-label">Net Savings (All Time)</span>
+                <span class="kpi-label">Net Savings</span>
                 <span class="kpi-value" id="kpi-savings">Loading...</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon transaction-count">📊</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Total Transactions</span>
+                <span class="kpi-value" id="kpi-transaction-count">Loading...</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon avg-transaction">📈</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Avg Transaction</span>
+                <span class="kpi-value" id="kpi-avg-transaction">Loading...</span>
             </div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon top-spend">🎯</div>
             <div class="kpi-content">
-                <span class="kpi-label">Top Spend (All Time)</span>
+                <span class="kpi-label">Top Category</span>
                 <span class="kpi-value small" id="kpi-top-category">Loading...</span>
             </div>
         </div>

@@ -188,7 +188,7 @@ class RizqTrack {
             'get_chart_data', 'get_categories', 'get_goals', 'get_trash',
             'add_category', 'update_category', 'delete_category',
             'add_goal', 'update_goal', 'delete_goal', 'restore_goal', 'permanent_delete_goal',
-            'contribute_goal_transaction', 'generate_report'
+            'contribute_goal_transaction', 'generate_report', 'get_kpi_data'
         ];
 
         foreach ($endpoints as $endpoint) {
@@ -459,6 +459,54 @@ class RizqTrack {
             'category_data' => $category_data,
             'income_expense' => $income_expense
         ]);
+        wp_die();
+    }
+
+    public function ajax_get_kpi_data() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+
+        if (!$user_id) {
+            wp_send_json_error(['message' => 'You must be logged in to view data.']);
+            wp_die();
+        }
+
+        // Get all-time income, expense, and transaction count
+        $summary = $wpdb->get_row($wpdb->prepare(
+            "SELECT
+                COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as total_income,
+                COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expense,
+                COUNT(*) as transaction_count,
+                COALESCE(AVG(amount), 0) as avg_transaction
+            FROM {$this->table_transactions}
+            WHERE user_id = %d AND status = 'Active'",
+            $user_id
+        ));
+
+        // Get top spending category
+        $top_category = $wpdb->get_row($wpdb->prepare(
+            "SELECT c.name, c.emoji, SUM(t.amount) as total
+            FROM {$this->table_transactions} t
+            LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
+            WHERE t.user_id = %d AND t.status = 'Active' AND t.type = 'expense'
+            GROUP BY c.id, c.name, c.emoji
+            ORDER BY total DESC
+            LIMIT 1",
+            $user_id
+        ));
+
+        $kpi_data = [
+            'total_income' => floatval($summary->total_income),
+            'total_expense' => floatval($summary->total_expense),
+            'net_savings' => floatval($summary->total_income) - floatval($summary->total_expense),
+            'transaction_count' => intval($summary->transaction_count),
+            'avg_transaction' => floatval($summary->avg_transaction),
+            'top_category' => $top_category ? $top_category->emoji . ' ' . $top_category->name : 'N/A'
+        ];
+
+        wp_send_json_success($kpi_data);
         wp_die();
     }
 
