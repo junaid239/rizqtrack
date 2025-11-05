@@ -672,7 +672,7 @@
                 success: (response) => {
                     if (response.success) {
                         this.renderCategoryChart(response.data.category_data);
-                        this.renderIncomeExpenseChart(response.data.income_expense);
+                        this.renderTopFrequentChart(response.data.top_frequent);
                         this.renderSpendingTrendChart(response.data.spending_trend);
                     }
                 }
@@ -724,6 +724,13 @@
                     layout: {
                         padding: {
                             right: isMobile ? 60 : 80 // Extra space for labels
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const categoryName = displayData[index].name;
+                            this.loadCategoryDetails(categoryName);
                         }
                     },
                     plugins: {
@@ -798,15 +805,12 @@
 
             $container.empty();
 
-            // Add "All" chip (active by default)
-            const allActive = this.selectedCategories.length === 0 ? 'active' : '';
-            $container.append(`
-                <div class="slicer-chip ${allActive}" data-category="all">
-                    All Categories
-                </div>
-            `);
+            // If no categories selected, select all by default
+            if (this.selectedCategories.length === 0) {
+                this.selectedCategories = data.map(cat => cat.name);
+            }
 
-            // Add category chips
+            // Add category chips (all active by default)
             data.forEach(cat => {
                 const isActive = this.selectedCategories.includes(cat.name) ? 'active' : '';
                 $container.append(`
@@ -821,118 +825,187 @@
                 const $chip = $(e.currentTarget);
                 const category = $chip.data('category');
 
-                if (category === 'all') {
-                    // Select all categories
-                    $('.slicer-chip').removeClass('active');
-                    $chip.addClass('active');
-                    this.selectedCategories = [];
-                    this.loadChartData(); // Reload ALL charts with no filter
-                } else {
-                    // Toggle individual category
-                    $('.slicer-chip[data-category="all"]').removeClass('active');
-                    $chip.toggleClass('active');
+                // Toggle individual category
+                $chip.toggleClass('active');
 
-                    // Get all selected categories
-                    const selectedCategories = $('.slicer-chip.active:not([data-category="all"])')
-                        .map(function() { return $(this).data('category'); })
-                        .get();
+                // Get all selected categories
+                const selectedCategories = $('.slicer-chip.active')
+                    .map(function() { return $(this).data('category'); })
+                    .get();
 
-                    // Ensure at least one category is selected
-                    if (selectedCategories.length === 0) {
-                        $('.slicer-chip[data-category="all"]').addClass('active');
-                        this.selectedCategories = [];
-                        this.loadChartData(); // Reload ALL charts with no filter
-                    } else {
-                        this.selectedCategories = selectedCategories;
-                        this.loadChartData(); // Reload ALL charts with selected categories
+                // Ensure at least one category is selected
+                if (selectedCategories.length === 0) {
+                    $chip.addClass('active'); // Re-add the active class to prevent empty selection
+                    this.showNotification('At least one category must be selected', 'error');
+                    return;
+                }
+
+                this.selectedCategories = selectedCategories;
+                this.loadChartData(); // Reload ALL charts with selected categories
+            });
+        },
+
+        renderTopFrequentChart: function(data) {
+            const ctx = document.getElementById('top-frequent-chart');
+            if (!ctx) return;
+
+            if (this.charts.topFrequent) {
+                this.charts.topFrequent.destroy();
+            }
+
+            if (!data || data.length === 0) {
+                return;
+            }
+
+            // Get top 10 most frequent expenses
+            const labels = data.map(d => d.description);
+            const counts = data.map(d => parseInt(d.count) || 0);
+            const amounts = data.map(d => parseFloat(d.total_amount) || 0);
+
+            this.charts.topFrequent = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Transaction Count',
+                        data: counts,
+                        backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                        borderColor: 'rgb(99, 102, 241)',
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        barThickness: 'flex',
+                        maxBarThickness: 50
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: { size: 14 },
+                            bodyFont: { size: 13 },
+                            callbacks: {
+                                label: (context) => {
+                                    const index = context.dataIndex;
+                                    const count = counts[index];
+                                    const total = amounts[index];
+                                    return [
+                                        `Count: ${count} transactions`,
+                                        `Total: ₹${total.toLocaleString()}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0,
+                                font: { size: 11 }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                font: { size: 11 },
+                                callback: function(value, index) {
+                                    const label = this.getLabelForValue(value);
+                                    return label.length > 20 ? label.substring(0, 20) + '...' : label;
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
                     }
                 }
             });
         },
 
-        renderIncomeExpenseChart: function(data) {
-            const ctx = document.getElementById('income-expense-chart');
+        loadCategoryDetails: function(categoryName) {
+            const data = {
+                action: 'rizqtrack_get_category_details',
+                nonce: rizqtrack.nonce,
+                category: categoryName,
+                filter: this.currentFilter
+            };
 
-            if (this.charts.incomeExpense) {
-                this.charts.incomeExpense.destroy();
-            }
-
-            const income = parseFloat(data.total_income) || 0;
-            const expense = parseFloat(data.total_expense) || 0;
-
-            this.charts.incomeExpense = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Income', 'Expense'],
-                    datasets: [{
-                        data: [income, expense],
-                        backgroundColor: ['#10b981', '#ef4444'],
-                        borderWidth: 3,
-                        borderColor: '#fff',
-                        hoverOffset: 10
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: {
-                        animateRotate: true,
-                        animateScale: true
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 15,
-                                font: {
-                                    size: 13
-                                },
-                                usePointStyle: true
-                            },
-                            onClick: (e, legendItem, legend) => {
-                                const index = legendItem.index;
-                                const ci = legend.chart;
-                                const meta = ci.getDatasetMeta(0);
-                                meta.data[index].hidden = !meta.data[index].hidden;
-                                ci.update();
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
-                            titleFont: {
-                                size: 14
-                            },
-                            bodyFont: {
-                                size: 13
-                            },
-                            callbacks: {
-                                label: (context) => {
-                                    let label = context.label || '';
-                                    let value = context.parsed || 0;
-                                    let total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    let percentage = ((value / total) * 100).toFixed(1);
-                                    return `${label}: ₹${value.toLocaleString()} (${percentage}%)`;
-                                }
-                            }
-                        },
-                        datalabels: {
-                            formatter: (value, ctx) => {
-                                let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                let percentage = ((value / sum) * 100).toFixed(1);
-                                return percentage + '%';
-                            },
-                            color: '#fff',
-                            font: {
-                                weight: 'bold',
-                                size: 16,
-                            },
-                            textShadowBlur: 3,
-                            textShadowColor: 'rgba(0, 0, 0, 0.6)'
-                        }
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: data,
+                success: (response) => {
+                    if (response.success) {
+                        this.renderCategoryDetails(categoryName, response.data);
                     }
                 }
             });
+        },
+
+        renderCategoryDetails: function(categoryName, transactions) {
+            const $container = $('#category-details-container');
+            const $title = $('#category-details-title');
+
+            $title.html(`📋 ${categoryName} - Transaction Details`);
+
+            if (!transactions || transactions.length === 0) {
+                $container.html('<div class="no-data">No transactions found for this category</div>');
+                return;
+            }
+
+            let html = `
+                <div class="category-details-table-wrapper">
+                    <table class="category-details-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            transactions.forEach(tx => {
+                const date = new Date(tx.date).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                });
+                const typeClass = tx.type === 'income' ? 'income' : 'expense';
+                const typeIcon = tx.type === 'income' ? '↗️' : '↘️';
+
+                html += `
+                    <tr>
+                        <td>${date}</td>
+                        <td class="description-cell">${tx.description || 'No description'}</td>
+                        <td><span class="type-badge ${typeClass}">${typeIcon} ${tx.type}</span></td>
+                        <td class="amount-cell ${typeClass}">₹${parseFloat(tx.amount).toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                    <div class="category-summary">
+                        <strong>Total Transactions:</strong> ${transactions.length} |
+                        <strong>Total Amount:</strong> ₹${transactions.reduce((sum, tx) => sum + parseFloat(tx.amount), 0).toLocaleString()}
+                    </div>
+                </div>
+            `;
+
+            $container.html(html);
         },
 
         renderSpendingTrendChart: function(data) {

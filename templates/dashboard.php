@@ -62,14 +62,14 @@
             </div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-icon days-no-spend">🌟</div>
+            <div class="kpi-icon days-no-spend">💤</div>
             <div class="kpi-content">
                 <span class="kpi-label">Days No Spending</span>
                 <span class="kpi-value" id="kpi-days-without-spending">Loading...</span>
             </div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-icon busiest-day">📅</div>
+            <div class="kpi-icon busiest-day">🔥</div>
             <div class="kpi-content">
                 <span class="kpi-label">Busiest Spending Day</span>
                 <span class="kpi-value" id="kpi-busiest-day">Loading...</span>
@@ -183,9 +183,9 @@
             </div>
 
             <div class="chart-card">
-                <h3>📈 Expense vs. Income</h3>
+                <h3>🔄 Top Frequent Expenses</h3>
                 <div class="chart-wrapper">
-                    <canvas id="income-expense-chart"></canvas>
+                    <canvas id="top-frequent-chart"></canvas>
                 </div>
             </div>
 
@@ -193,6 +193,16 @@
                 <h3>📉 Spending Over Time</h3>
                 <div class="chart-wrapper">
                     <canvas id="spending-trend-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card full-width-chart">
+                <h3 id="category-details-title">📋 Category Details</h3>
+                <p class="chart-subtitle">Click on a category in the breakdown chart to view detailed transactions</p>
+                <div class="category-details-wrapper">
+                    <div id="category-details-container">
+                        <div class="no-data">Select a category from the breakdown chart to view transaction details</div>
+                    </div>
                 </div>
             </div>
         </div>

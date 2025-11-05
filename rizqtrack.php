@@ -272,7 +272,7 @@ class RizqTrack {
         $endpoints = [
             'add_transaction', 'update_transaction', 'delete_transaction',
             'restore_transaction', 'permanent_delete', 'get_recent_transactions',
-            'get_chart_data', 'get_categories', 'get_goals', 'get_trash',
+            'get_chart_data', 'get_category_details', 'get_categories', 'get_goals', 'get_trash',
             'add_category', 'update_category', 'delete_category',
             'add_goal', 'update_goal', 'delete_goal', 'restore_goal', 'permanent_delete_goal',
             'contribute_goal_transaction', 'generate_report', 'get_kpi_data',
@@ -592,25 +592,20 @@ class RizqTrack {
         $category_params = array_merge([$user_id, $days], $category_filter_params);
         $category_data = $wpdb->get_results($wpdb->prepare($category_query, $category_params));
 
-        // Income vs Expense (with category filter)
-        $income_expense_query = "SELECT
-                COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as total_income,
-                COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as total_expense
+        // Top Frequent Expenses (with category filter)
+        $top_frequent_query = "SELECT t.description, COUNT(*) as count, SUM(t.amount) as total_amount
             FROM {$this->table_transactions} t
             LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
-            WHERE t.user_id = %d AND t.status = 'Active'
+            WHERE t.user_id = %d AND t.status = 'Active' AND t.type = 'expense'
             AND t.date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
-            $category_filter_sql";
+            AND t.description IS NOT NULL AND t.description != ''
+            $category_filter_sql
+            GROUP BY t.description
+            ORDER BY count DESC, total_amount DESC
+            LIMIT 10";
 
-        $income_expense_params = array_merge([$user_id, $days], $category_filter_params);
-        $income_expense = $wpdb->get_row($wpdb->prepare($income_expense_query, $income_expense_params));
-
-        if (!$income_expense) {
-            $income_expense = (object) [
-                'total_income' => 0,
-                'total_expense' => 0
-            ];
-        }
+        $top_frequent_params = array_merge([$user_id, $days], $category_filter_params);
+        $top_frequent = $wpdb->get_results($wpdb->prepare($top_frequent_query, $top_frequent_params));
 
         // Spending trend over time (with category filter)
         $spending_trend_query = "SELECT
@@ -630,9 +625,46 @@ class RizqTrack {
 
         wp_send_json_success([
             'category_data' => $category_data,
-            'income_expense' => $income_expense,
+            'top_frequent' => $top_frequent,
             'spending_trend' => $spending_trend
         ]);
+        wp_die();
+    }
+
+    public function ajax_get_category_details() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+
+        if (!$user_id) {
+            wp_send_json_error(['message' => 'You must be logged in to view data.']);
+            wp_die();
+        }
+
+        $category_name = sanitize_text_field($_POST['category'] ?? '');
+        $filter = sanitize_text_field($_POST['filter'] ?? '30');
+
+        $days_map = [
+            '7' => 7, '15' => 15, '30' => 30, '60' => 60, '90' => 90,
+            '120' => 120, '150' => 150, '180' => 180, '210' => 210,
+            '240' => 240, '270' => 270, '300' => 300, '330' => 330, '365' => 365
+        ];
+        $days = $days_map[$filter] ?? 30;
+
+        // Get transactions for specific category
+        $transactions = $wpdb->get_results($wpdb->prepare(
+            "SELECT t.date, t.description, t.amount, t.type
+            FROM {$this->table_transactions} t
+            LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
+            WHERE t.user_id = %d AND t.status = 'Active'
+            AND c.name = %s
+            AND t.date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
+            ORDER BY t.date DESC",
+            $user_id, $category_name, $days
+        ));
+
+        wp_send_json_success($transactions);
         wp_die();
     }
 
