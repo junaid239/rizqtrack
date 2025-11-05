@@ -599,26 +599,25 @@
 /* Chart Slicer/Filter Controls - Power BI Style */
 .chart-slicer {
     display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
+    gap: 12px;
     flex-wrap: wrap;
 }
 
 .slicer-chip {
-    padding: 8px 16px;
+    padding: 10px 20px;
     border: 2px solid var(--border-color);
-    border-radius: 20px;
+    border-radius: var(--radius-sm);
     background: var(--white);
     color: var(--text-dark);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .slicer-chip:hover {
     border-color: var(--primary-color);
-    background: #ecfeff;
+    color: var(--primary-color);
 }
 
 .slicer-chip.active {
