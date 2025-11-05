@@ -71,7 +71,7 @@
         <div class="kpi-card">
             <div class="kpi-icon busiest-day">📅</div>
             <div class="kpi-content">
-                <span class="kpi-label">Busiest Day</span>
+                <span class="kpi-label">Busiest Spending Day</span>
                 <span class="kpi-value" id="kpi-busiest-day">Loading...</span>
             </div>
         </div>
@@ -339,29 +339,7 @@
         </div>
     </div>
 
-    <div class="achievements-section">
-        <div class="section-header">
-            <h2 class="section-title">🏆 Achievements</h2>
-            <div class="achievements-stats">
-                <span class="achievement-count" id="achievement-count">0 earned</span>
-            </div>
-        </div>
-
-        <div id="achievements-container" class="achievements-grid">
-            <div class="loading-message">Loading achievements...</div>
-        </div>
-
-        <div class="new-achievement-popup" id="new-achievement-popup" style="display: none;">
-            <div class="popup-content">
-                <div class="popup-icon">🎉</div>
-                <h3>Achievement Unlocked!</h3>
-                <div id="popup-achievement-details"></div>
-                <button class="btn btn-primary" id="close-achievement-popup">Awesome!</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="challenges-section">
+    <div class="challenges-section" style="margin-top: 32px;">
         <div class="section-header">
             <h2 class="section-title">🎯 Savings Challenges</h2>
             <button class="btn btn-secondary" id="start-challenge-btn">➕ Start Challenge</button>
@@ -775,7 +753,7 @@
             <div id="emergency-fund-amount" style="display: none;">
                 <div class="form-group">
                     <label for="challenge-target">Target Amount (₹)</label>
-                    <input type="number" id="challenge-target" step="1000" placeholder="30000">
+                    <input type="number" id="challenge-target" step="any" min="1" placeholder="30000">
                     <small>Enter your 3-month expense amount</small>
                 </div>
             </div>
@@ -787,7 +765,7 @@
                 </div>
                 <div class="form-group">
                     <label for="custom-challenge-amount">Target Amount (₹) <span class="required">*</span></label>
-                    <input type="number" id="custom-challenge-amount" step="100" min="1" placeholder="10000">
+                    <input type="number" id="custom-challenge-amount" step="any" min="1" placeholder="10000">
                 </div>
                 <div class="form-group">
                     <label for="custom-challenge-weeks">Duration (weeks) <span class="required">*</span></label>
@@ -827,7 +805,7 @@
 
             <div class="form-group">
                 <label for="budget-amount">Budget Amount (₹) <span class="required">*</span></label>
-                <input type="number" id="budget-amount" step="100" min="1" required placeholder="5000">
+                <input type="number" id="budget-amount" step="any" min="1" required placeholder="5000">
             </div>
 
             <div class="form-group">
@@ -844,10 +822,10 @@
                 <small>Get notified when spending reaches this percentage</small>
             </div>
 
-            <div class="form-group">
-                <label>
+            <div class="form-group checkbox-group">
+                <label class="checkbox-label">
                     <input type="checkbox" id="budget-rollover">
-                    Rollover unused budget to next period
+                    <span class="checkbox-text">Rollover unused budget to next period</span>
                 </label>
             </div>
 

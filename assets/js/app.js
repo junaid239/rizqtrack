@@ -156,7 +156,6 @@
             this.loadTransactions(1); // Load page 1
             this.loadChartData();
             this.loadGoals();
-            this.loadAchievements();
             this.loadChallenges();
             this.loadBudgets();
             this.checkBudgetAlerts();
@@ -220,9 +219,6 @@
             // Motivational Quote
             $('#refresh-quote').on('click', this.showRandomQuote.bind(this));
 
-            // Achievements
-            $('#close-achievement-popup').on('click', this.closeAchievementPopup.bind(this));
-
             // Challenges
             $('#start-challenge-btn').on('click', this.openChallengeModal.bind(this));
             $('#challenge-form').on('submit', this.handleStartChallenge.bind(this));
@@ -234,6 +230,10 @@
             $('#budget-form').on('submit', this.handleSaveBudget.bind(this));
             $(document).on('click', '.edit-budget-btn', this.handleEditBudget.bind(this));
             $(document).on('click', '.delete-budget-btn', this.handleDeleteBudget.bind(this));
+
+            // Email Reports
+            $('#test-email-btn').on('click', this.handleTestEmail.bind(this));
+            $('#send-email-now-btn').on('click', this.handleSendEmailNow.bind(this));
         },
 
         showRandomQuote: function() {
@@ -2198,7 +2198,6 @@
                     if (response.success) {
                         this.showNotification(response.data.message, 'success');
                         this.loadChallenges();
-                        this.checkAchievements(); // Check for new achievements
                     } else {
                         this.showNotification(response.data.message, 'error');
                     }
@@ -2464,6 +2463,89 @@
                     } else {
                         this.showNotification(response.data.message, 'error');
                     }
+                }
+            });
+        },
+
+        // ===========================================
+        // EMAIL REPORT FUNCTIONS
+        // ===========================================
+        handleTestEmail: function() {
+            const emailAddress = $('#email-address').val();
+
+            if (!emailAddress) {
+                this.showNotification('Please enter an email address first', 'error');
+                return;
+            }
+
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(emailAddress)) {
+                this.showNotification('Please enter a valid email address', 'error');
+                return;
+            }
+
+            this.showNotification('Sending test email...', 'info');
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_test_email',
+                    nonce: rizqtrack.nonce,
+                    email: emailAddress
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification(response.data.message, 'success');
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                },
+                error: () => {
+                    this.showNotification('Failed to send test email. Please try again.', 'error');
+                }
+            });
+        },
+
+        handleSendEmailNow: function() {
+            const emailAddress = $('#email-address').val();
+
+            if (!emailAddress) {
+                this.showNotification('Please enter an email address first', 'error');
+                return;
+            }
+
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(emailAddress)) {
+                this.showNotification('Please enter a valid email address', 'error');
+                return;
+            }
+
+            if (!confirm('Send a financial report to ' + emailAddress + '?')) {
+                return;
+            }
+
+            this.showNotification('Generating and sending report...', 'info');
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_send_email_now',
+                    nonce: rizqtrack.nonce,
+                    email: emailAddress
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification(response.data.message, 'success');
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                },
+                error: () => {
+                    this.showNotification('Failed to send report. Please try again.', 'error');
                 }
             });
         }

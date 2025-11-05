@@ -276,7 +276,7 @@ class RizqTrack {
             'add_category', 'update_category', 'delete_category',
             'add_goal', 'update_goal', 'delete_goal', 'restore_goal', 'permanent_delete_goal',
             'contribute_goal_transaction', 'generate_report', 'get_kpi_data',
-            'get_email_settings', 'save_email_settings',
+            'get_email_settings', 'save_email_settings', 'test_email', 'send_email_now',
             'get_achievements', 'check_achievements',
             'get_challenges', 'start_challenge', 'update_challenge', 'complete_challenge',
             'get_budgets', 'add_budget', 'update_budget', 'delete_budget', 'check_budget_alerts', 'get_budget_vs_actual'
@@ -698,16 +698,22 @@ class RizqTrack {
             $days_without_spending = $interval->days;
         }
 
-        // Get busiest spending day (day of week with most expense transactions)
+        // Get busiest spending day (exact date with most expense transactions)
         $busiest_day = $wpdb->get_row($wpdb->prepare(
-            "SELECT DAYNAME(date) as day_name, COUNT(*) as count
+            "SELECT date, COUNT(*) as count
             FROM {$this->table_transactions}
             WHERE user_id = %d AND status = 'Active' AND type = 'expense'
-            GROUP BY DAYOFWEEK(date), DAYNAME(date)
-            ORDER BY count DESC
+            GROUP BY date
+            ORDER BY count DESC, date DESC
             LIMIT 1",
             $user_id
         ));
+
+        $busiest_day_formatted = 'N/A';
+        if ($busiest_day && $busiest_day->date) {
+            $date = new DateTime($busiest_day->date);
+            $busiest_day_formatted = $date->format('d M Y');
+        }
 
         $kpi_data = [
             'total_income' => floatval($summary->total_income),
@@ -718,7 +724,7 @@ class RizqTrack {
             'top_category' => $top_category ? $top_category->emoji . ' ' . $top_category->name : 'N/A',
             'most_frequent_category' => $most_frequent_category ? $most_frequent_category->emoji . ' ' . $most_frequent_category->name : 'N/A',
             'days_without_spending' => intval($days_without_spending),
-            'busiest_day' => $busiest_day ? $busiest_day->day_name : 'N/A'
+            'busiest_day' => $busiest_day_formatted
         ];
 
         wp_send_json_success($kpi_data);
@@ -1210,6 +1216,115 @@ class RizqTrack {
         $this->update_user_cron($user_id, $frequency);
 
         wp_send_json_success(['message' => 'Settings saved successfully']);
+        wp_die();
+    }
+
+    public function ajax_test_email() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        $user_id = get_current_user_id();
+
+        if (!$user_id) {
+            wp_send_json_error(['message' => 'You must be logged in.']);
+            wp_die();
+        }
+
+        $email = sanitize_email($_POST['email']);
+
+        if (!is_email($email)) {
+            wp_send_json_error(['message' => 'Invalid email address']);
+            wp_die();
+        }
+
+        $subject = 'RizqTrack Test Email - ' . date('F j, Y g:i A');
+        $message = '
+        <html>
+        <head>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 12px; }
+                .content { background: #ffffff; padding: 30px; margin-top: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+                .footer { text-align: center; color: #6b7280; padding: 20px; font-size: 14px; }
+                .success-icon { font-size: 48px; margin-bottom: 10px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <div class="success-icon">✅</div>
+                    <h1 style="margin: 0; font-size: 24px;">Test Email Successful!</h1>
+                </div>
+                <div class="content">
+                    <h2 style="color: #1f2937;">Hello from RizqTrack! 👋</h2>
+                    <p style="color: #4b5563; line-height: 1.6;">
+                        This is a test email to confirm that your email settings are working correctly.
+                        If you\'re reading this, everything is configured properly!
+                    </p>
+                    <p style="color: #4b5563; line-height: 1.6;">
+                        You\'ll receive financial reports at this email address based on your selected frequency:
+                    </p>
+                    <ul style="color: #4b5563; line-height: 1.8;">
+                        <li><strong>Weekly:</strong> Every Monday at 9:00 AM</li>
+                        <li><strong>Monthly:</strong> First day of each month at 9:00 AM</li>
+                    </ul>
+                    <p style="color: #4b5563; line-height: 1.6;">
+                        Your reports will include:
+                    </p>
+                    <ul style="color: #4b5563; line-height: 1.8;">
+                        <li>📊 Income vs Expense summary</li>
+                        <li>💰 Top spending categories</li>
+                        <li>🎯 Financial goals progress</li>
+                        <li>📈 Transaction highlights</li>
+                    </ul>
+                </div>
+                <div class="footer">
+                    <p>Sent by RizqTrack - Your Personal Finance Tracker</p>
+                    <p style="font-size: 12px;">Generated on ' . date('F j, Y \a\t g:i A') . '</p>
+                </div>
+            </div>
+        </body>
+        </html>';
+
+        $headers = ['Content-Type: text/html; charset=UTF-8'];
+        $sent = wp_mail($email, $subject, $message, $headers);
+
+        if ($sent) {
+            wp_send_json_success(['message' => '✅ Test email sent successfully! Check your inbox.']);
+        } else {
+            wp_send_json_error(['message' => '❌ Failed to send email. Please check your email settings.']);
+        }
+        wp_die();
+    }
+
+    public function ajax_send_email_now() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        $user_id = get_current_user_id();
+
+        if (!$user_id) {
+            wp_send_json_error(['message' => 'You must be logged in.']);
+            wp_die();
+        }
+
+        $email = sanitize_email($_POST['email']);
+
+        if (!is_email($email)) {
+            wp_send_json_error(['message' => 'Invalid email address']);
+            wp_die();
+        }
+
+        // Temporarily save email to user meta so send_email_report can use it
+        $original_email = get_user_meta($user_id, 'rizqtrack_email_address', true);
+        update_user_meta($user_id, 'rizqtrack_email_address', $email);
+
+        // Send the report (using 30 days as default period)
+        $this->send_email_report($user_id, 'monthly');
+
+        // Restore original email if different
+        if ($original_email && $original_email !== $email) {
+            update_user_meta($user_id, 'rizqtrack_email_address', $original_email);
+        }
+
+        wp_send_json_success(['message' => '📨 Financial report sent successfully! Check your inbox.']);
         wp_die();
     }
 
