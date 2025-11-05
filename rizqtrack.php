@@ -458,9 +458,6 @@ class RizqTrack {
         $days_map = ['7' => 7, '30' => 30, '90' => 90, '180' => 180, '365' => 365];
         $days = $days_map[$filter] ?? 30;
 
-        // Get trend-specific days if provided
-        $trend_days = isset($_POST['trend_days']) ? intval($_POST['trend_days']) : $days;
-
         // Get selected categories if provided
         $selected_categories = [];
         $category_filter_sql = '';
@@ -510,7 +507,7 @@ class RizqTrack {
             ];
         }
 
-        // Spending trend over time (with category filter and custom date range)
+        // Spending trend over time (with category filter)
         $spending_trend_query = "SELECT
                 DATE(t.date) as date,
                 COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as income,
@@ -523,7 +520,7 @@ class RizqTrack {
             GROUP BY DATE(t.date)
             ORDER BY date ASC";
 
-        $spending_trend_params = array_merge([$user_id, $trend_days], $category_filter_params);
+        $spending_trend_params = array_merge([$user_id, $days], $category_filter_params);
         $spending_trend = $wpdb->get_results($wpdb->prepare($spending_trend_query, $spending_trend_params));
 
         wp_send_json_success([

@@ -482,12 +482,36 @@
     margin-bottom: 32px;
 }
 
+/* Unified Filters */
+.unified-filters {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+}
+
+.filter-group {
+    margin-bottom: 16px;
+}
+
+.filter-group:last-child {
+    margin-bottom: 0;
+}
+
+.filter-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 12px;
+}
+
 .chart-filters {
     display: flex;
     gap: 12px;
-    margin-bottom: 28px;
     flex-wrap: wrap;
-    justify-content: center;
 }
 
 .filter-btn {
@@ -1691,6 +1715,15 @@
     .kpi-section {
         grid-template-columns: 1fr;
         gap: 12px;
+    }
+
+    .unified-filters {
+        padding: 16px;
+    }
+
+    .filter-label {
+        font-size: 13px;
+        margin-bottom: 10px;
     }
 
     .kpi-card {

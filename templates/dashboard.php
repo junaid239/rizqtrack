@@ -123,20 +123,30 @@
     <div class="visualization-section">
         <h2 class="section-title">Financial Overview</h2>
 
-        <div class="chart-filters">
-            <button class="filter-btn" data-filter="7">7 Days</button>
-            <button class="filter-btn active" data-filter="30">30 Days</button>
-            <button class="filter-btn" data-filter="90">3 Months</button>
-            <button class="filter-btn" data-filter="180">6 Months</button>
-            <button class="filter-btn" data-filter="365">1 Year</button>
+        <!-- Unified Filters Section -->
+        <div class="unified-filters">
+            <div class="filter-group">
+                <label class="filter-label">📅 Time Period:</label>
+                <div class="chart-filters">
+                    <button class="filter-btn" data-filter="7">7 Days</button>
+                    <button class="filter-btn active" data-filter="30">30 Days</button>
+                    <button class="filter-btn" data-filter="90">3 Months</button>
+                    <button class="filter-btn" data-filter="180">6 Months</button>
+                    <button class="filter-btn" data-filter="365">1 Year</button>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">🏷️ Categories:</label>
+                <div class="chart-slicer" id="category-slicers">
+                    <!-- Power BI-style category filters will be rendered here -->
+                </div>
+            </div>
         </div>
 
         <div class="charts-container">
             <div class="chart-card">
                 <h3>📊 Category Breakdown</h3>
-                <div class="chart-slicer" id="category-slicers">
-                    <!-- Power BI-style category filters will be rendered here -->
-                </div>
                 <div class="chart-wrapper">
                     <canvas id="category-chart"></canvas>
                 </div>
@@ -151,16 +161,6 @@
 
             <div class="chart-card full-width-chart">
                 <h3>📉 Spending Over Time</h3>
-                <div class="trend-date-filters">
-                    <button class="trend-date-btn" data-days="7">7 Days</button>
-                    <button class="trend-date-btn" data-days="14">14 Days</button>
-                    <button class="trend-date-btn active" data-days="30">30 Days</button>
-                    <button class="trend-date-btn" data-days="custom">Custom Range</button>
-                    <div id="trend-custom-dates" class="trend-custom-dates" style="display: none;">
-                        <input type="date" id="trend-start-date" placeholder="Start Date">
-                        <input type="date" id="trend-end-date" placeholder="End Date">
-                    </div>
-                </div>
                 <div class="chart-wrapper">
                     <canvas id="spending-trend-chart"></canvas>
                 </div>
