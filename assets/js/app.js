@@ -9,6 +9,8 @@
             incomeExpense: null,
         },
         currentFilter: '30',
+        selectedCategories: [], // Global state for selected categories
+        trendDateRange: 30, // Default 30 days for spending trend chart
         editTransactionData: {},
         currentPage: 1, // For pagination
         quotes: [
@@ -36,6 +38,8 @@
                 goalsDonut: null
             };
             this.currentFilter = '30';
+            this.selectedCategories = [];
+            this.trendDateRange = 30;
             this.editTransactionData = {};
 
             this.setupEventListeners();
@@ -55,6 +59,10 @@
 
             // Chart Filters
             $('.filter-btn').on('click', this.handleFilterChange.bind(this));
+
+            // Trend Chart Date Range Filters
+            $(document).on('click', '.trend-date-btn', this.handleTrendDateChange.bind(this));
+            $('#trend-start-date, #trend-end-date').on('change', this.handleCustomTrendDateChange.bind(this));
 
             // Transaction Actions
             $(document).on('click', '.edit-transaction', this.openEditModal.bind(this));
@@ -519,15 +527,62 @@
             this.loadChartData();
         },
 
+        handleTrendDateChange: function(e) {
+            const $btn = $(e.currentTarget);
+            const days = $btn.data('days');
+
+            if (days === 'custom') {
+                // Show custom date pickers
+                $('#trend-custom-dates').show();
+                $('.trend-date-btn').removeClass('active');
+                $btn.addClass('active');
+                return;
+            }
+
+            // Hide custom date pickers and update
+            $('#trend-custom-dates').hide();
+            $('.trend-date-btn').removeClass('active');
+            $btn.addClass('active');
+
+            this.trendDateRange = days;
+            this.loadChartData();
+        },
+
+        handleCustomTrendDateChange: function() {
+            const startDate = $('#trend-start-date').val();
+            const endDate = $('#trend-end-date').val();
+
+            if (startDate && endDate) {
+                // Calculate days between dates
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                const diffTime = Math.abs(end - start);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                this.trendDateRange = diffDays;
+                this.loadChartData();
+            }
+        },
+
         loadChartData: function() {
+            const data = {
+                action: 'rizqtrack_get_chart_data',
+                nonce: rizqtrack.nonce,
+                filter: this.currentFilter
+            };
+
+            // Add selected categories if any
+            if (this.selectedCategories.length > 0) {
+                data.categories = this.selectedCategories.join(',');
+            }
+
+            // Add trend date range
+            data.trend_days = this.trendDateRange;
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
-                data: {
-                    action: 'rizqtrack_get_chart_data',
-                    nonce: rizqtrack.nonce,
-                    filter: this.currentFilter
-                },
+                data: data,
                 success: (response) => {
                     if (response.success) {
                         this.renderCategoryChart(response.data.category_data);
@@ -654,44 +709,53 @@
 
             $container.empty();
 
-            // Add "All" chip
+            // Add "All" chip (active by default)
+            const allActive = this.selectedCategories.length === 0 ? 'active' : '';
             $container.append(`
-                <div class="slicer-chip active" data-category="all">
+                <div class="slicer-chip ${allActive}" data-category="all">
                     All Categories
                 </div>
             `);
 
             // Add category chips
             data.forEach(cat => {
+                const isActive = this.selectedCategories.includes(cat.name) ? 'active' : '';
                 $container.append(`
-                    <div class="slicer-chip" data-category="${cat.name}">
+                    <div class="slicer-chip ${isActive}" data-category="${cat.name}">
                         ${cat.emoji} ${cat.name}
                     </div>
                 `);
             });
 
-            // Handle chip clicks
+            // Handle chip clicks - Update global state and reload ALL charts
             $(document).off('click', '.slicer-chip').on('click', '.slicer-chip', (e) => {
                 const $chip = $(e.currentTarget);
                 const category = $chip.data('category');
 
                 if (category === 'all') {
+                    // Select all categories
                     $('.slicer-chip').removeClass('active');
                     $chip.addClass('active');
-                    this.renderCategoryChart(this.categoryChartData, []);
+                    this.selectedCategories = [];
+                    this.loadChartData(); // Reload ALL charts with no filter
                 } else {
+                    // Toggle individual category
                     $('.slicer-chip[data-category="all"]').removeClass('active');
                     $chip.toggleClass('active');
 
+                    // Get all selected categories
                     const selectedCategories = $('.slicer-chip.active:not([data-category="all"])')
                         .map(function() { return $(this).data('category'); })
                         .get();
 
+                    // Ensure at least one category is selected
                     if (selectedCategories.length === 0) {
                         $('.slicer-chip[data-category="all"]').addClass('active');
-                        this.renderCategoryChart(this.categoryChartData, []);
+                        this.selectedCategories = [];
+                        this.loadChartData(); // Reload ALL charts with no filter
                     } else {
-                        this.renderCategoryChart(this.categoryChartData, selectedCategories);
+                        this.selectedCategories = selectedCategories;
+                        this.loadChartData(); // Reload ALL charts with selected categories
                     }
                 }
             });

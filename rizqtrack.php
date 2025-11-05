@@ -455,32 +455,53 @@ class RizqTrack {
         }
 
         $filter = sanitize_text_field($_POST['filter'] ?? '30');
-
         $days_map = ['7' => 7, '30' => 30, '90' => 90, '180' => 180, '365' => 365];
         $days = $days_map[$filter] ?? 30;
 
+        // Get trend-specific days if provided
+        $trend_days = isset($_POST['trend_days']) ? intval($_POST['trend_days']) : $days;
+
+        // Get selected categories if provided
+        $selected_categories = [];
+        $category_filter_sql = '';
+        $category_filter_params = [];
+
+        if (!empty($_POST['categories'])) {
+            $categories_string = sanitize_text_field($_POST['categories']);
+            $selected_categories = explode(',', $categories_string);
+            $selected_categories = array_map('trim', $selected_categories);
+
+            // Build SQL for category filtering
+            $placeholders = implode(',', array_fill(0, count($selected_categories), '%s'));
+            $category_filter_sql = " AND c.name IN ($placeholders)";
+            $category_filter_params = $selected_categories;
+        }
+
         // Category breakdown (expenses only)
-        $category_data = $wpdb->get_results($wpdb->prepare(
-            "SELECT c.name, c.emoji, SUM(t.amount) as total
+        $category_query = "SELECT c.name, c.emoji, SUM(t.amount) as total
             FROM {$this->table_transactions} t
             LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
             WHERE t.user_id = %d AND t.status = 'Active' AND t.type = 'expense'
             AND t.date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
+            $category_filter_sql
             GROUP BY c.id, c.name, c.emoji
-            ORDER BY total DESC",
-            $user_id, $days
-        ));
+            ORDER BY total DESC";
 
-        // Income vs Expense
-        $income_expense = $wpdb->get_row($wpdb->prepare(
-            "SELECT
-                COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as total_income,
-                COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expense
-            FROM {$this->table_transactions}
-            WHERE user_id = %d AND status = 'Active'
-            AND date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)",
-            $user_id, $days
-        ));
+        $category_params = array_merge([$user_id, $days], $category_filter_params);
+        $category_data = $wpdb->get_results($wpdb->prepare($category_query, $category_params));
+
+        // Income vs Expense (with category filter)
+        $income_expense_query = "SELECT
+                COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as total_income,
+                COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as total_expense
+            FROM {$this->table_transactions} t
+            LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
+            WHERE t.user_id = %d AND t.status = 'Active'
+            AND t.date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
+            $category_filter_sql";
+
+        $income_expense_params = array_merge([$user_id, $days], $category_filter_params);
+        $income_expense = $wpdb->get_row($wpdb->prepare($income_expense_query, $income_expense_params));
 
         if (!$income_expense) {
             $income_expense = (object) [
@@ -489,19 +510,21 @@ class RizqTrack {
             ];
         }
 
-        // Spending trend over time
-        $spending_trend = $wpdb->get_results($wpdb->prepare(
-            "SELECT
-                DATE(date) as date,
-                COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as income,
-                COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as expense
-            FROM {$this->table_transactions}
-            WHERE user_id = %d AND status = 'Active'
-            AND date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
-            GROUP BY DATE(date)
-            ORDER BY date ASC",
-            $user_id, $days
-        ));
+        // Spending trend over time (with category filter and custom date range)
+        $spending_trend_query = "SELECT
+                DATE(t.date) as date,
+                COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as income,
+                COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as expense
+            FROM {$this->table_transactions} t
+            LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
+            WHERE t.user_id = %d AND t.status = 'Active'
+            AND t.date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
+            $category_filter_sql
+            GROUP BY DATE(t.date)
+            ORDER BY date ASC";
+
+        $spending_trend_params = array_merge([$user_id, $trend_days], $category_filter_params);
+        $spending_trend = $wpdb->get_results($wpdb->prepare($spending_trend_query, $spending_trend_params));
 
         wp_send_json_success([
             'category_data' => $category_data,

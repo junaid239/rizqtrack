@@ -148,6 +148,16 @@
 
             <div class="chart-card full-width-chart">
                 <h3>📉 Spending Over Time</h3>
+                <div class="trend-date-filters">
+                    <button class="trend-date-btn" data-days="7">7 Days</button>
+                    <button class="trend-date-btn" data-days="14">14 Days</button>
+                    <button class="trend-date-btn active" data-days="30">30 Days</button>
+                    <button class="trend-date-btn" data-days="custom">Custom Range</button>
+                    <div id="trend-custom-dates" class="trend-custom-dates" style="display: none;">
+                        <input type="date" id="trend-start-date" placeholder="Start Date">
+                        <input type="date" id="trend-end-date" placeholder="End Date">
+                    </div>
+                </div>
                 <div class="chart-wrapper">
                     <canvas id="spending-trend-chart"></canvas>
                 </div>
