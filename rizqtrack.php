@@ -67,12 +67,14 @@ class RizqTrack {
             category_id bigint(20) NOT NULL,
             payment_method varchar(50) NOT NULL,
             description text,
+            goal_id bigint(20) DEFAULT NULL,
             status enum('Active','Trash') DEFAULT 'Active',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY user_id (user_id),
             KEY status (status),
-            KEY date (date)
+            KEY date (date),
+            KEY goal_id (goal_id)
         ) $charset;";
 
         $sql_categories = "CREATE TABLE IF NOT EXISTS {$this->table_categories} (
@@ -158,6 +160,12 @@ class RizqTrack {
         dbDelta($sql_achievements);
         dbDelta($sql_challenges);
         dbDelta($sql_budgets);
+
+        // Migration: Add goal_id column if it doesn't exist
+        $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{$this->table_transactions}' AND column_name = 'goal_id'");
+        if (empty($row)) {
+            $wpdb->query("ALTER TABLE {$this->table_transactions} ADD COLUMN goal_id bigint(20) DEFAULT NULL AFTER description, ADD KEY goal_id (goal_id)");
+        }
     }
 
     private function create_default_categories() {
@@ -399,6 +407,12 @@ class RizqTrack {
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
 
+        // Get transaction data before deleting to check for goal_id
+        $transaction = $wpdb->get_row($wpdb->prepare(
+            "SELECT goal_id, amount FROM {$this->table_transactions} WHERE id = %d AND user_id = %d",
+            $id, $user_id
+        ));
+
         $result = $wpdb->update(
             $this->table_transactions,
             ['status' => 'Trash'],
@@ -406,6 +420,15 @@ class RizqTrack {
         );
 
         if ($result) {
+            // If transaction was linked to a goal, reduce the goal's current_amount
+            if ($transaction && $transaction->goal_id) {
+                $wpdb->query($wpdb->prepare(
+                    "UPDATE {$this->table_goals}
+                    SET current_amount = GREATEST(0, current_amount - %f)
+                    WHERE id = %d AND user_id = %d",
+                    $transaction->amount, $transaction->goal_id, $user_id
+                ));
+            }
             wp_send_json_success(['message' => 'Transaction moved to trash']);
         } else {
             wp_send_json_error(['message' => 'Failed to delete transaction']);
@@ -420,6 +443,12 @@ class RizqTrack {
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
 
+        // Get transaction data before restoring to check for goal_id
+        $transaction = $wpdb->get_row($wpdb->prepare(
+            "SELECT goal_id, amount FROM {$this->table_transactions} WHERE id = %d AND user_id = %d",
+            $id, $user_id
+        ));
+
         $result = $wpdb->update(
             $this->table_transactions,
             ['status' => 'Active'],
@@ -427,6 +456,15 @@ class RizqTrack {
         );
 
         if ($result) {
+            // If transaction was linked to a goal, add the amount back to goal's current_amount
+            if ($transaction && $transaction->goal_id) {
+                $wpdb->query($wpdb->prepare(
+                    "UPDATE {$this->table_goals}
+                    SET current_amount = current_amount + %f
+                    WHERE id = %d AND user_id = %d",
+                    $transaction->amount, $transaction->goal_id, $user_id
+                ));
+            }
             wp_send_json_success(['message' => 'Transaction restored']);
         } else {
             wp_send_json_error(['message' => 'Failed to restore transaction']);
@@ -441,12 +479,21 @@ class RizqTrack {
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
 
+        // Get transaction data before deleting to check for goal_id
+        $transaction = $wpdb->get_row($wpdb->prepare(
+            "SELECT goal_id, amount FROM {$this->table_transactions} WHERE id = %d AND user_id = %d AND status = 'Trash'",
+            $id, $user_id
+        ));
+
         $result = $wpdb->delete(
             $this->table_transactions,
             ['id' => $id, 'user_id' => $user_id, 'status' => 'Trash']
         );
 
         if ($result) {
+            // If transaction was linked to a goal, reduce the goal's current_amount (only if not already reduced)
+            // Since this is permanent delete from trash, the amount was already reduced when moved to trash
+            // So we don't need to reduce again
             wp_send_json_success(['message' => 'Transaction permanently deleted']);
         } else {
             wp_send_json_error(['message' => 'Failed to delete transaction']);
@@ -1000,6 +1047,13 @@ class RizqTrack {
         );
 
         if ($result) {
+            // Move all related transactions to trash
+            $wpdb->update(
+                $this->table_transactions,
+                ['status' => 'Trash'],
+                ['goal_id' => $id, 'user_id' => $user_id, 'status' => 'Active']
+            );
+
             wp_send_json_success(['message' => 'Goal moved to trash']);
         } else {
             wp_send_json_error(['message' => 'Failed to delete goal']);
@@ -1021,6 +1075,13 @@ class RizqTrack {
         );
 
         if ($result) {
+            // Restore all related transactions from trash
+            $wpdb->update(
+                $this->table_transactions,
+                ['status' => 'Active'],
+                ['goal_id' => $id, 'user_id' => $user_id, 'status' => 'Trash']
+            );
+
             wp_send_json_success(['message' => 'Goal restored']);
         } else {
             wp_send_json_error(['message' => 'Failed to restore goal']);
@@ -1035,6 +1096,13 @@ class RizqTrack {
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
 
+        // First, permanently delete all related transactions
+        $wpdb->delete(
+            $this->table_transactions,
+            ['goal_id' => $id, 'user_id' => $user_id]
+        );
+
+        // Then delete the goal
         $result = $wpdb->delete(
             $this->table_goals,
             ['id' => $id, 'user_id' => $user_id, 'status' => 'Trash']
@@ -1093,7 +1161,7 @@ class RizqTrack {
             wp_die();
         }
 
-        // Create transaction
+        // Create transaction with goal_id link
         $wpdb->insert($this->table_transactions, [
             'user_id' => $user_id,
             'type' => 'expense',
@@ -1102,6 +1170,7 @@ class RizqTrack {
             'category_id' => $category_id,
             'payment_method' => 'Bank Transfer',
             'description' => 'Contribution to: ' . $goal->name,
+            'goal_id' => $goal_id,
             'status' => 'Active'
         ]);
 
