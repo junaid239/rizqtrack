@@ -2267,8 +2267,12 @@ HTML;
                 $user_id, $budget->category_id, $start_date, $end_date
             ));
 
-            $percentage = ($actual / $budget->amount) * 100;
+            $percentage = ($budget->amount > 0) ? ($actual / $budget->amount) * 100 : 0;
             $remaining = $budget->amount - $actual;
+            $is_over_budget = $actual > $budget->amount;
+
+            // Only show warning if money has been spent, threshold reached, and not over budget
+            $is_warning = $actual > 0 && !$is_over_budget && $percentage >= $budget->alert_threshold;
 
             $results[] = [
                 'budget_id' => $budget->id,
@@ -2281,8 +2285,8 @@ HTML;
                 'percentage' => round($percentage, 1),
                 'period' => $budget->period,
                 'alert_threshold' => $budget->alert_threshold,
-                'is_over_budget' => $actual > $budget->amount,
-                'is_warning' => $percentage >= $budget->alert_threshold
+                'is_over_budget' => $is_over_budget,
+                'is_warning' => $is_warning
             ];
         }
 
@@ -2330,16 +2334,18 @@ HTML;
                 $user_id, $budget->category_id, $start_date, $end_date
             ));
 
-            $percentage = ($actual / $budget->amount) * 100;
+            $percentage = ($budget->amount > 0) ? ($actual / $budget->amount) * 100 : 0;
+            $is_over_budget = $actual > $budget->amount;
 
-            if ($percentage >= $budget->alert_threshold) {
+            // Only alert if money has been spent and threshold reached
+            if ($actual > 0 && $percentage >= $budget->alert_threshold) {
                 $alerts[] = [
                     'category_name' => $budget->category_name,
                     'category_emoji' => $budget->category_emoji,
                     'budget_amount' => floatval($budget->amount),
                     'actual_amount' => floatval($actual),
                     'percentage' => round($percentage, 1),
-                    'is_over_budget' => $actual > $budget->amount
+                    'is_over_budget' => $is_over_budget
                 ];
             }
         }
