@@ -168,12 +168,6 @@
                         <input type="number" id="fuel-liters" name="fuel_liters" step="0.01" min="0" placeholder="40.50">
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="fuel-amount">Fuel Amount (₹)</label>
-                        <input type="number" id="fuel-amount" name="fuel_amount" step="0.01" min="0" placeholder="2500.00">
-                    </div>
-                </div>
             </div>
 
             <div class="form-actions">
@@ -495,10 +489,6 @@
                 <div class="form-group">
                     <label for="edit-fuel-liters">Fuel Filled (Liters)</label>
                     <input type="number" id="edit-fuel-liters" step="0.01" min="0" placeholder="40.50">
-                </div>
-                <div class="form-group">
-                    <label for="edit-fuel-amount">Fuel Amount (₹)</label>
-                    <input type="number" id="edit-fuel-amount" step="0.01" min="0" placeholder="2500.00">
                 </div>
             </div>
 

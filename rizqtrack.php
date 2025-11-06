@@ -392,9 +392,6 @@ class RizqTrack {
         if (!empty($_POST['fuel_liters'])) {
             $data['fuel_liters'] = floatval($_POST['fuel_liters']);
         }
-        if (!empty($_POST['fuel_amount'])) {
-            $data['fuel_amount'] = floatval($_POST['fuel_amount']);
-        }
 
         $result = $wpdb->insert($this->table_transactions, $data);
 
@@ -445,9 +442,6 @@ class RizqTrack {
         }
         if (isset($_POST['fuel_liters'])) {
             $data['fuel_liters'] = !empty($_POST['fuel_liters']) ? floatval($_POST['fuel_liters']) : null;
-        }
-        if (isset($_POST['fuel_amount'])) {
-            $data['fuel_amount'] = !empty($_POST['fuel_amount']) ? floatval($_POST['fuel_amount']) : null;
         }
 
         $result = $wpdb->update(
@@ -1380,7 +1374,7 @@ class RizqTrack {
         fputcsv($output, ['RizqTrack Financial Report']);
         fputcsv($output, ['Period: ' . $start_date . ' to ' . $end_date]);
         fputcsv($output, []);
-        fputcsv($output, ['Date', 'Type', 'Category', 'Amount', 'Payment Method', 'Description', 'Odometer (km)', 'Fuel (L)', 'Fuel Amount']);
+        fputcsv($output, ['Date', 'Type', 'Category', 'Amount', 'Payment Method', 'Description', 'Odometer (km)', 'Fuel (L)']);
 
         foreach ($transactions as $t) {
             fputcsv($output, [
@@ -1391,8 +1385,7 @@ class RizqTrack {
                 $t->payment_method,
                 $t->description,
                 $t->odometer_reading ? number_format($t->odometer_reading, 2) : '',
-                $t->fuel_liters ? number_format($t->fuel_liters, 2) : '',
-                $t->fuel_amount ? number_format($t->fuel_amount, 2) : ''
+                $t->fuel_liters ? number_format($t->fuel_liters, 2) : ''
             ]);
         }
 

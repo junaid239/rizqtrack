@@ -267,7 +267,7 @@
             } else {
                 $('#fuel-fields').slideUp(300);
                 // Clear fuel fields when hiding
-                $('#odometer-reading, #fuel-liters, #fuel-amount').val('');
+                $('#odometer-reading, #fuel-liters').val('');
             }
         },
 
@@ -436,11 +436,9 @@
             // Add fuel-specific fields if present
             const odometerReading = $('#odometer-reading').val();
             const fuelLiters = $('#fuel-liters').val();
-            const fuelAmount = $('#fuel-amount').val();
 
             if (odometerReading) formData.odometer_reading = odometerReading;
             if (fuelLiters) formData.fuel_liters = fuelLiters;
-            if (fuelAmount) formData.fuel_amount = fuelAmount;
 
             console.log('Submitting transaction:', formData); // Debug log
 
@@ -545,11 +543,10 @@
 
                 // Build description with fuel data if available
                 let descriptionHtml = t.description || '-';
-                if (t.odometer_reading || t.fuel_liters || t.fuel_amount) {
+                if (t.odometer_reading || t.fuel_liters) {
                     const fuelDetails = [];
                     if (t.odometer_reading) fuelDetails.push(`📍 ${parseFloat(t.odometer_reading).toFixed(2)} km`);
                     if (t.fuel_liters) fuelDetails.push(`⛽ ${parseFloat(t.fuel_liters).toFixed(2)} L`);
-                    if (t.fuel_amount) fuelDetails.push(`₹ ${this.formatCurrency(t.fuel_amount)}`);
 
                     if (fuelDetails.length > 0) {
                         const fuelInfo = `<div class="fuel-info" style="font-size: 0.85em; color: #6b7280; margin-top: 4px;">${fuelDetails.join(' • ')}</div>`;
@@ -633,7 +630,6 @@
                             // Populate fuel fields if present
                             $('#edit-odometer-reading').val(transaction.odometer_reading || '');
                             $('#edit-fuel-liters').val(transaction.fuel_liters || '');
-                            $('#edit-fuel-amount').val(transaction.fuel_amount || '');
 
                             // Show fuel fields if this is a fuel transaction
                             if (transaction.category_name && (transaction.category_name.includes('Fuel') || transaction.category_emoji === '⛽')) {
@@ -671,7 +667,6 @@
             // Add fuel-specific fields
             formData.odometer_reading = $('#edit-odometer-reading').val() || '';
             formData.fuel_liters = $('#edit-fuel-liters').val() || '';
-            formData.fuel_amount = $('#edit-fuel-amount').val() || '';
 
             $.ajax({
                 url: rizqtrack.ajax_url,
