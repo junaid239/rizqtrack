@@ -152,10 +152,9 @@
             this.setupEventListeners();
             this.setDefaultFormValues();
             this.showRandomQuote();
-            this.loadCategories();
+            this.loadCategories(); // This will trigger loadChartData() after categories are loaded
             this.loadKPIData();
             this.loadTransactions(1); // Load page 1
-            this.loadChartData();
             this.loadGoals();
             this.loadBudgets();
             this.checkBudgetAlerts();
@@ -314,6 +313,13 @@
                     if (response.success) {
                         this.populateCategorySelects(response.data);
                         this.renderCategoriesList(response.data);
+                        // Also render category slicers for chart filters
+                        if (!this.categorySlicersRendered) {
+                            this.renderCategorySlicers(response.data);
+                            this.categorySlicersRendered = true;
+                            // Load chart data after categories are initialized
+                            this.loadChartData();
+                        }
                     }
                 }
             });
@@ -681,10 +687,17 @@
                 data: data,
                 success: (response) => {
                     if (response.success) {
-                        this.renderCategoryChart(response.data.category_data);
-                        this.renderTopFrequentChart(response.data.top_frequent);
-                        this.renderSpendingTrendChart(response.data.spending_trend);
+                        this.renderCategoryChart(response.data.category_data || []);
+                        this.renderTopFrequentChart(response.data.top_frequent || []);
+                        this.renderSpendingTrendChart(response.data.spending_trend || []);
                     }
+                },
+                error: (xhr, status, error) => {
+                    console.error('Failed to load chart data:', error);
+                    // Render empty charts
+                    this.renderCategoryChart([]);
+                    this.renderTopFrequentChart([]);
+                    this.renderSpendingTrendChart([]);
                 }
             });
         },
@@ -1642,10 +1655,13 @@
                     if (response.success) {
                         this.showNotification('Contribution added successfully!', 'success');
                         this.closeModals();
-                        this.loadGoals();
-                        this.loadKPIData();
-                        this.loadTransactions(this.currentPage); // Reload current page
-                        this.loadChartData();
+                        // Reload data after a short delay to ensure transaction is committed
+                        setTimeout(() => {
+                            this.loadGoals();
+                            this.loadKPIData();
+                            this.loadTransactions(this.currentPage);
+                            this.loadChartData();
+                        }, 100);
                     } else {
                         this.showNotification(response.data.message, 'error');
                     }
