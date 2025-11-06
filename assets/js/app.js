@@ -459,6 +459,7 @@
                         this.loadKPIData();
                         this.loadTransactions(this.currentPage); // Reload current page
                         this.loadChartData();
+                        this.loadBudgets(); // Update budget data
                     } else {
                         this.showNotification(response.data.message || 'Failed to add transaction', 'error');
                     }
@@ -546,6 +547,12 @@
 
                 // Build description with fuel data if available
                 let descriptionHtml = t.description || '-';
+
+                // Add goal contribution badge if this is a goal transaction
+                if (t.goal_id && t.goal_id > 0) {
+                    descriptionHtml = `<span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-right: 6px;">🎯 Goal</span>${descriptionHtml}`;
+                }
+
                 if (t.odometer_reading || t.fuel_liters) {
                     const fuelDetails = [];
                     if (t.odometer_reading) fuelDetails.push(`📍 ${parseFloat(t.odometer_reading).toFixed(2)} km`);
@@ -554,7 +561,7 @@
 
                     if (fuelDetails.length > 0) {
                         const fuelInfo = `<div class="fuel-info" style="font-size: 0.85em; color: #6b7280; margin-top: 4px;">${fuelDetails.join(' • ')}</div>`;
-                        descriptionHtml = (t.description ? t.description + fuelInfo : fuelInfo);
+                        descriptionHtml = (t.description ? descriptionHtml + fuelInfo : fuelInfo);
                     }
                 }
 
@@ -685,6 +692,7 @@
                         this.loadKPIData();
                         this.loadTransactions(this.currentPage); // Reload current page
                         this.loadChartData();
+                        this.loadBudgets(); // Update budget data
                     } else {
                         this.showNotification(response.data.message, 'error');
                     }
@@ -712,6 +720,7 @@
                         this.loadTransactions(this.currentPage); // Reload current page
                         this.loadChartData();
                         this.loadGoals(); // Update goal progress
+                        this.loadBudgets(); // Update budget data
                         this.loadTrash();
                     } else {
                         this.showNotification(response.data.message, 'error');
@@ -1698,6 +1707,7 @@
                         this.loadKPIData(); // Update KPIs
                         this.loadTransactions(this.currentPage); // Update transactions list
                         this.loadChartData(); // Update charts
+                        this.loadBudgets(); // Update budget data
                         this.loadTrash();
                     } else {
                         this.showNotification(response.data.message, 'error');
@@ -1738,6 +1748,7 @@
                             this.loadKPIData();
                             this.loadTransactions(this.currentPage);
                             this.loadChartData();
+                            this.loadBudgets(); // Update budget data
                         }, 100);
                     } else {
                         this.showNotification(response.data.message, 'error');
