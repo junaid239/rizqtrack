@@ -2200,7 +2200,7 @@
                         </div>
                         <div class="budget-stats">
                             <span class="budget-remaining">${remainingText}</span>
-                            <span class="budget-percentage">${Math.min(budget.percentage, 100).toFixed(1)}%</span>
+                            <span class="budget-percentage">${budget.percentage.toFixed(1)}%</span>
                         </div>
                         <div class="budget-actions">
                             <button class="btn btn-sm btn-secondary edit-budget-btn"
@@ -2248,9 +2248,10 @@
             `;
 
             alerts.forEach(alert => {
+                const percentage = parseFloat(alert.percentage).toFixed(1);
                 const statusText = alert.is_over_budget
-                    ? `${alert.percentage}% - OVER BUDGET!`
-                    : `${alert.percentage}% spent`;
+                    ? `${percentage}% - OVER BUDGET!`
+                    : `${percentage}% spent`;
 
                 alertHTML += `
                     <li class="budget-alert-item">
