@@ -1391,9 +1391,6 @@
                         case 'active':
                             show = progress < 100;
                             break;
-                        case 'near-complete':
-                            show = progress >= 75 && progress < 100;
-                            break;
                     }
 
                     if (show) {
