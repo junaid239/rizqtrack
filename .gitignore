@@ -1,0 +1,80 @@
+# WordPress & Plugin Security - RizqTrack
+# Never commit sensitive files!
+
+# Environment & Credentials
+.env
+.env.*
+*.env
+.htaccess
+wp-config.php
+wp-config-local.php
+
+# API Keys & Secrets
+*secret*
+*credential*
+*password*
+*.key
+*.pem
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# Database
+*.sql
+*.sql.gz
+*.sqlite
+*.db
+
+# Logs
+*.log
+logs/
+error_log
+debug.log
+
+# Backups
+*.backup
+*.bak
+*.swp
+*.tmp
+*~
+backup/
+backups/
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor
+.vscode/
+.idea/
+*.sublime-*
+*.code-workspace
+
+# Node modules (if using build tools)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Composer (PHP dependencies)
+/vendor/
+composer.lock
+
+# WordPress specific
+wp-content/uploads/
+wp-content/cache/
+wp-content/upgrade/
+wp-content/advanced-cache.php
+wp-content/wp-cache-config.php
+
+# Temporary files
+temp/
+tmp/
+cache/
+.cache/
+
+# Personal notes
+TODO.md
+NOTES.md
