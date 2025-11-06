@@ -314,6 +314,11 @@
                     if (response.success) {
                         this.populateCategorySelects(response.data);
                         this.renderCategoriesList(response.data);
+                        // Also render category slicers for chart filters
+                        if (!this.categorySlicersRendered) {
+                            this.renderCategorySlicers(response.data);
+                            this.categorySlicersRendered = true;
+                        }
                     }
                 }
             });
@@ -681,10 +686,17 @@
                 data: data,
                 success: (response) => {
                     if (response.success) {
-                        this.renderCategoryChart(response.data.category_data);
-                        this.renderTopFrequentChart(response.data.top_frequent);
-                        this.renderSpendingTrendChart(response.data.spending_trend);
+                        this.renderCategoryChart(response.data.category_data || []);
+                        this.renderTopFrequentChart(response.data.top_frequent || []);
+                        this.renderSpendingTrendChart(response.data.spending_trend || []);
                     }
+                },
+                error: (xhr, status, error) => {
+                    console.error('Failed to load chart data:', error);
+                    // Render empty charts
+                    this.renderCategoryChart([]);
+                    this.renderTopFrequentChart([]);
+                    this.renderSpendingTrendChart([]);
                 }
             });
         },
