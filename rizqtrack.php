@@ -75,6 +75,12 @@ class RizqTrack {
                 $wpdb->query("ALTER TABLE {$this->table_transactions} ADD COLUMN {$column} decimal(10,2) DEFAULT NULL");
             }
         }
+
+        // Migration: Add is_full_tank column if it doesn't exist
+        $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{$this->table_transactions}' AND column_name = 'is_full_tank'");
+        if (empty($row)) {
+            $wpdb->query("ALTER TABLE {$this->table_transactions} ADD COLUMN is_full_tank tinyint(1) DEFAULT 0");
+        }
     }
 
     public function activate() {
@@ -99,6 +105,7 @@ class RizqTrack {
             odometer_reading decimal(10,2) DEFAULT NULL,
             fuel_liters decimal(10,2) DEFAULT NULL,
             fuel_amount decimal(10,2) DEFAULT NULL,
+            is_full_tank tinyint(1) DEFAULT 0,
             status enum('Active','Trash') DEFAULT 'Active',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -392,6 +399,9 @@ class RizqTrack {
         if (!empty($_POST['fuel_liters'])) {
             $data['fuel_liters'] = floatval($_POST['fuel_liters']);
         }
+        if (isset($_POST['is_full_tank'])) {
+            $data['is_full_tank'] = intval($_POST['is_full_tank']);
+        }
 
         $result = $wpdb->insert($this->table_transactions, $data);
 
@@ -442,6 +452,9 @@ class RizqTrack {
         }
         if (isset($_POST['fuel_liters'])) {
             $data['fuel_liters'] = !empty($_POST['fuel_liters']) ? floatval($_POST['fuel_liters']) : null;
+        }
+        if (isset($_POST['is_full_tank'])) {
+            $data['is_full_tank'] = intval($_POST['is_full_tank']);
         }
 
         $result = $wpdb->update(
@@ -871,7 +884,7 @@ class RizqTrack {
 
         $vehicle_mileage = 0;
         if ($fuel_category) {
-            // Get all fuel transactions with odometer readings ordered by odometer reading (not by date/id)
+            // Get ONLY full tank fuel transactions ordered by odometer reading
             $fuel_transactions = $wpdb->get_results($wpdb->prepare(
                 "SELECT odometer_reading, fuel_liters
                 FROM {$this->table_transactions}
@@ -879,25 +892,31 @@ class RizqTrack {
                 AND category_id = %d
                 AND odometer_reading IS NOT NULL
                 AND fuel_liters IS NOT NULL AND fuel_liters > 0
+                AND is_full_tank = 1
                 ORDER BY odometer_reading ASC",
                 $user_id, $fuel_category
             ));
 
-            // Calculate mileage: sum of distance differences / sum of fuel
+            // Calculate mileage between consecutive full tank fills
+            // Distance = difference in odometer readings
+            // Fuel = sum of fuel between those two readings (including current fill)
             $total_distance = 0;
             $total_fuel = 0;
             $prev_odometer = null;
 
             foreach ($fuel_transactions as $transaction) {
+                $current_odometer = floatval($transaction->odometer_reading);
+                $current_fuel = floatval($transaction->fuel_liters);
+
                 if ($prev_odometer !== null) {
-                    $distance = floatval($transaction->odometer_reading) - $prev_odometer;
+                    $distance = $current_odometer - $prev_odometer;
                     // Only add if distance is positive (odometer should always increase)
                     if ($distance > 0) {
                         $total_distance += $distance;
-                        $total_fuel += floatval($transaction->fuel_liters);
+                        $total_fuel += $current_fuel;
                     }
                 }
-                $prev_odometer = floatval($transaction->odometer_reading);
+                $prev_odometer = $current_odometer;
             }
 
             if ($total_fuel > 0) {

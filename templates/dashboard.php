@@ -168,6 +168,14 @@
                         <input type="number" id="fuel-liters" name="fuel_liters" step="0.01" min="0" placeholder="40.50">
                     </div>
                 </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="is-full-tank" name="is_full_tank" value="1">
+                            <span class="checkbox-text">⛽ Tank Filled to Full <span style="font-size: 0.85em; color: #6b7280;">(Check for accurate mileage)</span></span>
+                        </label>
+                    </div>
+                </div>
             </div>
 
             <div class="form-actions">
@@ -489,6 +497,12 @@
                 <div class="form-group">
                     <label for="edit-fuel-liters">Fuel Filled (Liters)</label>
                     <input type="number" id="edit-fuel-liters" step="0.01" min="0" placeholder="40.50">
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="edit-is-full-tank" value="1">
+                        <span class="checkbox-text">⛽ Tank Filled to Full <span style="font-size: 0.85em; color: #6b7280;">(Check for accurate mileage)</span></span>
+                    </label>
                 </div>
             </div>
 
