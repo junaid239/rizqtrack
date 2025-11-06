@@ -189,6 +189,8 @@
             $(document).on('click', '.permanent-delete', this.handlePermanentDelete.bind(this));
             $(document).on('click', '.restore-goal', this.handleRestoreGoal.bind(this));
             $(document).on('click', '.permanent-delete-goal', this.handlePermanentDeleteGoal.bind(this));
+            $(document).on('click', '.restore-budget', this.handleRestoreBudget.bind(this));
+            $(document).on('click', '.permanent-delete-budget', this.handlePermanentDeleteBudget.bind(this));
 
             // Categories
             $('#manage-categories-card').on('click', this.openCategoriesModal.bind(this));
@@ -1719,20 +1721,21 @@
                 },
                 success: (response) => {
                     if (response.success) {
-                        this.renderTrash(response.data.transactions, response.data.goals);
+                        this.renderTrash(response.data.transactions, response.data.goals, response.data.budgets);
                     }
                 }
             });
         },
 
-        renderTrash: function(transactions, goals) {
+        renderTrash: function(transactions, goals, budgets) {
             const $tbody = $('#trash-tbody');
             $tbody.empty();
 
             if (!transactions) transactions = [];
             if (!goals) goals = [];
+            if (!budgets) budgets = [];
 
-            if (transactions.length === 0 && goals.length === 0) {
+            if (transactions.length === 0 && goals.length === 0 && budgets.length === 0) {
                 $tbody.html('<tr class="loading-row"><td colspan="6">Trash is empty</td></tr>');
                 return;
             }
@@ -1770,6 +1773,23 @@
                             <div class="action-btns">
                                 <button class="icon-btn restore-goal" data-id="${g.id}" title="Restore">↩️</button>
                                 <button class="icon-btn permanent-delete-goal" data-id="${g.id}" title="Delete Forever">💥</button>
+                            </div>
+                        </td>
+                    </tr>
+                `);
+            });
+
+            // Render budgets
+            budgets.forEach(b => {
+                $tbody.append(`
+                    <tr style="background: #fef3c7;">
+                        <td colspan="2"><strong>💰 BUDGET:</strong> ${b.category_emoji} ${b.category_name}</td>
+                        <td>₹${this.formatCurrency(b.amount)} (${b.period})</td>
+                        <td colspan="2">-</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="icon-btn restore-budget" data-id="${b.id}" title="Restore">↩️</button>
+                                <button class="icon-btn permanent-delete-budget" data-id="${b.id}" title="Delete Forever">💥</button>
                             </div>
                         </td>
                     </tr>
@@ -1816,6 +1836,53 @@
                 success: (response) => {
                     if (response.success) {
                         this.showNotification('Goal permanently deleted', 'success');
+                        this.loadTrash();
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                }
+            });
+        },
+
+        handleRestoreBudget: function(e) {
+            const budgetId = $(e.currentTarget).data('id');
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_restore_budget',
+                    nonce: rizqtrack.nonce,
+                    id: budgetId
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification('Budget restored', 'success');
+                        this.loadTrash();
+                        this.loadBudgets();
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                }
+            });
+        },
+
+        handlePermanentDeleteBudget: function(e) {
+            if (!confirm('Permanently delete this budget? This cannot be undone!')) return;
+
+            const budgetId = $(e.currentTarget).data('id');
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_permanent_delete_budget',
+                    nonce: rizqtrack.nonce,
+                    id: budgetId
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification('Budget permanently deleted', 'success');
                         this.loadTrash();
                     } else {
                         this.showNotification(response.data.message, 'error');

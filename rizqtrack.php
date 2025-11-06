@@ -278,7 +278,7 @@ class RizqTrack {
             'get_email_settings', 'save_email_settings', 'test_email', 'send_email_now',
             'get_achievements', 'check_achievements',
             'get_challenges', 'start_challenge', 'update_challenge', 'complete_challenge', 'delete_challenge',
-            'get_budgets', 'add_budget', 'update_budget', 'delete_budget', 'check_budget_alerts', 'get_budget_vs_actual'
+            'get_budgets', 'add_budget', 'update_budget', 'delete_budget', 'restore_budget', 'permanent_delete_budget', 'check_budget_alerts', 'get_budget_vs_actual'
         ];
 
         foreach ($endpoints as $endpoint) {
@@ -835,9 +835,20 @@ class RizqTrack {
             $user_id
         ));
 
+        // Get deleted budgets
+        $budgets = $wpdb->get_results($wpdb->prepare(
+            "SELECT b.id, b.amount, b.period, c.name as category_name, c.emoji as category_emoji, 'budget' as item_type, b.created_at
+            FROM {$this->table_budgets} b
+            LEFT JOIN {$this->table_categories} c ON b.category_id = c.id
+            WHERE b.user_id = %d AND b.status = 'deleted'
+            ORDER BY b.created_at DESC",
+            $user_id
+        ));
+
         wp_send_json_success([
             'transactions' => $transactions,
-            'goals' => $goals
+            'goals' => $goals,
+            'budgets' => $budgets
         ]);
         wp_die();
     }
@@ -1054,6 +1065,47 @@ class RizqTrack {
             wp_send_json_success(['message' => 'Goal permanently deleted']);
         } else {
             wp_send_json_error(['message' => 'Failed to delete goal']);
+        }
+        wp_die();
+    }
+
+    public function ajax_restore_budget() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $id = intval($_POST['id']);
+
+        $result = $wpdb->update(
+            $this->table_budgets,
+            ['status' => 'active'],
+            ['id' => $id, 'user_id' => $user_id]
+        );
+
+        if ($result) {
+            wp_send_json_success(['message' => 'Budget restored']);
+        } else {
+            wp_send_json_error(['message' => 'Failed to restore budget']);
+        }
+        wp_die();
+    }
+
+    public function ajax_permanent_delete_budget() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $id = intval($_POST['id']);
+
+        $result = $wpdb->delete(
+            $this->table_budgets,
+            ['id' => $id, 'user_id' => $user_id, 'status' => 'deleted']
+        );
+
+        if ($result) {
+            wp_send_json_success(['message' => 'Budget permanently deleted']);
+        } else {
+            wp_send_json_error(['message' => 'Failed to delete budget']);
         }
         wp_die();
     }
