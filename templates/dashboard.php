@@ -324,7 +324,6 @@
             <div class="goals-filter">
                 <button class="filter-chip active" data-filter="all">All</button>
                 <button class="filter-chip" data-filter="active">Active</button>
-                <button class="filter-chip" data-filter="near-complete">Near Complete (75%+)</button>
             </div>
         </div>
 
