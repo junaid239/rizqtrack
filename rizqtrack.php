@@ -871,7 +871,7 @@ class RizqTrack {
 
         $vehicle_mileage = 0;
         if ($fuel_category) {
-            // Get all fuel transactions with odometer readings ordered by date
+            // Get all fuel transactions with odometer readings ordered by odometer reading (not by date/id)
             $fuel_transactions = $wpdb->get_results($wpdb->prepare(
                 "SELECT odometer_reading, fuel_liters
                 FROM {$this->table_transactions}
@@ -879,7 +879,7 @@ class RizqTrack {
                 AND category_id = %d
                 AND odometer_reading IS NOT NULL
                 AND fuel_liters IS NOT NULL AND fuel_liters > 0
-                ORDER BY date ASC, id ASC",
+                ORDER BY odometer_reading ASC",
                 $user_id, $fuel_category
             ));
 
@@ -889,10 +889,13 @@ class RizqTrack {
             $prev_odometer = null;
 
             foreach ($fuel_transactions as $transaction) {
-                if ($prev_odometer !== null && floatval($transaction->odometer_reading) > $prev_odometer) {
+                if ($prev_odometer !== null) {
                     $distance = floatval($transaction->odometer_reading) - $prev_odometer;
-                    $total_distance += $distance;
-                    $total_fuel += floatval($transaction->fuel_liters);
+                    // Only add if distance is positive (odometer should always increase)
+                    if ($distance > 0) {
+                        $total_distance += $distance;
+                        $total_fuel += floatval($transaction->fuel_liters);
+                    }
                 }
                 $prev_odometer = floatval($transaction->odometer_reading);
             }
