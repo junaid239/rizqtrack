@@ -252,6 +252,41 @@
     background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
 }
 
+.kpi-icon.avg-income-day {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+}
+
+.kpi-icon.avg-expense-day {
+    background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+}
+
+.kpi-icon.vehicle-mileage {
+    background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+}
+
+/* Fuel Fields Styling */
+.fuel-fields {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    margin-top: 8px;
+}
+
+.fuel-fields .form-row {
+    margin-bottom: 0;
+}
+
+.fuel-info {
+    font-size: 0.85em;
+    color: #6b7280;
+    margin-top: 4px;
+    padding: 4px 8px;
+    background: #f9fafb;
+    border-radius: 4px;
+    display: inline-block;
+}
+
 .kpi-content {
     flex: 1;
     display: flex;

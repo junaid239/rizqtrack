@@ -75,6 +75,27 @@
                 <span class="kpi-value" id="kpi-busiest-day">Loading...</span>
             </div>
         </div>
+        <div class="kpi-card">
+            <div class="kpi-icon avg-income-day">📅</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Avg Income/Day (Month)</span>
+                <span class="kpi-value" id="kpi-avg-income-per-day">Loading...</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon avg-expense-day">📉</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Avg Expense/Day (Month)</span>
+                <span class="kpi-value" id="kpi-avg-expense-per-day">Loading...</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon vehicle-mileage">⛽</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Vehicle Mileage (km/L)</span>
+                <span class="kpi-value" id="kpi-vehicle-mileage">Loading...</span>
+            </div>
+        </div>
     </div>
 
     <div class="rizqtrack-card transaction-form-card" style="margin-top: 32px;">
@@ -132,6 +153,26 @@
                 <div class="form-group full-width">
                     <label for="description">Description (Optional)</label>
                     <textarea id="description" name="description" maxlength="255" rows="3" placeholder="Add a note about this transaction..."></textarea>
+                </div>
+            </div>
+
+            <!-- Fuel-specific fields (hidden by default) -->
+            <div id="fuel-fields" class="fuel-fields" style="display: none;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="odometer-reading">Odometer Reading (km)</label>
+                        <input type="number" id="odometer-reading" name="odometer_reading" step="0.01" min="0" placeholder="12345.67">
+                    </div>
+                    <div class="form-group">
+                        <label for="fuel-liters">Fuel Filled (Liters)</label>
+                        <input type="number" id="fuel-liters" name="fuel_liters" step="0.01" min="0" placeholder="40.50">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fuel-amount">Fuel Amount (₹)</label>
+                        <input type="number" id="fuel-amount" name="fuel_amount" step="0.01" min="0" placeholder="2500.00">
+                    </div>
                 </div>
             </div>
 
@@ -443,6 +484,22 @@
             <div class="form-group">
                 <label for="edit-description">Description</label>
                 <textarea id="edit-description" maxlength="255" rows="3"></textarea>
+            </div>
+
+            <!-- Fuel-specific fields for edit (hidden by default) -->
+            <div id="edit-fuel-fields" class="fuel-fields" style="display: none;">
+                <div class="form-group">
+                    <label for="edit-odometer-reading">Odometer Reading (km)</label>
+                    <input type="number" id="edit-odometer-reading" step="0.01" min="0" placeholder="12345.67">
+                </div>
+                <div class="form-group">
+                    <label for="edit-fuel-liters">Fuel Filled (Liters)</label>
+                    <input type="number" id="edit-fuel-liters" step="0.01" min="0" placeholder="40.50">
+                </div>
+                <div class="form-group">
+                    <label for="edit-fuel-amount">Fuel Amount (₹)</label>
+                    <input type="number" id="edit-fuel-amount" step="0.01" min="0" placeholder="2500.00">
+                </div>
             </div>
 
             <div class="modal-actions">

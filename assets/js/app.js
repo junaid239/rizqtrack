@@ -166,6 +166,10 @@
             $('#transaction-form').on('submit', this.handleAddTransaction.bind(this));
             $('.toggle-btn').on('click', this.handleTypeToggle.bind(this));
 
+            // Category change to show/hide fuel fields
+            $('#category').on('change', this.handleCategoryChange.bind(this));
+            $('#edit-category').on('change', this.handleEditCategoryChange.bind(this));
+
             // Date Range Filters
             $('#filter-start-date, #filter-end-date').on('change', this.handleDateFilterChange.bind(this));
 
@@ -253,6 +257,32 @@
             this.filterCategoriesByType(type);
         },
 
+        handleCategoryChange: function(e) {
+            const selectedOption = $(e.currentTarget).find('option:selected');
+            const categoryName = selectedOption.text();
+
+            // Show fuel fields only if "Fuel" category is selected
+            if (categoryName.includes('Fuel') || categoryName.includes('⛽')) {
+                $('#fuel-fields').slideDown(300);
+            } else {
+                $('#fuel-fields').slideUp(300);
+                // Clear fuel fields when hiding
+                $('#odometer-reading, #fuel-liters, #fuel-amount').val('');
+            }
+        },
+
+        handleEditCategoryChange: function(e) {
+            const selectedOption = $(e.currentTarget).find('option:selected');
+            const categoryName = selectedOption.text();
+
+            // Show fuel fields only if "Fuel" category is selected
+            if (categoryName.includes('Fuel') || categoryName.includes('⛽')) {
+                $('#edit-fuel-fields').slideDown(300);
+            } else {
+                $('#edit-fuel-fields').slideUp(300);
+            }
+        },
+
         filterCategoriesByType: function(type) {
             const $select = $('#category');
             $select.find('option').each(function() {
@@ -293,10 +323,13 @@
                         $('#kpi-most-frequent-category').text(data.most_frequent_category);
                         $('#kpi-days-without-spending').text(data.days_without_spending);
                         $('#kpi-busiest-day').text(data.busiest_day);
+                        $('#kpi-avg-income-per-day').text('₹' + this.formatCurrency(data.avg_income_per_day));
+                        $('#kpi-avg-expense-per-day').text('₹' + this.formatCurrency(data.avg_expense_per_day));
+                        $('#kpi-vehicle-mileage').text(data.vehicle_mileage > 0 ? data.vehicle_mileage.toFixed(2) : 'N/A');
                     }
                 },
                 error: () => {
-                    $('#kpi-income, #kpi-expense, #kpi-savings, #kpi-transaction-count, #kpi-avg-transaction, #kpi-top-category, #kpi-most-frequent-category, #kpi-days-without-spending, #kpi-busiest-day').text('Error');
+                    $('#kpi-income, #kpi-expense, #kpi-savings, #kpi-transaction-count, #kpi-avg-transaction, #kpi-top-category, #kpi-most-frequent-category, #kpi-days-without-spending, #kpi-busiest-day, #kpi-avg-income-per-day, #kpi-avg-expense-per-day, #kpi-vehicle-mileage').text('Error');
                 }
             });
         },
@@ -400,6 +433,15 @@
                 description: $('#description').val()
             };
 
+            // Add fuel-specific fields if present
+            const odometerReading = $('#odometer-reading').val();
+            const fuelLiters = $('#fuel-liters').val();
+            const fuelAmount = $('#fuel-amount').val();
+
+            if (odometerReading) formData.odometer_reading = odometerReading;
+            if (fuelLiters) formData.fuel_liters = fuelLiters;
+            if (fuelAmount) formData.fuel_amount = fuelAmount;
+
             console.log('Submitting transaction:', formData); // Debug log
 
             $.ajax({
@@ -412,6 +454,7 @@
                         this.showNotification('Transaction added successfully!', 'success');
                         $('#transaction-form')[0].reset();
                         this.setDefaultFormValues();
+                        $('#fuel-fields').hide(); // Hide fuel fields after reset
                         this.loadKPIData();
                         this.loadTransactions(this.currentPage); // Reload current page
                         this.loadChartData();
@@ -500,13 +543,27 @@
                 const amountClass = t.type === 'income' ? 'amount-positive' : 'amount-negative';
                 const amountPrefix = t.type === 'income' ? '+' : '-';
 
+                // Build description with fuel data if available
+                let descriptionHtml = t.description || '-';
+                if (t.odometer_reading || t.fuel_liters || t.fuel_amount) {
+                    const fuelDetails = [];
+                    if (t.odometer_reading) fuelDetails.push(`📍 ${parseFloat(t.odometer_reading).toFixed(2)} km`);
+                    if (t.fuel_liters) fuelDetails.push(`⛽ ${parseFloat(t.fuel_liters).toFixed(2)} L`);
+                    if (t.fuel_amount) fuelDetails.push(`₹ ${this.formatCurrency(t.fuel_amount)}`);
+
+                    if (fuelDetails.length > 0) {
+                        const fuelInfo = `<div class="fuel-info" style="font-size: 0.85em; color: #6b7280; margin-top: 4px;">${fuelDetails.join(' • ')}</div>`;
+                        descriptionHtml = (t.description ? t.description + fuelInfo : fuelInfo);
+                    }
+                }
+
                 $tbody.append(`
                     <tr>
                         <td>${this.formatDate(t.date)}</td>
                         <td>${t.category_emoji} ${t.category_name}</td>
                         <td class="${amountClass}">${amountPrefix}${this.formatCurrency(t.amount)}</td>
                         <td>${t.payment_method}</td>
-                        <td>${t.description || '-'}</td>
+                        <td>${descriptionHtml}</td>
                         <td>
                             <div class="action-btns">
                                 <button class="icon-btn edit-transaction" data-id="${t.id}" title="Edit">✏️</button>
@@ -573,6 +630,18 @@
                             $('#edit-payment-method').val(transaction.payment_method);
                             $('#edit-description').val(transaction.description);
 
+                            // Populate fuel fields if present
+                            $('#edit-odometer-reading').val(transaction.odometer_reading || '');
+                            $('#edit-fuel-liters').val(transaction.fuel_liters || '');
+                            $('#edit-fuel-amount').val(transaction.fuel_amount || '');
+
+                            // Show fuel fields if this is a fuel transaction
+                            if (transaction.category_name && (transaction.category_name.includes('Fuel') || transaction.category_emoji === '⛽')) {
+                                $('#edit-fuel-fields').show();
+                            } else {
+                                $('#edit-fuel-fields').hide();
+                            }
+
                             $('#edit-transaction-modal').addClass('active');
                         }
                     }
@@ -591,13 +660,18 @@
                 nonce: rizqtrack.nonce,
                 id: $('#edit-transaction-id').val(),
                 // Set type based on category, default to 'expense'
-                type: (categoryType === 'income' || categoryType === 'expense') ? categoryType : 'expense', 
+                type: (categoryType === 'income' || categoryType === 'expense') ? categoryType : 'expense',
                 amount: $('#edit-amount').val(),
                 date: $('#edit-date').val(),
                 category_id: $('#edit-category').val(),
                 payment_method: $('#edit-payment-method').val(),
                 description: $('#edit-description').val()
             };
+
+            // Add fuel-specific fields
+            formData.odometer_reading = $('#edit-odometer-reading').val() || '';
+            formData.fuel_liters = $('#edit-fuel-liters').val() || '';
+            formData.fuel_amount = $('#edit-fuel-amount').val() || '';
 
             $.ajax({
                 url: rizqtrack.ajax_url,

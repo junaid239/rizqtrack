@@ -68,13 +68,17 @@ class RizqTrack {
             payment_method varchar(50) NOT NULL,
             description text,
             goal_id bigint(20) DEFAULT NULL,
+            odometer_reading decimal(10,2) DEFAULT NULL,
+            fuel_liters decimal(10,2) DEFAULT NULL,
+            fuel_amount decimal(10,2) DEFAULT NULL,
             status enum('Active','Trash') DEFAULT 'Active',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY user_id (user_id),
             KEY status (status),
             KEY date (date),
-            KEY goal_id (goal_id)
+            KEY goal_id (goal_id),
+            KEY category_id (category_id)
         ) $charset;";
 
         $sql_categories = "CREATE TABLE IF NOT EXISTS {$this->table_categories} (
@@ -166,6 +170,15 @@ class RizqTrack {
         if (empty($row)) {
             $wpdb->query("ALTER TABLE {$this->table_transactions} ADD COLUMN goal_id bigint(20) DEFAULT NULL AFTER description, ADD KEY goal_id (goal_id)");
         }
+
+        // Migration: Add fuel-related columns if they don't exist
+        $fuel_columns = ['odometer_reading', 'fuel_liters', 'fuel_amount'];
+        foreach ($fuel_columns as $column) {
+            $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{$this->table_transactions}' AND column_name = '{$column}'");
+            if (empty($row)) {
+                $wpdb->query("ALTER TABLE {$this->table_transactions} ADD COLUMN {$column} decimal(10,2) DEFAULT NULL");
+            }
+        }
     }
 
     private function create_default_categories() {
@@ -176,6 +189,7 @@ class RizqTrack {
             ['Transportation', 'expense', '🚗'],
             ['Food & Groceries', 'expense', '🛒'],
             ['Utilities & Bills', 'expense', '💡'],
+            ['Fuel', 'expense', '⛽'],
             ['Salary/Wages', 'income', '💰'],
             ['Investment/Business', 'income', '📈'],
             ['Miscellaneous', 'expense', '✨']
@@ -343,6 +357,17 @@ class RizqTrack {
             'status' => 'Active'
         ];
 
+        // Add fuel-specific fields if provided
+        if (!empty($_POST['odometer_reading'])) {
+            $data['odometer_reading'] = floatval($_POST['odometer_reading']);
+        }
+        if (!empty($_POST['fuel_liters'])) {
+            $data['fuel_liters'] = floatval($_POST['fuel_liters']);
+        }
+        if (!empty($_POST['fuel_amount'])) {
+            $data['fuel_amount'] = floatval($_POST['fuel_amount']);
+        }
+
         $result = $wpdb->insert($this->table_transactions, $data);
 
         if ($result) {
@@ -385,6 +410,17 @@ class RizqTrack {
             'payment_method' => sanitize_text_field($_POST['payment_method']),
             'description' => sanitize_textarea_field($_POST['description'] ?? '')
         ];
+
+        // Add fuel-specific fields if provided (or set to NULL if empty)
+        if (isset($_POST['odometer_reading'])) {
+            $data['odometer_reading'] = !empty($_POST['odometer_reading']) ? floatval($_POST['odometer_reading']) : null;
+        }
+        if (isset($_POST['fuel_liters'])) {
+            $data['fuel_liters'] = !empty($_POST['fuel_liters']) ? floatval($_POST['fuel_liters']) : null;
+        }
+        if (isset($_POST['fuel_amount'])) {
+            $data['fuel_amount'] = !empty($_POST['fuel_amount']) ? floatval($_POST['fuel_amount']) : null;
+        }
 
         $result = $wpdb->update(
             $this->table_transactions,
@@ -777,6 +813,73 @@ class RizqTrack {
             $busiest_day_formatted = $date->format('d M Y');
         }
 
+        // Calculate Average Income Per Day (current month)
+        $current_month_start = date('Y-m-01');
+        $current_month_end = date('Y-m-t');
+        $days_in_month = date('t');
+
+        $month_income = $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(amount), 0)
+            FROM {$this->table_transactions}
+            WHERE user_id = %d AND status = 'Active' AND type = 'income'
+            AND date >= %s AND date <= %s",
+            $user_id, $current_month_start, $current_month_end
+        ));
+
+        // Calculate Average Expense Per Day (current month)
+        $month_expense = $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(amount), 0)
+            FROM {$this->table_transactions}
+            WHERE user_id = %d AND status = 'Active' AND type = 'expense'
+            AND date >= %s AND date <= %s",
+            $user_id, $current_month_start, $current_month_end
+        ));
+
+        $avg_income_per_day = floatval($month_income) / $days_in_month;
+        $avg_expense_per_day = floatval($month_expense) / $days_in_month;
+
+        // Calculate Vehicle Mileage (all time)
+        // Get fuel category ID
+        $fuel_category = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$this->table_categories}
+            WHERE name = 'Fuel' AND (user_id = 0 OR user_id = %d)
+            LIMIT 1",
+            $user_id
+        ));
+
+        $vehicle_mileage = 0;
+        if ($fuel_category) {
+            // Get all fuel transactions with odometer readings ordered by date
+            $fuel_transactions = $wpdb->get_results($wpdb->prepare(
+                "SELECT odometer_reading, fuel_liters
+                FROM {$this->table_transactions}
+                WHERE user_id = %d AND status = 'Active'
+                AND category_id = %d
+                AND odometer_reading IS NOT NULL
+                AND fuel_liters IS NOT NULL AND fuel_liters > 0
+                ORDER BY date ASC, id ASC",
+                $user_id, $fuel_category
+            ));
+
+            // Calculate mileage: sum of distance differences / sum of fuel
+            $total_distance = 0;
+            $total_fuel = 0;
+            $prev_odometer = null;
+
+            foreach ($fuel_transactions as $transaction) {
+                if ($prev_odometer !== null && floatval($transaction->odometer_reading) > $prev_odometer) {
+                    $distance = floatval($transaction->odometer_reading) - $prev_odometer;
+                    $total_distance += $distance;
+                    $total_fuel += floatval($transaction->fuel_liters);
+                }
+                $prev_odometer = floatval($transaction->odometer_reading);
+            }
+
+            if ($total_fuel > 0) {
+                $vehicle_mileage = $total_distance / $total_fuel;
+            }
+        }
+
         $kpi_data = [
             'total_income' => floatval($summary->total_income),
             'total_expense' => floatval($summary->total_expense),
@@ -786,7 +889,10 @@ class RizqTrack {
             'top_category' => $top_category ? $top_category->emoji . ' ' . $top_category->name : 'N/A',
             'most_frequent_category' => $most_frequent_category ? $most_frequent_category->emoji . ' ' . $most_frequent_category->name : 'N/A',
             'days_without_spending' => intval($days_without_spending),
-            'busiest_day' => $busiest_day_formatted
+            'busiest_day' => $busiest_day_formatted,
+            'avg_income_per_day' => $avg_income_per_day,
+            'avg_expense_per_day' => $avg_expense_per_day,
+            'vehicle_mileage' => $vehicle_mileage
         ];
 
         wp_send_json_success($kpi_data);
@@ -1246,7 +1352,7 @@ class RizqTrack {
         fputcsv($output, ['RizqTrack Financial Report']);
         fputcsv($output, ['Period: ' . $start_date . ' to ' . $end_date]);
         fputcsv($output, []);
-        fputcsv($output, ['Date', 'Type', 'Category', 'Amount', 'Payment Method', 'Description']);
+        fputcsv($output, ['Date', 'Type', 'Category', 'Amount', 'Payment Method', 'Description', 'Odometer (km)', 'Fuel (L)', 'Fuel Amount']);
 
         foreach ($transactions as $t) {
             fputcsv($output, [
@@ -1255,7 +1361,10 @@ class RizqTrack {
                 $t->category_name,
                 number_format($t->amount, 2),
                 $t->payment_method,
-                $t->description
+                $t->description,
+                $t->odometer_reading ? number_format($t->odometer_reading, 2) : '',
+                $t->fuel_liters ? number_format($t->fuel_liters, 2) : '',
+                $t->fuel_amount ? number_format($t->fuel_amount, 2) : ''
             ]);
         }
 
