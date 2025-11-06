@@ -2211,6 +2211,18 @@
         height: 220px;
     }
 
+    /* Goal action buttons - keep side by side on mobile */
+    .goal-actions {
+        flex-wrap: nowrap;
+        gap: 6px;
+    }
+
+    .goal-actions .btn-sm {
+        padding: 6px 10px;
+        font-size: 11px;
+        white-space: nowrap;
+    }
+
     /* Responsive Pagination */
     .pagination-controls {
         flex-direction: column;
