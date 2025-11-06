@@ -1654,10 +1654,13 @@
                     if (response.success) {
                         this.showNotification('Contribution added successfully!', 'success');
                         this.closeModals();
-                        this.loadGoals();
-                        this.loadKPIData();
-                        this.loadTransactions(this.currentPage); // Reload current page
-                        this.loadChartData();
+                        // Reload data after a short delay to ensure transaction is committed
+                        setTimeout(() => {
+                            this.loadGoals();
+                            this.loadKPIData();
+                            this.loadTransactions(this.currentPage);
+                            this.loadChartData();
+                        }, 100);
                     } else {
                         this.showNotification(response.data.message, 'error');
                     }
