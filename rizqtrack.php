@@ -1326,9 +1326,16 @@ class RizqTrack {
         }
 
         $email = sanitize_email($_POST['email']);
+        $start_date = sanitize_text_field($_POST['start_date']);
+        $end_date = sanitize_text_field($_POST['end_date']);
 
         if (!is_email($email)) {
             wp_send_json_error(['message' => 'Invalid email address']);
+            wp_die();
+        }
+
+        if (!$start_date || !$end_date) {
+            wp_send_json_error(['message' => 'Please select both start and end dates']);
             wp_die();
         }
 
@@ -1336,8 +1343,8 @@ class RizqTrack {
         $original_email = get_user_meta($user_id, 'rizqtrack_email_address', true);
         update_user_meta($user_id, 'rizqtrack_email_address', $email);
 
-        // Send the report (using 30 days as default period)
-        $this->send_email_report($user_id, 'monthly');
+        // Send the report with custom date range
+        $this->send_email_report($user_id, null, $start_date, $end_date);
 
         // Restore original email if different
         if ($original_email && $original_email !== $email) {
@@ -1371,13 +1378,22 @@ class RizqTrack {
         $this->send_email_report($user_id, 'monthly');
     }
 
-    private function send_email_report($user_id, $period) {
+    private function send_email_report($user_id, $period = null, $start_date = null, $end_date = null) {
         global $wpdb;
 
         $email = get_user_meta($user_id, 'rizqtrack_email_address', true);
         if (!$email) return;
 
-        $days = ($period === 'weekly') ? 7 : 30;
+        // If period is provided (for scheduled emails), calculate dates
+        if ($period && !$start_date && !$end_date) {
+            $days = ($period === 'weekly') ? 7 : 30;
+            $end_date = date('Y-m-d');
+            $start_date = date('Y-m-d', strtotime("-{$days} days"));
+            $period_label = ucfirst($period);
+        } else {
+            // Custom date range from user
+            $period_label = date('M j', strtotime($start_date)) . ' - ' . date('M j, Y', strtotime($end_date));
+        }
 
         // Get transaction summary
         $summary = $wpdb->get_row($wpdb->prepare(
@@ -1387,8 +1403,8 @@ class RizqTrack {
                 COUNT(*) as transaction_count
             FROM {$this->table_transactions}
             WHERE user_id = %d AND status = 'Active'
-            AND date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)",
-            $user_id, $days
+            AND date >= %s AND date <= %s",
+            $user_id, $start_date, $end_date
         ));
 
         // Get top spending categories
@@ -1397,11 +1413,11 @@ class RizqTrack {
             FROM {$this->table_transactions} t
             LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
             WHERE t.user_id = %d AND t.status = 'Active' AND t.type = 'expense'
-            AND t.date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
+            AND t.date >= %s AND t.date <= %s
             GROUP BY c.id
             ORDER BY total DESC
             LIMIT 5",
-            $user_id, $days
+            $user_id, $start_date, $end_date
         ));
 
         // Get active goals
@@ -1414,8 +1430,8 @@ class RizqTrack {
             $user_id
         ));
 
-        $subject = sprintf('RizqTrack %s Report - %s', ucfirst($period), date('F j, Y'));
-        $message = $this->generate_email_html($summary, $top_categories, $goals, $period);
+        $subject = sprintf('RizqTrack Report - %s', $period_label);
+        $message = $this->generate_email_html($summary, $top_categories, $goals, $period_label);
 
         $headers = ['Content-Type: text/html; charset=UTF-8'];
         wp_mail($email, $subject, $message, $headers);
