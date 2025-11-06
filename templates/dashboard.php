@@ -357,16 +357,6 @@
         <div id="budget-container" class="budget-grid">
             <div class="loading-message">Loading budgets...</div>
         </div>
-
-        <div class="budget-info" style="margin-top: 16px; padding: 16px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
-            <strong>💡 Budget Tips:</strong>
-            <ul style="margin: 8px 0 0 20px; color: #1f2937;">
-                <li>Set realistic budgets for each expense category</li>
-                <li>Get alerts when spending reaches 80% of budget</li>
-                <li>Track budget vs actual spending in real-time</li>
-                <li>Monthly or yearly budget periods available</li>
-            </ul>
-        </div>
     </div>
 
     <div class="management-section">

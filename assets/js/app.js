@@ -2200,7 +2200,7 @@
                         </div>
                         <div class="budget-stats">
                             <span class="budget-remaining">${remainingText}</span>
-                            <span class="budget-percentage">${budget.percentage}%</span>
+                            <span class="budget-percentage">${Math.min(budget.percentage, 100).toFixed(1)}%</span>
                         </div>
                         <div class="budget-actions">
                             <button class="btn btn-sm btn-secondary edit-budget-btn"

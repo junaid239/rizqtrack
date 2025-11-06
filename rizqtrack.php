@@ -1906,16 +1906,27 @@ HTML;
             wp_die();
         }
 
-        // Check if budget already exists for this category and period
+        // Check if budget already exists for this category and period (including deleted ones due to unique key constraint)
         $existing = $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$this->table_budgets}
-            WHERE user_id = %d AND category_id = %d AND period = %s AND status = 'active'",
+            WHERE user_id = %d AND category_id = %d AND period = %s",
             $user_id, $category_id, $period
         ));
 
         if ($existing) {
-            wp_send_json_error(['message' => 'A budget already exists for this category. Please edit the existing budget or delete it first.']);
-            wp_die();
+            // Check if the existing budget is deleted
+            $existing_status = $wpdb->get_var($wpdb->prepare(
+                "SELECT status FROM {$this->table_budgets} WHERE id = %d",
+                $existing
+            ));
+
+            if ($existing_status === 'deleted') {
+                // Permanently delete the old budget record to allow creating a new one
+                $wpdb->delete($this->table_budgets, ['id' => $existing]);
+            } else {
+                wp_send_json_error(['message' => 'A budget already exists for this category. Please edit the existing budget or delete it first.']);
+                wp_die();
+            }
         }
 
         $result = $wpdb->insert($this->table_budgets, [
