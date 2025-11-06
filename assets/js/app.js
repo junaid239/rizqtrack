@@ -152,10 +152,9 @@
             this.setupEventListeners();
             this.setDefaultFormValues();
             this.showRandomQuote();
-            this.loadCategories();
+            this.loadCategories(); // This will trigger loadChartData() after categories are loaded
             this.loadKPIData();
             this.loadTransactions(1); // Load page 1
-            this.loadChartData();
             this.loadGoals();
             this.loadBudgets();
             this.checkBudgetAlerts();
@@ -318,6 +317,8 @@
                         if (!this.categorySlicersRendered) {
                             this.renderCategorySlicers(response.data);
                             this.categorySlicersRendered = true;
+                            // Load chart data after categories are initialized
+                            this.loadChartData();
                         }
                     }
                 }
