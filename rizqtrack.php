@@ -41,12 +41,40 @@ class RizqTrack {
         add_action('admin_menu', [$this, 'add_menu']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_frontend_assets']);
+        add_action('admin_init', [$this, 'run_migrations']);
 
         // Shortcode
         add_shortcode('rizqtrack_dashboard', [$this, 'render_frontend_dashboard']);
 
         // AJAX endpoints
         $this->register_ajax_endpoints();
+    }
+
+    public function run_migrations() {
+        global $wpdb;
+
+        // Migration: Add Fuel category if it doesn't exist
+        $fuel_exists = $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$this->table_categories} WHERE name = 'Fuel' AND user_id = 0"
+        );
+
+        if ($fuel_exists == 0) {
+            $wpdb->insert($this->table_categories, [
+                'user_id' => 0,
+                'name' => 'Fuel',
+                'type' => 'expense',
+                'emoji' => '⛽'
+            ]);
+        }
+
+        // Migration: Add fuel-related columns if they don't exist
+        $fuel_columns = ['odometer_reading', 'fuel_liters', 'fuel_amount'];
+        foreach ($fuel_columns as $column) {
+            $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{$this->table_transactions}' AND column_name = '{$column}'");
+            if (empty($row)) {
+                $wpdb->query("ALTER TABLE {$this->table_transactions} ADD COLUMN {$column} decimal(10,2) DEFAULT NULL");
+            }
+        }
     }
 
     public function activate() {
