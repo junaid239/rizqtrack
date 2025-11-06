@@ -543,24 +543,9 @@ class RizqTrack {
             wp_die();
         }
 
-        $filter = sanitize_text_field($_POST['filter'] ?? '30');
-        $days_map = [
-            '7' => 7,
-            '15' => 15,
-            '30' => 30,
-            '60' => 60,
-            '90' => 90,
-            '120' => 120,
-            '150' => 150,
-            '180' => 180,
-            '210' => 210,
-            '240' => 240,
-            '270' => 270,
-            '300' => 300,
-            '330' => 330,
-            '365' => 365
-        ];
-        $days = $days_map[$filter] ?? 30;
+        // Get date range from request
+        $end_date = sanitize_text_field($_POST['end_date'] ?? date('Y-m-d'));
+        $start_date = sanitize_text_field($_POST['start_date'] ?? date('Y-m-d', strtotime('-30 days')));
 
         // Get selected categories if provided
         $selected_categories = [];
@@ -583,12 +568,12 @@ class RizqTrack {
             FROM {$this->table_transactions} t
             LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
             WHERE t.user_id = %d AND t.status = 'Active' AND t.type = 'expense'
-            AND t.date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
+            AND t.date >= %s AND t.date <= %s
             $category_filter_sql
             GROUP BY c.id, c.name, c.emoji
             ORDER BY total DESC";
 
-        $category_params = array_merge([$user_id, $days], $category_filter_params);
+        $category_params = array_merge([$user_id, $start_date, $end_date], $category_filter_params);
         $category_data = $wpdb->get_results($wpdb->prepare($category_query, $category_params));
 
         // Top Frequent Categories (with category filter)
@@ -596,13 +581,13 @@ class RizqTrack {
             FROM {$this->table_transactions} t
             LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
             WHERE t.user_id = %d AND t.status = 'Active' AND t.type = 'expense'
-            AND t.date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
+            AND t.date >= %s AND t.date <= %s
             $category_filter_sql
             GROUP BY c.id, c.name, c.emoji
             ORDER BY count DESC, total_amount DESC
             LIMIT 10";
 
-        $top_frequent_params = array_merge([$user_id, $days], $category_filter_params);
+        $top_frequent_params = array_merge([$user_id, $start_date, $end_date], $category_filter_params);
         $top_frequent = $wpdb->get_results($wpdb->prepare($top_frequent_query, $top_frequent_params));
 
         // Spending trend over time (with category filter)
@@ -613,12 +598,12 @@ class RizqTrack {
             FROM {$this->table_transactions} t
             LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
             WHERE t.user_id = %d AND t.status = 'Active'
-            AND t.date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
+            AND t.date >= %s AND t.date <= %s
             $category_filter_sql
             GROUP BY DATE(t.date)
             ORDER BY date ASC";
 
-        $spending_trend_params = array_merge([$user_id, $days], $category_filter_params);
+        $spending_trend_params = array_merge([$user_id, $start_date, $end_date], $category_filter_params);
         $spending_trend = $wpdb->get_results($wpdb->prepare($spending_trend_query, $spending_trend_params));
 
         wp_send_json_success([

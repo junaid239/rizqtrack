@@ -159,6 +159,7 @@
             this.loadGoals();
             this.loadBudgets();
             this.checkBudgetAlerts();
+            this.initializeDateFilters();
         },
 
         setupEventListeners: function() {
@@ -166,8 +167,8 @@
             $('#transaction-form').on('submit', this.handleAddTransaction.bind(this));
             $('.toggle-btn').on('click', this.handleTypeToggle.bind(this));
 
-            // Chart Filters
-            $('.filter-btn').on('click', this.handleFilterChange.bind(this));
+            // Date Range Filters
+            $('#filter-start-date, #filter-end-date').on('change', this.handleDateFilterChange.bind(this));
 
             // Transaction Actions
             $(document).on('click', '.edit-transaction', this.openEditModal.bind(this));
@@ -637,22 +638,36 @@
             });
         },
 
-        handleFilterChange: function(e) {
-            const $btn = $(e.currentTarget);
-            const filter = $btn.data('filter');
+        initializeDateFilters: function() {
+            // Set default dates: last 30 days
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
 
-            $('.filter-btn').removeClass('active');
-            $btn.addClass('active');
+            $('#filter-end-date').val(this.formatDateInput(endDate));
+            $('#filter-start-date').val(this.formatDateInput(startDate));
+        },
 
-            this.currentFilter = filter;
+        formatDateInput: function(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        },
+
+        handleDateFilterChange: function() {
             this.loadChartData();
         },
 
         loadChartData: function() {
+            const startDate = $('#filter-start-date').val();
+            const endDate = $('#filter-end-date').val();
+
             const data = {
                 action: 'rizqtrack_get_chart_data',
                 nonce: rizqtrack.nonce,
-                filter: this.currentFilter
+                start_date: startDate,
+                end_date: endDate
             };
 
             // Add selected categories if any

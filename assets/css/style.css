@@ -602,6 +602,39 @@
     border-color: var(--primary-color);
 }
 
+/* Date Range Filters */
+.date-range-filters {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.date-input {
+    padding: 10px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    color: var(--text-dark);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 140px;
+}
+
+.date-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+}
+
+.date-separator {
+    color: var(--text-light);
+    font-size: 14px;
+    font-weight: 500;
+}
+
 /* Trend Date Filters */
 .trend-date-filters {
     display: flex;
@@ -2065,6 +2098,33 @@
 
     .chart-filters {
         justify-content: flex-start;
+    }
+
+    /* Mobile date range filters */
+    .date-range-filters {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .date-input {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .date-separator {
+        text-align: center;
+        padding: 4px 0;
+    }
+
+    /* Compact category filters for mobile */
+    .chart-slicer {
+        gap: 6px;
+    }
+
+    .slicer-chip {
+        padding: 6px 12px;
+        font-size: 12px;
     }
 
     .modal-content {
