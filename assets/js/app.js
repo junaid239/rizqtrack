@@ -636,6 +636,7 @@
                         this.loadKPIData();
                         this.loadTransactions(this.currentPage); // Reload current page
                         this.loadChartData();
+                        this.loadGoals(); // Update goal progress
                         this.loadTrash();
                     } else {
                         this.showNotification(response.data.message, 'error');
@@ -1622,6 +1623,10 @@
                     if (response.success) {
                         this.showNotification('Goal moved to trash', 'success');
                         this.loadGoals();
+                        this.loadKPIData(); // Update KPIs
+                        this.loadTransactions(this.currentPage); // Update transactions list
+                        this.loadChartData(); // Update charts
+                        this.loadTrash();
                     } else {
                         this.showNotification(response.data.message, 'error');
                     }
@@ -1824,6 +1829,9 @@
                         this.showNotification('Goal restored', 'success');
                         this.loadTrash();
                         this.loadGoals();
+                        this.loadKPIData(); // Update KPIs
+                        this.loadTransactions(1); // Reload page 1
+                        this.loadChartData(); // Update charts
                     } else {
                         this.showNotification(response.data.message, 'error');
                     }
@@ -1848,6 +1856,9 @@
                     if (response.success) {
                         this.showNotification('Goal permanently deleted', 'success');
                         this.loadTrash();
+                        this.loadKPIData(); // Update KPIs
+                        this.loadTransactions(1); // Reload page 1
+                        this.loadChartData(); // Update charts
                     } else {
                         this.showNotification(response.data.message, 'error');
                     }
@@ -1873,6 +1884,7 @@
                         this.loadKPIData();
                         this.loadTransactions(1); // Reload page 1
                         this.loadChartData();
+                        this.loadGoals(); // Update goal progress
                     } else {
                         this.showNotification(response.data.message, 'error');
                     }
@@ -1897,6 +1909,10 @@
                     if (response.success) {
                         this.showNotification('Transaction permanently deleted', 'success');
                         this.loadTrash();
+                        this.loadKPIData(); // Update KPIs
+                        this.loadTransactions(1); // Reload page 1
+                        this.loadChartData(); // Update charts
+                        this.loadGoals(); // Update goal progress (in case it was a contribution)
                     } else {
                         this.showNotification(response.data.message, 'error');
                     }
