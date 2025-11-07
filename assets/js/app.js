@@ -2754,6 +2754,13 @@
                 return;
             }
 
+            // Sort by next payment date (nearest first)
+            filteredSubscriptions.sort((a, b) => {
+                const dateA = new Date(a.next_billing_date);
+                const dateB = new Date(b.next_billing_date);
+                return dateA - dateB;
+            });
+
             container.empty();
             filteredSubscriptions.forEach(subscription => {
                 container.append(this.renderSubscriptionCard(subscription));
@@ -2794,7 +2801,7 @@
                 '5year': '5 years',
                 'custom': `${subscription.custom_cycle_days} days`,
                 'one-time': ''
-            }[subscription.billing_cycle] || 'month';
+            }[subscription.billing_cycle] || '';
 
             let daysText = '';
             let daysClass = '';
@@ -2857,16 +2864,20 @@
                 ? '<div class="auto-renew-indicator">🔄 Auto-renew enabled</div>'
                 : '';
 
-            // For one-time payments, show "Paid On" instead of "Payment Date"
-            const paymentDateLabel = isOneTime ? 'Paid On:' : 'Payment Date:';
-            const paymentDateSection = isOneTime
-                ? `<div class="subscription-billing-date">
-                    <span class="billing-date-label">${paymentDateLabel}</span>
-                    <span class="billing-date-value">${this.formatDate(subscription.start_date)}</span>
-                </div>`
-                : `<div class="subscription-billing-date">
-                    <span class="billing-date-label">${paymentDateLabel}</span>
-                    <span class="billing-date-value">${this.formatDate(subscription.next_billing_date)}</span>
+            // Calculate payment date
+            let paymentDateValue = subscription.next_billing_date;
+
+            if (isOneTime && subscription.end_date) {
+                // For one-time: show expiry date + 1 day as next payment date
+                const expiryDate = new Date(subscription.end_date + 'T00:00:00');
+                expiryDate.setDate(expiryDate.getDate() + 1);
+                paymentDateValue = expiryDate.toISOString().split('T')[0];
+            }
+
+            const paymentDateSection = `
+                <div class="subscription-billing-date">
+                    <span class="billing-date-label">Payment Date:</span>
+                    <span class="billing-date-value">${this.formatDate(paymentDateValue)}</span>
                 </div>`;
 
             return `
@@ -2892,10 +2903,7 @@
                             <span>Expiry Date:</span>
                             <span>${subscription.end_date ? this.formatDate(subscription.end_date) : 'No expiry'}</span>
                         </div>
-                        <div class="subscription-detail-item">
-                            <span>Category:</span>
-                            <span>${subscription.category_name}</span>
-                        </div>
+                        ${subscription.last_paid_date ? `<div class="subscription-detail-item"><span>Last Paid:</span><span>${this.formatDate(subscription.last_paid_date)}</span></div>` : ''}
                         ${subscription.notes ? `<div class="subscription-detail-item"><span>Notes:</span><span>${subscription.notes}</span></div>` : ''}
                     </div>
                     ${autoRenewHtml}

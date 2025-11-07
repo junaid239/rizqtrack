@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.2.2
+ * Version: 1.2.3
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -90,8 +90,8 @@ class RizqTrack {
             $wpdb->query("ALTER TABLE {$this->table_subscriptions} ADD COLUMN end_date date DEFAULT NULL AFTER last_renewed_date");
         }
 
-        // Migration: Update billing_cycle enum to include 'one-time'
-        $wpdb->query("ALTER TABLE {$this->table_subscriptions} MODIFY COLUMN billing_cycle enum('monthly','quarterly','yearly','one-time') DEFAULT 'monthly'");
+        // Migration: Update billing_cycle enum to include '5year' and 'one-time'
+        $wpdb->query("ALTER TABLE {$this->table_subscriptions} MODIFY COLUMN billing_cycle enum('monthly','quarterly','yearly','5year','one-time') DEFAULT 'monthly'");
     }
 
     public function activate() {
@@ -209,7 +209,7 @@ class RizqTrack {
             name varchar(200) NOT NULL,
             amount decimal(10,2) NOT NULL,
             category_id bigint(20) NOT NULL,
-            billing_cycle enum('monthly','quarterly','yearly','one-time') DEFAULT 'monthly',
+            billing_cycle enum('monthly','quarterly','yearly','5year','one-time') DEFAULT 'monthly',
             custom_cycle_days int DEFAULT NULL,
             start_date date NOT NULL,
             next_billing_date date NOT NULL,
@@ -297,7 +297,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        $version = '1.2.2'; // Updated version for cache busting
+        $version = '1.2.3'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -321,7 +321,7 @@ class RizqTrack {
             return;
         }
 
-        $version = '1.2.2'; // Updated version for cache busting
+        $version = '1.2.3'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -2491,6 +2491,9 @@ HTML;
 
             // Explicitly cast auto_renew to integer for consistency
             $subscription->auto_renew = intval($subscription->auto_renew);
+
+            // Map last_renewed_date to last_paid_date for frontend
+            $subscription->last_paid_date = $subscription->last_renewed_date;
         }
 
         wp_send_json_success(['subscriptions' => $subscriptions]);
