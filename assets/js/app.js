@@ -2880,7 +2880,7 @@
             $('#renew-add-transaction').prop('checked', true);
 
             // Open the modal
-            this.openModal('renew-subscription-modal');
+            $('#renew-subscription-modal').addClass('active');
         },
 
         confirmRenewSubscription: function() {
@@ -2994,7 +2994,7 @@
                 $('#custom-cycle-group').show();
             }
 
-            this.openModal('subscription-modal');
+            $('#subscription-modal').addClass('active');
         },
 
         openAddSubscriptionModal: function() {
@@ -3004,7 +3004,7 @@
             $('#add-as-transaction-group').show();
             $('#custom-cycle-group').hide();
             $('#subscription-start-date').val(new Date().toISOString().split('T')[0]);
-            this.openModal('subscription-modal');
+            $('#subscription-modal').addClass('active');
         },
 
         handleSubscriptionFilterChange: function(filter) {
