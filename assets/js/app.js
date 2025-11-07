@@ -2451,8 +2451,8 @@
                                     data-threshold="${budget.alert_threshold}">
                                 ✏️ Edit
                             </button>
-                            <button class="btn btn-sm btn-danger delete-budget-btn" data-id="${budget.budget_id}">
-                                🗑️ Delete
+                            <button class="btn btn-sm btn-text delete-budget-btn" data-id="${budget.budget_id}" title="Delete">
+                                🗑️
                             </button>
                         </div>
                     </div>
@@ -2760,6 +2760,28 @@
             });
         },
 
+        formatDate: function(dateString) {
+            if (!dateString || dateString === 'N/A') return 'N/A';
+
+            const date = new Date(dateString + 'T00:00:00');
+            const day = date.getDate();
+            const month = date.toLocaleString('en-US', { month: 'long' });
+            const year = date.getFullYear();
+
+            // Get ordinal suffix (st, nd, rd, th)
+            const suffix = (day) => {
+                if (day > 3 && day < 21) return 'th';
+                switch (day % 10) {
+                    case 1: return 'st';
+                    case 2: return 'nd';
+                    case 3: return 'rd';
+                    default: return 'th';
+                }
+            };
+
+            return `${day}${suffix(day)} ${month} ${year}`;
+        },
+
         renderSubscriptionCard: function(subscription) {
             const isExpiringSoon = subscription.status === 'Active' && subscription.days_until_expiry <= 7 && subscription.days_until_expiry > 0;
             const statusClass = subscription.status === 'Inactive' ? 'inactive' : (isExpiringSoon ? 'expiring-soon' : 'active');
@@ -2768,7 +2790,9 @@
                 'monthly': 'month',
                 'quarterly': 'quarter',
                 'yearly': 'year',
-                'custom': `${subscription.custom_cycle_days} days`
+                '5year': '5 years',
+                'custom': `${subscription.custom_cycle_days} days`,
+                'one-time': ''
             }[subscription.billing_cycle] || 'month';
 
             let daysText = '';
@@ -2799,13 +2823,13 @@
 
             const actionsHtml = subscription.status === 'Active'
                 ? `
-                    <button class="btn btn-success renew-subscription" data-id="${subscription.id}">💰 Renew</button>
+                    <button class="btn btn-success renew-subscription" data-id="${subscription.id}">💰 Mark Paid</button>
                     <button class="btn btn-secondary edit-subscription" data-id="${subscription.id}">✏️ Edit</button>
-                    <button class="btn btn-danger delete-subscription" data-id="${subscription.id}">🗑️ Delete</button>
+                    <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️</button>
                 `
                 : `
                     <button class="btn btn-warning reactivate-subscription" data-id="${subscription.id}">🔄 Reactivate</button>
-                    <button class="btn btn-danger delete-subscription" data-id="${subscription.id}">🗑️ Delete</button>
+                    <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️</button>
                 `;
 
             const autoRenewHtml = subscription.auto_renew === 1
@@ -2822,21 +2846,21 @@
                     </div>
                     <div class="subscription-amount">
                         <strong>₹${parseFloat(subscription.amount).toFixed(2)}</strong>
-                        <span class="subscription-cycle">/ ${billingCycleText}</span>
+                        ${billingCycleText ? `<span class="subscription-cycle">/ ${billingCycleText}</span>` : ''}
                     </div>
                     <div class="subscription-billing-date">
-                        <span class="billing-date-label">Next Billing:</span>
-                        <span class="billing-date-value">${subscription.next_billing_date}</span>
+                        <span class="billing-date-label">Payment Date:</span>
+                        <span class="billing-date-value">${this.formatDate(subscription.next_billing_date)}</span>
                     </div>
                     <div class="days-indicator ${daysClass}">${daysText}</div>
                     <div class="subscription-details">
                         <div class="subscription-detail-item">
                             <span>Start Date:</span>
-                            <span>${subscription.start_date || 'N/A'}</span>
+                            <span>${this.formatDate(subscription.start_date)}</span>
                         </div>
                         <div class="subscription-detail-item">
                             <span>Expiry Date:</span>
-                            <span>${subscription.end_date || 'No expiry'}</span>
+                            <span>${subscription.end_date ? this.formatDate(subscription.end_date) : 'No expiry'}</span>
                         </div>
                         <div class="subscription-detail-item">
                             <span>Category:</span>
@@ -2876,8 +2900,14 @@
                     case 'yearly':
                         totalMonthly += amount / 12;
                         break;
+                    case '5year':
+                        totalMonthly += amount / 60;
+                        break;
                     case 'custom':
                         totalMonthly += (amount / parseInt(sub.custom_cycle_days || 30)) * 30;
+                        break;
+                    case 'one-time':
+                        // One-time payments don't contribute to monthly recurring costs
                         break;
                 }
             });

@@ -948,6 +948,7 @@
                     <option value="monthly">Monthly (every month)</option>
                     <option value="quarterly">Quarterly (every 3 months)</option>
                     <option value="yearly">Yearly (once a year)</option>
+                    <option value="5year">5 Years (every 5 years)</option>
                     <option value="one-time">One-Time Payment</option>
                 </select>
                 <small>Choose how frequently you are charged this amount</small>

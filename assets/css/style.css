@@ -850,6 +850,21 @@
     transform: translateY(-1px);
 }
 
+.btn-text {
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 8px;
+    border: none;
+    font-size: 18px;
+    min-width: auto;
+}
+
+.btn-text:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--danger-color);
+    transform: none;
+}
+
 .btn-success {
     background: var(--success-color);
     color: var(--white);
@@ -3133,7 +3148,8 @@
     margin-bottom: 8px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    gap: 12px;
 }
 
 .budget-alert-item:last-child {
@@ -3146,12 +3162,15 @@
     gap: 8px;
     font-weight: 600;
     color: var(--text-primary);
+    flex: 1;
 }
 
 .budget-alert-status {
     font-size: 13px;
     color: #991b1b;
     font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 /* Mobile responsiveness */
