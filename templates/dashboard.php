@@ -7,13 +7,14 @@
         </div>
         <div class="quick-nav-menu" id="nav-menu">
             <a href="#kpi-container" class="nav-item">📊 Dashboard</a>
-            <a href="#transaction-form" class="nav-item">💳 Add Transaction</a>
-            <a href="#category-chart" class="nav-item">📈 Charts</a>
-            <a href="#transactions-table" class="nav-item">📋 Transactions</a>
-            <a href="#goals-container" class="nav-item">🎯 Goals</a>
-            <a href="#budget-container" class="nav-item">💰 Budget</a>
-            <a href="#subscriptions-container" class="nav-item">🔔 Subscriptions</a>
+            <a href="#transaction-form" class="nav-item">💳 Add</a>
+            <a href="#financial-overview" class="nav-item">📈 Charts</a>
+            <a href="#transactions-section" class="nav-item">📋 Transactions</a>
+            <a href="#goals-section" class="nav-item">🎯 Goals</a>
+            <a href="#budget-section" class="nav-item">💰 Budget</a>
+            <a href="#subscription-section" class="nav-item">🔔 Subscriptions</a>
             <a href="#manage-categories-card" class="nav-item">🏷️ Categories</a>
+            <a href="#trash-section" class="nav-item">🗑️ Trash</a>
         </div>
     </nav>
 
@@ -206,7 +207,7 @@
         </form>
     </div>
 
-    <div class="visualization-section" style="margin-top: 32px;">
+    <div class="visualization-section" id="financial-overview" style="margin-top: 32px;">
         <h2 class="section-title">Financial Overview</h2>
 
         <!-- Unified Filters Section -->
@@ -256,7 +257,7 @@
             </div>
         </div>
 
-        <div class="rizqtrack-card transactions-card">
+        <div class="rizqtrack-card transactions-card" id="transactions-section">
             <h3>All Transactions</h3>
             
             <div class="filter-bar" id="transaction-filter-bar">
@@ -311,7 +312,7 @@
         </div>
     </div>
 
-    <div class="goals-section">
+    <div class="goals-section" id="goals-section">
         <div class="section-header">
             <h2 class="section-title">Financial Goals</h2>
             <button class="btn btn-secondary" id="add-goal-btn">➕ Add New Goal</button>
@@ -399,7 +400,7 @@
         </div>
     </div>
 
-    <div class="budget-section" style="margin-top: 32px;">
+    <div class="budget-section" id="budget-section" style="margin-top: 32px;">
         <div class="section-header">
             <h2 class="section-title">💰 Budget Management</h2>
             <button class="btn btn-secondary" id="add-budget-btn">➕ Set Budget</button>
@@ -414,7 +415,7 @@
         </div>
     </div>
 
-    <div class="subscriptions-section" style="margin-top: 32px;">
+    <div class="subscriptions-section" id="subscription-section" style="margin-top: 32px;">
         <div class="section-header">
             <h2 class="section-title">🔔 Subscription Management</h2>
             <button class="btn btn-secondary" id="add-subscription-btn">➕ Add Subscription</button>
@@ -511,7 +512,7 @@
         </div>
     </div>
 
-    <div class="trash-section">
+    <div class="trash-section" id="trash-section">
         <div class="collapsible-header" id="trash-header">
             <h2 class="section-title">🗑️ Trash</h2>
             <span class="toggle-icon">▼</span>

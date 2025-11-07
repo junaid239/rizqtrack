@@ -35,18 +35,20 @@
 }
 
 .nav-item {
-    flex: 1;
-    min-width: 120px;
-    padding: 14px 20px;
+    flex: 1 1 auto;
+    min-width: 100px;
+    padding: 12px 14px;
     color: white;
     text-decoration: none !important;
     text-align: center;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     transition: all 0.3s ease;
     border-right: 1px solid rgba(255, 255, 255, 0.2);
     white-space: nowrap;
     display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .nav-item:last-child {
@@ -70,10 +72,10 @@
 /* Floating Action Button */
 .fab {
     position: fixed;
-    bottom: 30px;
+    bottom: 80px;
     right: 30px;
-    width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
     color: white;
@@ -88,18 +90,20 @@
 }
 
 .fab::before {
-    content: 'Quick Add';
+    content: '💳 Quick Add';
     position: absolute;
-    right: 70px;
-    background: rgba(0, 0, 0, 0.8);
+    right: 75px;
+    background: rgba(0, 0, 0, 0.85);
     color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 13px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .fab:hover::before {
@@ -116,9 +120,12 @@
 }
 
 .fab-icon {
-    font-size: 32px;
+    font-size: 36px;
     line-height: 1;
     font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Mobile Navigation */
@@ -3506,16 +3513,19 @@
 
     .stat-badge {
         min-width: auto;
-        padding: 12px 8px;
+        padding: 10px 6px;
     }
 
     .badge-label {
-        font-size: 10px;
+        font-size: 9px;
         text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .badge-value {
-        font-size: 24px;
+        font-size: 26px;
     }
 
     .subscriptions-overview-content {
