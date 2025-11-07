@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.2.7
+ * Version: 1.2.8
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -297,7 +297,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        $version = '1.2.7'; // Updated version for cache busting
+        $version = '1.2.8'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -321,7 +321,7 @@ class RizqTrack {
             return;
         }
 
-        $version = '1.2.7'; // Updated version for cache busting
+        $version = '1.2.8'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -378,7 +378,7 @@ class RizqTrack {
             'get_budgets', 'add_budget', 'update_budget', 'delete_budget', 'check_budget_alerts', 'get_budget_vs_actual',
             'get_subscriptions', 'add_subscription', 'update_subscription', 'delete_subscription',
             'restore_subscription', 'permanent_delete_subscription', 'renew_subscription', 'reactivate_subscription',
-            'undo_payment'
+            'deactivate_subscription', 'undo_payment'
         ];
 
         foreach ($endpoints as $endpoint) {
@@ -2738,6 +2738,30 @@ HTML;
             ]);
         } else {
             wp_send_json_error(['message' => 'Failed to reactivate subscription']);
+        }
+        wp_die();
+    }
+
+    public function ajax_deactivate_subscription() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $id = intval($_POST['id']);
+
+        // Update subscription status to Inactive
+        $result = $wpdb->update(
+            $this->table_subscriptions,
+            ['status' => 'Inactive'],
+            ['id' => $id, 'user_id' => $user_id],
+            ['%s'],
+            ['%d', '%d']
+        );
+
+        if ($result !== false) {
+            wp_send_json_success(['message' => 'Subscription deactivated successfully']);
+        } else {
+            wp_send_json_error(['message' => 'Failed to deactivate subscription']);
         }
         wp_die();
     }

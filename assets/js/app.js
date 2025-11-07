@@ -252,6 +252,10 @@
                 const id = $(e.currentTarget).data('id');
                 this.handleReactivateSubscription(id);
             });
+            $(document).on('click', '.deactivate-subscription', (e) => {
+                const id = $(e.currentTarget).data('id');
+                this.handleDeactivateSubscription(id);
+            });
             $(document).on('click', '.undo-payment-subscription', (e) => {
                 const id = $(e.currentTarget).data('id');
                 this.handleUndoPayment(id);
@@ -259,6 +263,12 @@
             $(document).on('click', '.subscriptions-filter .filter-chip', (e) => {
                 const filter = $(e.currentTarget).data('filter');
                 this.handleSubscriptionFilterChange(filter);
+            });
+
+            // Subscription search
+            $(document).on('input', '#subscription-search', (e) => {
+                this.subscriptionSearchQuery = $(e.currentTarget).val();
+                this.renderSubscriptions();
             });
             $('#subscription-has-expiry').on('change', function() {
                 if ($(this).is(':checked')) {
@@ -2709,8 +2719,9 @@
         },
 
         // ==================== SUBSCRIPTION MANAGEMENT ====================
-        currentSubscriptionFilter: 'all',
+        currentSubscriptionFilter: 'active',
         subscriptions: [],
+        subscriptionSearchQuery: '',
 
         loadSubscriptions: function() {
             $.ajax({
@@ -2753,16 +2764,31 @@
                 });
             }
 
+            // Apply search filter
+            if (this.subscriptionSearchQuery && this.subscriptionSearchQuery.trim() !== '') {
+                const searchLower = this.subscriptionSearchQuery.toLowerCase().trim();
+                filteredSubscriptions = filteredSubscriptions.filter(s => {
+                    return s.name.toLowerCase().includes(searchLower);
+                });
+            }
+
             if (filteredSubscriptions.length === 0) {
                 container.html('<p class="loading-message">No subscriptions match this filter.</p>');
                 return;
             }
 
-            // Sort by next payment date (nearest first)
+            // Sort by priority: recurring subscriptions first, then one-time
+            // Within each group, sort by days until expiry (soonest first)
             filteredSubscriptions.sort((a, b) => {
-                const dateA = new Date(a.next_billing_date);
-                const dateB = new Date(b.next_billing_date);
-                return dateA - dateB;
+                const aIsOneTime = a.billing_cycle === 'one-time' || a.billing_cycle === '5year';
+                const bIsOneTime = b.billing_cycle === 'one-time' || b.billing_cycle === '5year';
+
+                // Recurring subscriptions come before one-time
+                if (aIsOneTime && !bIsOneTime) return 1;
+                if (!aIsOneTime && bIsOneTime) return -1;
+
+                // Within the same type, sort by days_until_expiry (soonest first)
+                return a.days_until_expiry - b.days_until_expiry;
             });
 
             container.empty();
@@ -2860,17 +2886,17 @@
                 ? (isOneTime
                     ? `
                         <button class="btn btn-secondary edit-subscription" data-id="${subscription.id}">✏️ Edit</button>
-                        <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️</button>
+                        <button class="btn btn-text deactivate-subscription" data-id="${subscription.id}" title="Deactivate">⏸️ Deactivate</button>
                     `
                     : `
                         <button class="btn btn-success renew-subscription" data-id="${subscription.id}">💰 Pay Now</button>
                         ${undoPaymentBtn}
                         <button class="btn btn-secondary edit-subscription" data-id="${subscription.id}">✏️ Edit</button>
-                        <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️</button>
+                        <button class="btn btn-text deactivate-subscription" data-id="${subscription.id}" title="Deactivate">⏸️ Deactivate</button>
                     `)
                 : `
                     <button class="btn btn-warning reactivate-subscription" data-id="${subscription.id}">🔄 Reactivate</button>
-                    <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️</button>
+                    <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️ Delete</button>
                 `;
 
             const autoRenewHtml = subscription.auto_renew === 1
@@ -3091,6 +3117,33 @@
                 },
                 error: () => {
                     this.showNotification('Failed to reactivate subscription', 'error');
+                }
+            });
+        },
+
+        handleDeactivateSubscription: function(id) {
+            if (!confirm('Deactivate this subscription? You can reactivate it later from the Inactive tab.')) {
+                return;
+            }
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_deactivate_subscription',
+                    nonce: rizqtrack.nonce,
+                    id: id
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification(response.data.message, 'success');
+                        this.loadSubscriptions();
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                },
+                error: () => {
+                    this.showNotification('Failed to deactivate subscription', 'error');
                 }
             });
         },

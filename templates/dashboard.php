@@ -473,11 +473,16 @@
 
         <div class="individual-subscriptions-header">
             <h3>Individual Subscriptions</h3>
-            <div class="subscriptions-filter">
-                <button class="filter-chip active" data-filter="all">All</button>
-                <button class="filter-chip" data-filter="active">Active</button>
-                <button class="filter-chip" data-filter="inactive">Inactive</button>
-                <button class="filter-chip" data-filter="expiring">Expiring Soon</button>
+            <div class="subscriptions-controls">
+                <div class="subscriptions-search">
+                    <input type="text" id="subscription-search" placeholder="🔍 Search subscriptions..." />
+                </div>
+                <div class="subscriptions-filter">
+                    <button class="filter-chip" data-filter="all">All</button>
+                    <button class="filter-chip active" data-filter="active">Active</button>
+                    <button class="filter-chip" data-filter="inactive">Inactive</button>
+                    <button class="filter-chip" data-filter="expiring">Expiring Soon</button>
+                </div>
             </div>
         </div>
 
