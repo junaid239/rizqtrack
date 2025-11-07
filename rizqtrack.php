@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -287,16 +287,16 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.1');
+        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.2');
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
         wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', [], '4.4.0', true);
-        
+
         // MODIFIED: Added Datalabels plugin
         wp_enqueue_script('chart-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js', ['chart-js'], '2.2.0', true);
-        
+
         // MODIFIED: Added 'chart-js-datalabels' as a dependency
-        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.1', true);
+        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.2', true);
 
         wp_localize_script('rizqtrack-script', 'rizqtrack', [
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -310,16 +310,16 @@ class RizqTrack {
             return;
         }
 
-        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.1');
+        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.2');
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
         wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', [], '4.4.0', true);
-        
+
         // MODIFIED: Added Datalabels plugin
         wp_enqueue_script('chart-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js', ['chart-js'], '2.2.0', true);
 
         // MODIFIED: Added 'chart-js-datalabels' as a dependency
-        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.1', true);
+        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.2', true);
 
         wp_localize_script('rizqtrack-script', 'rizqtrack', [
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -375,7 +375,6 @@ class RizqTrack {
         // Register cron hooks
         add_action('rizqtrack_send_weekly_email', [$this, 'send_weekly_report']);
         add_action('rizqtrack_send_monthly_email', [$this, 'send_monthly_report']);
-        add_action('rizqtrack_check_expired_subscriptions', [$this, 'check_expired_subscriptions']);
     }
 
     // Transaction AJAX Handlers
@@ -2548,6 +2547,7 @@ HTML;
 
         $user_id = get_current_user_id();
         $id = intval($_POST['id']);
+        $add_as_transaction = isset($_POST['add_as_transaction']) && $_POST['add_as_transaction'];
 
         // Get subscription details
         $subscription = $wpdb->get_row($wpdb->prepare(
@@ -2562,21 +2562,23 @@ HTML;
 
         $today = date('Y-m-d');
 
-        // Create transaction for renewal
-        $result = $wpdb->insert($this->table_transactions, [
-            'user_id' => $user_id,
-            'type' => 'expense',
-            'amount' => $subscription->amount,
-            'date' => $today,
-            'category_id' => $subscription->category_id,
-            'payment_method' => $subscription->payment_method,
-            'description' => 'Subscription Renewal: ' . $subscription->name,
-            'status' => 'Active'
-        ]);
+        // Create transaction for renewal only if checkbox is checked
+        if ($add_as_transaction) {
+            $result = $wpdb->insert($this->table_transactions, [
+                'user_id' => $user_id,
+                'type' => 'expense',
+                'amount' => $subscription->amount,
+                'date' => $today,
+                'category_id' => $subscription->category_id,
+                'payment_method' => $subscription->payment_method,
+                'description' => 'Subscription Renewal: ' . $subscription->name,
+                'status' => 'Active'
+            ]);
 
-        if (!$result) {
-            wp_send_json_error(['message' => 'Failed to create transaction']);
-            return;
+            if (!$result) {
+                wp_send_json_error(['message' => 'Failed to create transaction']);
+                return;
+            }
         }
 
         // Calculate new next billing date
@@ -2599,8 +2601,12 @@ HTML;
             ['%d']
         );
 
+        $message = $add_as_transaction
+            ? 'Subscription renewed and transaction created successfully'
+            : 'Subscription renewed successfully (no transaction created)';
+
         wp_send_json_success([
-            'message' => 'Subscription renewed successfully',
+            'message' => $message,
             'next_billing_date' => $new_next_billing
         ]);
         wp_die();
@@ -2740,22 +2746,6 @@ HTML;
             default:
                 return date('Y-m-d', strtotime('+1 month', $timestamp));
         }
-    }
-
-    // Cron job to check and auto-trash expired subscriptions after 90 days
-    public function check_expired_subscriptions() {
-        global $wpdb;
-
-        $ninety_days_ago = date('Y-m-d', strtotime('-90 days'));
-
-        // Get all inactive subscriptions that haven't been renewed in 90 days
-        $wpdb->query($wpdb->prepare(
-            "UPDATE {$this->table_subscriptions}
-            SET status = 'Trash'
-            WHERE status = 'Inactive'
-            AND next_billing_date < %s",
-            $ninety_days_ago
-        ));
     }
 }
 

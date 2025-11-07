@@ -233,7 +233,7 @@
             $(document).on('click', '.delete-budget-btn', this.handleDeleteBudget.bind(this));
 
             // Subscriptions
-            $('#add-subscription-btn').on('click', this.openAddSubscriptionModal.bind(this));
+            $(document).on('click', '#add-subscription-btn', this.openAddSubscriptionModal.bind(this));
             $('#subscription-form').on('submit', this.handleAddSubscription.bind(this));
             $(document).on('click', '.edit-subscription', (e) => {
                 const id = $(e.currentTarget).data('id');
@@ -262,6 +262,7 @@
                     $('#custom-cycle-group').hide();
                 }
             });
+            $(document).on('click', '#confirm-renew-btn', this.confirmRenewSubscription.bind(this));
 
             // Email Reports
             $('#send-email-now-btn').on('click', this.handleSendEmailNow.bind(this));
@@ -2868,9 +2869,23 @@
         },
 
         handleRenewSubscription: function(id) {
-            if (!confirm('Are you sure you want to renew this subscription? This will create an expense transaction for today.')) {
-                return;
-            }
+            // Find the subscription
+            const subscription = this.subscriptions.find(s => s.id == id);
+            if (!subscription) return;
+
+            // Populate the renewal modal
+            $('#renew-subscription-id').val(id);
+            $('#renew-subscription-name').text(`${subscription.category_emoji || '📌'} ${subscription.name}`);
+            $('#renew-subscription-amount').text(`Amount: ₹${parseFloat(subscription.amount).toFixed(2)} / ${subscription.billing_cycle}`);
+            $('#renew-add-transaction').prop('checked', true);
+
+            // Open the modal
+            this.openModal('renew-subscription-modal');
+        },
+
+        confirmRenewSubscription: function() {
+            const id = $('#renew-subscription-id').val();
+            const addAsTransaction = $('#renew-add-transaction').is(':checked');
 
             $.ajax({
                 url: rizqtrack.ajax_url,
@@ -2878,15 +2893,19 @@
                 data: {
                     action: 'rizqtrack_renew_subscription',
                     nonce: rizqtrack.nonce,
-                    id: id
+                    id: id,
+                    add_as_transaction: addAsTransaction ? 1 : 0
                 },
                 success: (response) => {
                     if (response.success) {
                         this.showNotification(response.data.message, 'success');
+                        this.closeModals();
                         this.loadSubscriptions();
-                        this.loadTransactions(1);
-                        this.loadKPIData();
-                        this.loadChartData();
+                        if (addAsTransaction) {
+                            this.loadTransactions(1);
+                            this.loadKPIData();
+                            this.loadChartData();
+                        }
                     } else {
                         this.showNotification(response.data.message, 'error');
                     }

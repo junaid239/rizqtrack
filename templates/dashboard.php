@@ -973,3 +973,29 @@
         </form>
     </div>
 </div>
+
+<div id="renew-subscription-modal" class="modal">
+    <div class="modal-content modal-small">
+        <div class="modal-header">
+            <h2>💰 Renew Subscription</h2>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="renew-subscription-id">
+            <p id="renew-subscription-name" style="font-size: 16px; font-weight: 600; margin-bottom: 16px;"></p>
+            <p id="renew-subscription-amount" style="font-size: 14px; color: var(--text-gray); margin-bottom: 20px;"></p>
+
+            <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="renew-add-transaction" checked>
+                    <span class="checkbox-text">Add as transaction (creates expense for today)</span>
+                </label>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirm-renew-btn">Renew Now</button>
+            </div>
+        </div>
+    </div>
+</div>
