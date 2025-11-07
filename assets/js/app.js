@@ -2826,12 +2826,12 @@
                             <span>${subscription.start_date || 'N/A'}</span>
                         </div>
                         <div class="subscription-detail-item">
-                            <span>Category:</span>
-                            <span>${subscription.category_name}</span>
+                            <span>Expiry Date:</span>
+                            <span>${subscription.end_date || 'No expiry'}</span>
                         </div>
                         <div class="subscription-detail-item">
-                            <span>Payment:</span>
-                            <span>${subscription.payment_method}</span>
+                            <span>Category:</span>
+                            <span>${subscription.category_name}</span>
                         </div>
                         ${subscription.notes ? `<div class="subscription-detail-item"><span>Notes:</span><span>${subscription.notes}</span></div>` : ''}
                     </div>
