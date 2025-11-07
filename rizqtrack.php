@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.2.9
+ * Version: 1.3.0
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -297,7 +297,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        $version = '1.2.9'; // Updated version for cache busting
+        $version = '1.3.0'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -321,7 +321,7 @@ class RizqTrack {
             return;
         }
 
-        $version = '1.2.9'; // Updated version for cache busting
+        $version = '1.3.0'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 

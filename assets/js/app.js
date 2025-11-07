@@ -2752,23 +2752,23 @@
                 return;
             }
 
-            // Filter subscriptions based on current filter
+            // Apply search filter FIRST (searches across all subscriptions)
             let filteredSubscriptions = this.subscriptions;
-            if (this.currentSubscriptionFilter === 'active') {
-                filteredSubscriptions = this.subscriptions.filter(s => s.status === 'Active');
-            } else if (this.currentSubscriptionFilter === 'inactive') {
-                filteredSubscriptions = this.subscriptions.filter(s => s.status === 'Inactive');
-            } else if (this.currentSubscriptionFilter === 'expiring') {
-                filteredSubscriptions = this.subscriptions.filter(s => {
-                    return s.status === 'Active' && s.days_until_expiry <= 7 && s.days_until_expiry > 0;
-                });
-            }
-
-            // Apply search filter
             if (this.subscriptionSearchQuery && this.subscriptionSearchQuery.trim() !== '') {
                 const searchLower = this.subscriptionSearchQuery.toLowerCase().trim();
                 filteredSubscriptions = filteredSubscriptions.filter(s => {
                     return s.name.toLowerCase().includes(searchLower);
+                });
+            }
+
+            // Then apply status filter
+            if (this.currentSubscriptionFilter === 'active') {
+                filteredSubscriptions = filteredSubscriptions.filter(s => s.status === 'Active');
+            } else if (this.currentSubscriptionFilter === 'inactive') {
+                filteredSubscriptions = filteredSubscriptions.filter(s => s.status === 'Inactive');
+            } else if (this.currentSubscriptionFilter === 'expiring') {
+                filteredSubscriptions = filteredSubscriptions.filter(s => {
+                    return s.status === 'Active' && s.days_until_expiry <= 7 && s.days_until_expiry > 0;
                 });
             }
 
