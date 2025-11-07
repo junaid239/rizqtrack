@@ -20,7 +20,7 @@
 
     <!-- Floating Action Button -->
     <button class="fab" id="fab-add-transaction" title="Quick Add Transaction">
-        <span class="fab-icon">➕</span>
+        <span class="fab-icon">+</span>
     </button>
 
     <div class="motivational-quote-card" id="motivation-card">
@@ -30,7 +30,7 @@
                 <p class="quote-text" id="quote-text">Loading...</p>
                 <p class="quote-source" id="quote-source"></p>
             </div>
-            <button class="btn-refresh-quote" id="refresh-quote" title="Get new quote">🔄</button>
+            <button class="btn-refresh-quote" id="refresh-quote" title="Get new quote">↻</button>
         </div>
     </div>
 
@@ -144,9 +144,7 @@
                     <label for="amount">Amount <span class="required">*</span></label>
                     <input type="number" id="amount" name="amount" step="0.01" min="0" required placeholder="0.00">
                 </div>
-            </div>
 
-            <div class="form-row">
                 <div class="form-group">
                     <label for="category">Category <span class="required">*</span></label>
                     <select id="category" name="category_id" required>

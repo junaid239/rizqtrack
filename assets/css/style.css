@@ -122,7 +122,7 @@
 .fab-icon {
     font-size: 42px;
     line-height: 1;
-    font-weight: bold;
+    font-weight: 300;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -130,6 +130,7 @@
     opacity: 1 !important;
     visibility: visible !important;
     -webkit-text-fill-color: #ffffff !important;
+    font-family: Arial, sans-serif;
 }
 
 /* Mobile Navigation */
@@ -197,6 +198,7 @@
         opacity: 1 !important;
         visibility: visible !important;
         -webkit-text-fill-color: #ffffff !important;
+        font-family: Arial, sans-serif;
     }
 
     /* Compact Transaction Form for Mobile */
@@ -212,15 +214,14 @@
         gap: 10px;
     }
 
-    /* Row 2 & 3: Amount + Category side by side */
-    .transaction-form .form-row:nth-child(2),
-    .transaction-form .form-row:nth-child(3) {
+    /* Row 2: Amount + Category side by side */
+    .transaction-form .form-row:nth-child(2) {
         grid-template-columns: 1fr 1fr;
         gap: 10px;
     }
 
-    /* Row 4: Date and Payment side by side */
-    .transaction-form .form-row:nth-child(4) {
+    /* Row 3: Date and Payment side by side */
+    .transaction-form .form-row:nth-child(3) {
         grid-template-columns: 1fr 1fr;
         gap: 10px;
     }
@@ -395,6 +396,8 @@
     height: 42px;
     border-radius: 50%;
     cursor: pointer;
+    font-family: Arial, sans-serif;
+    font-weight: 400;
     transition: all 0.3s ease;
     font-size: 20px;
     flex-shrink: 0;
@@ -447,6 +450,8 @@
         opacity: 1 !important;
         visibility: visible !important;
         -webkit-text-fill-color: #ffffff !important;
+        font-family: Arial, sans-serif;
+        font-weight: 400;
     }
 }
 
