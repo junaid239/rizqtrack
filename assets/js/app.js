@@ -252,7 +252,7 @@
                 const id = $(e.currentTarget).data('id');
                 this.handleReactivateSubscription(id);
             });
-            $('.subscriptions-filter .filter-chip').on('click', (e) => {
+            $(document).on('click', '.subscriptions-filter .filter-chip', (e) => {
                 const filter = $(e.currentTarget).data('filter');
                 this.handleSubscriptionFilterChange(filter);
             });
@@ -269,6 +269,15 @@
 
             // Email Reports
             $('#send-email-now-btn').on('click', this.handleSendEmailNow.bind(this));
+
+            // Navigation toggle
+            $('#nav-toggle').on('click', this.toggleNavMenu.bind(this));
+
+            // Floating Action Button
+            $('#fab-add-transaction').on('click', this.scrollToTransactionForm.bind(this));
+
+            // Smooth scroll for navigation items
+            $('.nav-item').on('click', this.handleNavItemClick.bind(this));
         },
 
         showRandomQuote: function() {
@@ -2249,6 +2258,36 @@
             }
             const options = { year: 'numeric', month: 'short', day: 'numeric' };
             return date.toLocaleDateString('en-US', options);
+        },
+
+        // Navigation Functions
+        toggleNavMenu: function() {
+            $('#nav-menu').toggleClass('active');
+        },
+
+        scrollToTransactionForm: function() {
+            $('html, body').animate({
+                scrollTop: $('#transaction-form').offset().top - 100
+            }, 500);
+            // Focus on the amount field
+            setTimeout(() => {
+                $('#amount').focus();
+            }, 600);
+        },
+
+        handleNavItemClick: function(e) {
+            e.preventDefault();
+            const target = $(e.currentTarget).attr('href');
+            const $target = $(target);
+
+            if ($target.length) {
+                $('html, body').animate({
+                    scrollTop: $target.offset().top - 100
+                }, 500);
+
+                // Close mobile menu if open
+                $('#nav-menu').removeClass('active');
+            }
         },
 
         // ===========================================
