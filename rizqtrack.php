@@ -2495,7 +2495,9 @@ HTML;
 
             wp_send_json_success(['message' => 'Subscription added successfully']);
         } else {
-            wp_send_json_error(['message' => 'Failed to add subscription']);
+            $error_msg = $wpdb->last_error ? $wpdb->last_error : 'Failed to add subscription';
+            error_log('RizqTrack Subscription Error: ' . $error_msg);
+            wp_send_json_error(['message' => 'Database error: ' . $error_msg]);
         }
         wp_die();
     }
