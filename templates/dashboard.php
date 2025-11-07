@@ -126,20 +126,18 @@
         <form id="transaction-form" class="transaction-form">
             <div class="form-row">
                 <div class="form-group type-toggle">
-                    <label>Transaction Type</label>
+                    <label>Type</label>
                     <div class="toggle-buttons">
                         <button type="button" class="toggle-btn active" data-type="expense">
-                            ⬇️ Expense (Debit)
+                            ⬇️ Expense
                         </button>
                         <button type="button" class="toggle-btn" data-type="income">
-                            ⬆️ Income (Credit)
+                            ⬆️ Income
                         </button>
                     </div>
                     <input type="hidden" name="type" id="transaction-type" value="expense">
                 </div>
-            </div>
 
-            <div class="form-row">
                 <div class="form-group">
                     <label for="amount">Amount <span class="required">*</span></label>
                     <input type="number" id="amount" name="amount" step="0.01" min="0" required placeholder="0.00">
@@ -170,12 +168,10 @@
                         <option value="Other">Other</option>
                     </select>
                 </div>
-            </div>
 
-            <div class="form-row">
-                <div class="form-group full-width">
+                <div class="form-group">
                     <label for="description">Description (Optional)</label>
-                    <textarea id="description" name="description" maxlength="255" rows="3" placeholder="Add a note about this transaction..."></textarea>
+                    <textarea id="description" name="description" maxlength="255" rows="2" placeholder="Add a note..."></textarea>
                 </div>
             </div>
 
