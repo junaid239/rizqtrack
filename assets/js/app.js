@@ -2851,7 +2851,7 @@
                         <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️</button>
                     `
                     : `
-                        <button class="btn btn-success renew-subscription" data-id="${subscription.id}">💰 Mark Paid</button>
+                        <button class="btn btn-success renew-subscription" data-id="${subscription.id}">💰 Paid</button>
                         <button class="btn btn-secondary edit-subscription" data-id="${subscription.id}">✏️ Edit</button>
                         <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️</button>
                     `)
