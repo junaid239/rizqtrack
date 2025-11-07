@@ -2750,8 +2750,10 @@
             return `
                 <div class="subscription-card ${statusClass}" data-id="${subscription.id}">
                     <div class="subscription-card-header">
-                        <h4>${subscription.category_emoji || '📌'} ${subscription.name}</h4>
-                        <span class="subscription-status-badge ${statusClass}">${subscription.status}</span>
+                        <div class="subscription-header-content">
+                            <h4>${subscription.category_emoji || '📌'} <span class="subscription-name">${subscription.name}</span></h4>
+                            <span class="subscription-status-badge ${statusClass}">${subscription.status}</span>
+                        </div>
                     </div>
                     <div class="subscription-amount">
                         <strong>₹${parseFloat(subscription.amount).toFixed(2)}</strong>

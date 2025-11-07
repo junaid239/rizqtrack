@@ -3019,7 +3019,19 @@
 .subscriptions-filter {
     display: flex;
     gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.subscriptions-filter::-webkit-scrollbar {
+    height: 4px;
+}
+
+.subscriptions-filter::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
 }
 
 /* Subscription Cards Grid */
@@ -3071,10 +3083,13 @@
 .subscription-card:nth-child(6) { animation-delay: 0.6s; }
 
 .subscription-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     margin-bottom: 12px;
+}
+
+.subscription-header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .subscription-card h4 {
@@ -3086,11 +3101,27 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
+}
+
+.subscription-name {
+    word-break: break-word;
+    -webkit-text-size-adjust: none;
+}
+
+/* Prevent phone number auto-linking */
+.subscription-card h4 a,
+.subscription-card a[href^="tel:"] {
+    color: inherit !important;
+    text-decoration: none !important;
+    pointer-events: none;
+    cursor: default;
 }
 
 .subscription-status-badge {
     display: inline-flex;
     align-items: center;
+    align-self: flex-start;
     padding: 5px 12px;
     border-radius: 14px;
     font-size: 11px;
@@ -3271,13 +3302,9 @@
         padding: 20px;
     }
 
-    .subscription-actions {
-        flex-direction: column;
-    }
-
     .subscription-actions .btn {
-        width: 100%;
-        min-width: auto;
+        font-size: 11px;
+        padding: 8px 10px;
     }
 
     .individual-subscriptions-header {
