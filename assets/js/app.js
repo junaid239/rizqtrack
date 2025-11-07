@@ -2766,6 +2766,10 @@
                     <div class="days-indicator ${daysClass}">${daysText}</div>
                     <div class="subscription-details">
                         <div class="subscription-detail-item">
+                            <span>Start Date:</span>
+                            <span>${subscription.start_date || 'N/A'}</span>
+                        </div>
+                        <div class="subscription-detail-item">
                             <span>Category:</span>
                             <span>${subscription.category_name}</span>
                         </div>
@@ -2832,7 +2836,6 @@
                 billing_cycle: $('#subscription-billing-cycle').val(),
                 custom_cycle_days: $('#subscription-custom-days').val(),
                 start_date: $('#subscription-start-date').val(),
-                reminder_days: $('#subscription-reminder-days').val(),
                 auto_renew: $('#subscription-auto-renew').is(':checked') ? 1 : 0,
                 add_as_transaction: $('#subscription-add-transaction').is(':checked') ? 1 : 0,
                 notes: $('#subscription-notes').val()
@@ -2985,7 +2988,6 @@
             $('#subscription-billing-cycle').val(subscription.billing_cycle);
             $('#subscription-start-date').val(subscription.start_date);
             $('#subscription-custom-days').val(subscription.custom_cycle_days);
-            $('#subscription-reminder-days').val(subscription.reminder_days);
             $('#subscription-auto-renew').prop('checked', subscription.auto_renew == 1);
             $('#subscription-notes').val(subscription.notes);
 

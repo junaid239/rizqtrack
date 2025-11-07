@@ -1168,6 +1168,17 @@
     align-items: flex-end;
 }
 
+.filter-date-group {
+    display: flex;
+    gap: 12px;
+    flex: 2;
+}
+
+.filter-date-group .form-group {
+    flex: 1;
+    min-width: 130px;
+}
+
 
 /* ============================================
     FINANCIAL GOALS - COMPLETE STYLING
@@ -2144,6 +2155,16 @@
         width: 100%;
         min-width: 100%;
         flex: none;
+    }
+
+    .filter-date-group {
+        width: 100%;
+        flex: none;
+    }
+
+    .filter-date-group .form-group {
+        min-width: 0;
+        flex: 1;
     }
 
     .filter-actions {

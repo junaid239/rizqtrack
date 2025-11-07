@@ -248,13 +248,15 @@
                         <option value="0">All Categories</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="filter-start-date">Start Date</label>
-                    <input type="date" id="filter-start-date">
-                </div>
-                <div class="form-group">
-                    <label for="filter-end-date">End Date</label>
-                    <input type="date" id="filter-end-date">
+                <div class="filter-date-group">
+                    <div class="form-group">
+                        <label for="filter-start-date">Start Date</label>
+                        <input type="date" id="filter-start-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-end-date">End Date</label>
+                        <input type="date" id="filter-end-date">
+                    </div>
                 </div>
                 <div class="filter-actions">
                     <button class="btn btn-secondary btn-sm" id="filter-apply">Apply</button>
@@ -938,12 +940,6 @@
                 <div class="form-group">
                     <label for="subscription-start-date">Start Date <span class="required">*</span></label>
                     <input type="date" id="subscription-start-date" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="subscription-reminder-days">Reminder (Days Before)</label>
-                    <input type="number" id="subscription-reminder-days" min="1" max="30" value="7">
-                    <small>Get reminded before renewal</small>
                 </div>
             </div>
 
