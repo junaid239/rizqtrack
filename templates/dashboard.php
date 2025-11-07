@@ -943,6 +943,21 @@
                 </div>
             </div>
 
+            <div class="form-group">
+                <label for="subscription-duration-type">Subscription Duration <span class="required">*</span></label>
+                <select id="subscription-duration-type" required>
+                    <option value="recurring">Recurring (Ongoing)</option>
+                    <option value="fixed">Fixed Term (Has End Date)</option>
+                </select>
+                <small>Choose "Recurring" for ongoing subscriptions or "Fixed Term" for subscriptions with an expiry date</small>
+            </div>
+
+            <div class="form-group" id="subscription-end-date-group" style="display: none;">
+                <label for="subscription-end-date">End Date (Expiry) <span class="required">*</span></label>
+                <input type="date" id="subscription-end-date">
+                <small>When this subscription expires</small>
+            </div>
+
             <div class="form-group checkbox-group">
                 <label class="checkbox-label">
                     <input type="checkbox" id="subscription-auto-renew">

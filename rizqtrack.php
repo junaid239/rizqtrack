@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.0.6
+ * Version: 1.0.7
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -82,6 +82,12 @@ class RizqTrack {
         $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{$this->table_transactions}' AND column_name = 'is_full_tank'");
         if (empty($row)) {
             $wpdb->query("ALTER TABLE {$this->table_transactions} ADD COLUMN is_full_tank tinyint(1) DEFAULT 0");
+        }
+
+        // Migration: Add end_date column to subscriptions table if it doesn't exist
+        $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{$this->table_subscriptions}' AND column_name = 'end_date'");
+        if (empty($row)) {
+            $wpdb->query("ALTER TABLE {$this->table_subscriptions} ADD COLUMN end_date date DEFAULT NULL AFTER last_renewed_date");
         }
     }
 
@@ -205,6 +211,7 @@ class RizqTrack {
             start_date date NOT NULL,
             next_billing_date date NOT NULL,
             last_renewed_date date DEFAULT NULL,
+            end_date date DEFAULT NULL,
             payment_method varchar(50) NOT NULL,
             auto_renew tinyint(1) DEFAULT 0,
             reminder_days int DEFAULT 7,
@@ -287,7 +294,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.6');
+        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.7');
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
         wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', [], '4.4.0', true);
@@ -296,7 +303,7 @@ class RizqTrack {
         wp_enqueue_script('chart-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js', ['chart-js'], '2.2.0', true);
 
         // MODIFIED: Added 'chart-js-datalabels' as a dependency
-        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.6', true);
+        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.7', true);
 
         wp_localize_script('rizqtrack-script', 'rizqtrack', [
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -310,7 +317,7 @@ class RizqTrack {
             return;
         }
 
-        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.6');
+        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.7');
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
         wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', [], '4.4.0', true);
@@ -319,7 +326,7 @@ class RizqTrack {
         wp_enqueue_script('chart-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js', ['chart-js'], '2.2.0', true);
 
         // MODIFIED: Added 'chart-js-datalabels' as a dependency
-        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.6', true);
+        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.7', true);
 
         wp_localize_script('rizqtrack-script', 'rizqtrack', [
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -2507,6 +2514,7 @@ HTML;
             'custom_cycle_days' => !empty($_POST['custom_cycle_days']) ? intval($_POST['custom_cycle_days']) : null,
             'start_date' => $start_date,
             'next_billing_date' => $next_billing_date,
+            'end_date' => !empty($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : null,
             'payment_method' => sanitize_text_field($_POST['payment_method']),
             'auto_renew' => intval($_POST['auto_renew'] ?? 0),
             'reminder_days' => intval($_POST['reminder_days'] ?? 7),
@@ -2559,6 +2567,7 @@ HTML;
             'category_id' => intval($_POST['category_id']),
             'billing_cycle' => sanitize_text_field($_POST['billing_cycle']),
             'custom_cycle_days' => !empty($_POST['custom_cycle_days']) ? intval($_POST['custom_cycle_days']) : null,
+            'end_date' => !empty($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : null,
             'payment_method' => sanitize_text_field($_POST['payment_method']),
             'auto_renew' => intval($_POST['auto_renew'] ?? 0),
             'reminder_days' => intval($_POST['reminder_days'] ?? 7),
@@ -2569,7 +2578,7 @@ HTML;
             $this->table_subscriptions,
             $data,
             ['id' => $id, 'user_id' => $user_id],
-            [  '%s', '%f', '%d', '%s', '%d', '%s', '%d', '%d', '%s'],
+            [  '%s', '%f', '%d', '%s', '%d', '%s', '%s', '%d', '%d', '%s'],
             ['%d', '%d']
         );
 
