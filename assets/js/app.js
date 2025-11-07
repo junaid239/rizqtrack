@@ -677,16 +677,23 @@
         openEditModal: function(e) {
             const transactionId = $(e.currentTarget).data('id');
 
-            // Find the transaction data from the already loaded transactions if possible
-            // This is just a fallback; a better implementation would fetch the single transaction
+            // Build data with current filters to ensure we get the right transaction
+            const data = {
+                action: 'rizqtrack_get_recent_transactions',
+                nonce: rizqtrack.nonce,
+                page: this.currentPage
+            };
+
+            // Include current filters to ensure we fetch from the same filtered set
+            if (this.currentFilters.search) data.search = this.currentFilters.search;
+            if (this.currentFilters.category_id) data.category_id = this.currentFilters.category_id;
+            if (this.currentFilters.start_date) data.start_date = this.currentFilters.start_date;
+            if (this.currentFilters.end_date) data.end_date = this.currentFilters.end_date;
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
-                data: {
-                    action: 'rizqtrack_get_recent_transactions',
-                    nonce: rizqtrack.nonce,
-                    page: this.currentPage // Check the current page
-                },
+                data: data,
                 success: (response) => {
                     if (response.success) {
                         const transaction = response.data.transactions.find(t => t.id == transactionId);
