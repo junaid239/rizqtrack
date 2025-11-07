@@ -1,5 +1,27 @@
 <div class="wrap rizqtrack-dashboard">
 
+    <!-- Quick Navigation Bar -->
+    <nav class="quick-nav" id="quick-nav">
+        <div class="quick-nav-toggle" id="nav-toggle">
+            <span class="toggle-icon">☰</span>
+        </div>
+        <div class="quick-nav-menu" id="nav-menu">
+            <a href="#kpi-container" class="nav-item">📊 Dashboard</a>
+            <a href="#transaction-form" class="nav-item">💳 Add Transaction</a>
+            <a href="#category-chart" class="nav-item">📈 Charts</a>
+            <a href="#transactions-table" class="nav-item">📋 Transactions</a>
+            <a href="#goals-container" class="nav-item">🎯 Goals</a>
+            <a href="#budget-container" class="nav-item">💰 Budget</a>
+            <a href="#subscriptions-container" class="nav-item">🔔 Subscriptions</a>
+            <a href="#manage-categories-card" class="nav-item">🏷️ Categories</a>
+        </div>
+    </nav>
+
+    <!-- Floating Action Button -->
+    <button class="fab" id="fab-add-transaction" title="Quick Add Transaction">
+        <span class="fab-icon">➕</span>
+    </button>
+
     <div class="motivational-quote-card" id="motivation-card">
         <div class="quote-icon">💡</div>
         <div class="quote-content">
@@ -392,32 +414,6 @@
         </div>
     </div>
 
-    <div class="management-section">
-        <h2 class="section-title">Data Management & Reports</h2>
-        <div class="action-cards">
-            <div class="action-card" id="manage-categories-card">
-                <div class="action-icon">🏷️</div>
-                <h3>Manage Categories</h3>
-                <p>Add, edit, or delete transaction categories</p>
-                <button class="btn btn-secondary">Manage Categories</button>
-            </div>
-
-            <div class="action-card" id="generate-report-card">
-                <div class="action-icon">📋</div>
-                <h3>Generate Report</h3>
-                <p>Export your financial data to CSV</p>
-                <button class="btn btn-secondary">Generate Report</button>
-            </div>
-
-            <div class="action-card" id="email-report-card">
-                <div class="action-icon">📧</div>
-                <h3>Email Reports</h3>
-                <p>Configure automatic email reports</p>
-                <button class="btn btn-secondary">Configure Email</button>
-            </div>
-        </div>
-    </div>
-
     <div class="subscriptions-section" style="margin-top: 32px;">
         <div class="section-header">
             <h2 class="section-title">🔔 Subscription Management</h2>
@@ -486,6 +482,32 @@
 
         <div id="subscriptions-container" class="subscriptions-grid">
             <div class="loading-message">Loading subscriptions...</div>
+        </div>
+    </div>
+
+    <div class="management-section">
+        <h2 class="section-title">Data Management & Reports</h2>
+        <div class="action-cards">
+            <div class="action-card" id="manage-categories-card">
+                <div class="action-icon">🏷️</div>
+                <h3>Manage Categories</h3>
+                <p>Add, edit, or delete transaction categories</p>
+                <button class="btn btn-secondary">Manage Categories</button>
+            </div>
+
+            <div class="action-card" id="generate-report-card">
+                <div class="action-icon">📋</div>
+                <h3>Generate Report</h3>
+                <p>Export your financial data to CSV</p>
+                <button class="btn btn-secondary">Generate Report</button>
+            </div>
+
+            <div class="action-card" id="email-report-card">
+                <div class="action-icon">📧</div>
+                <h3>Email Reports</h3>
+                <p>Configure automatic email reports</p>
+                <button class="btn btn-secondary">Configure Email</button>
+            </div>
         </div>
     </div>
 
