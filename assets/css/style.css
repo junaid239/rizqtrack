@@ -120,7 +120,7 @@
 }
 
 .fab-icon {
-    font-size: 36px;
+    font-size: 42px;
     line-height: 1;
     font-weight: bold;
     display: flex;
@@ -159,6 +159,17 @@
         text-align: left;
         padding: 16px 20px;
         min-width: auto;
+        text-decoration: none !important;
+    }
+
+    .nav-item:hover,
+    .nav-item:focus,
+    .nav-item:visited,
+    .nav-item:active {
+        text-decoration: none !important;
+        color: white;
+        background: rgba(255, 255, 255, 0.15);
+        transform: none;
     }
 
     .nav-item:last-child {
@@ -166,10 +177,10 @@
     }
 
     .fab {
-        bottom: 20px;
+        bottom: 80px;
         right: 20px;
-        width: 56px;
-        height: 56px;
+        width: 58px;
+        height: 58px;
     }
 
     .fab::before {
@@ -177,7 +188,7 @@
     }
 
     .fab-icon {
-        font-size: 28px;
+        font-size: 32px;
     }
 }
 
