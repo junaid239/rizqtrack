@@ -2785,6 +2785,7 @@
         renderSubscriptionCard: function(subscription) {
             const isExpiringSoon = subscription.status === 'Active' && subscription.days_until_expiry <= 7 && subscription.days_until_expiry > 0;
             const statusClass = subscription.status === 'Inactive' ? 'inactive' : (isExpiringSoon ? 'expiring-soon' : 'active');
+            const isOneTime = subscription.billing_cycle === 'one-time';
 
             const billingCycleText = {
                 'monthly': 'month',
@@ -2797,7 +2798,22 @@
 
             let daysText = '';
             let daysClass = '';
-            if (subscription.status === 'Inactive') {
+
+            if (isOneTime) {
+                // For one-time payments, show validity period
+                if (subscription.end_date) {
+                    if (subscription.status === 'Inactive') {
+                        daysText = 'Coverage expired';
+                        daysClass = 'danger';
+                    } else {
+                        daysText = `Valid until ${this.formatDate(subscription.end_date)}`;
+                        daysClass = 'success';
+                    }
+                } else {
+                    daysText = 'One-time payment';
+                    daysClass = 'success';
+                }
+            } else if (subscription.status === 'Inactive') {
                 const daysSinceExpiry = subscription.days_since_expiry || Math.abs(subscription.days_until_expiry);
                 if (daysSinceExpiry > 30) {
                     const monthsSinceExpiry = Math.floor(daysSinceExpiry / 30);
@@ -2822,11 +2838,16 @@
             }
 
             const actionsHtml = subscription.status === 'Active'
-                ? `
-                    <button class="btn btn-success renew-subscription" data-id="${subscription.id}">💰 Mark Paid</button>
-                    <button class="btn btn-secondary edit-subscription" data-id="${subscription.id}">✏️ Edit</button>
-                    <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️</button>
-                `
+                ? (isOneTime
+                    ? `
+                        <button class="btn btn-secondary edit-subscription" data-id="${subscription.id}">✏️ Edit</button>
+                        <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️</button>
+                    `
+                    : `
+                        <button class="btn btn-success renew-subscription" data-id="${subscription.id}">💰 Mark Paid</button>
+                        <button class="btn btn-secondary edit-subscription" data-id="${subscription.id}">✏️ Edit</button>
+                        <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️</button>
+                    `)
                 : `
                     <button class="btn btn-warning reactivate-subscription" data-id="${subscription.id}">🔄 Reactivate</button>
                     <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️</button>
@@ -2835,6 +2856,18 @@
             const autoRenewHtml = subscription.auto_renew === 1
                 ? '<div class="auto-renew-indicator">🔄 Auto-renew enabled</div>'
                 : '';
+
+            // For one-time payments, show "Paid On" instead of "Payment Date"
+            const paymentDateLabel = isOneTime ? 'Paid On:' : 'Payment Date:';
+            const paymentDateSection = isOneTime
+                ? `<div class="subscription-billing-date">
+                    <span class="billing-date-label">${paymentDateLabel}</span>
+                    <span class="billing-date-value">${this.formatDate(subscription.start_date)}</span>
+                </div>`
+                : `<div class="subscription-billing-date">
+                    <span class="billing-date-label">${paymentDateLabel}</span>
+                    <span class="billing-date-value">${this.formatDate(subscription.next_billing_date)}</span>
+                </div>`;
 
             return `
                 <div class="subscription-card ${statusClass}" data-id="${subscription.id}">
@@ -2848,10 +2881,7 @@
                         <strong>₹${parseFloat(subscription.amount).toFixed(2)}</strong>
                         ${billingCycleText ? `<span class="subscription-cycle">/ ${billingCycleText}</span>` : ''}
                     </div>
-                    <div class="subscription-billing-date">
-                        <span class="billing-date-label">Payment Date:</span>
-                        <span class="billing-date-value">${this.formatDate(subscription.next_billing_date)}</span>
-                    </div>
+                    ${paymentDateSection}
                     <div class="days-indicator ${daysClass}">${daysText}</div>
                     <div class="subscription-details">
                         <div class="subscription-detail-item">
