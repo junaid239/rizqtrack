@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.1.7
+ * Version: 1.1.8
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -297,7 +297,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        $version = '1.1.7'; // Updated version for cache busting
+        $version = '1.1.8'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -321,7 +321,7 @@ class RizqTrack {
             return;
         }
 
-        $version = '1.1.7'; // Updated version for cache busting
+        $version = '1.1.8'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -2461,27 +2461,36 @@ HTML;
         // Calculate days until expiry and update status for expired subscriptions
         $today = date('Y-m-d');
         foreach ($subscriptions as $subscription) {
-            $next_billing = strtotime($subscription->next_billing_date);
-            $today_timestamp = strtotime($today);
+            // Calculate days until expiry based on END DATE, not next billing date
+            if (!empty($subscription->end_date)) {
+                $end_date_timestamp = strtotime($subscription->end_date);
+                $today_timestamp = strtotime($today);
+                $days_diff = ($end_date_timestamp - $today_timestamp) / (60 * 60 * 24);
+                $subscription->days_until_expiry = ceil($days_diff);
 
-            $days_diff = ($next_billing - $today_timestamp) / (60 * 60 * 24);
-            $subscription->days_until_expiry = ceil($days_diff);
+                // Update status to Inactive if past end_date
+                if ($days_diff < 0 && $subscription->status === 'Active') {
+                    $wpdb->update(
+                        $this->table_subscriptions,
+                        ['status' => 'Inactive'],
+                        ['id' => $subscription->id],
+                        ['%s'],
+                        ['%d']
+                    );
+                    $subscription->status = 'Inactive';
+                    $subscription->days_since_expiry = abs(ceil($days_diff));
+                }
+            } else {
+                // No end date means subscription doesn't expire
+                // Calculate days until next billing for display purposes
+                $next_billing = strtotime($subscription->next_billing_date);
+                $today_timestamp = strtotime($today);
+                $days_diff = ($next_billing - $today_timestamp) / (60 * 60 * 24);
+                $subscription->days_until_expiry = ceil($days_diff);
+            }
 
             // Explicitly cast auto_renew to integer for consistency
             $subscription->auto_renew = intval($subscription->auto_renew);
-
-            // Update status to Inactive if expired
-            if ($days_diff < 0 && $subscription->status === 'Active') {
-                $wpdb->update(
-                    $this->table_subscriptions,
-                    ['status' => 'Inactive'],
-                    ['id' => $subscription->id],
-                    ['%s'],
-                    ['%d']
-                );
-                $subscription->status = 'Inactive';
-                $subscription->days_since_expiry = abs(ceil($days_diff));
-            }
         }
 
         wp_send_json_success(['subscriptions' => $subscriptions]);
@@ -2787,20 +2796,36 @@ HTML;
     // Helper function to calculate next billing date
     private function calculate_next_billing_date($from_date, $billing_cycle, $custom_days = null) {
         $timestamp = strtotime($from_date);
+        $today = strtotime(date('Y-m-d'));
 
+        // Determine the interval based on billing cycle
         switch ($billing_cycle) {
             case 'monthly':
-                return date('Y-m-d', strtotime('+1 month', $timestamp));
+                $interval = '+1 month';
+                break;
             case 'quarterly':
-                return date('Y-m-d', strtotime('+3 months', $timestamp));
+                $interval = '+3 months';
+                break;
             case 'yearly':
-                return date('Y-m-d', strtotime('+1 year', $timestamp));
+                $interval = '+1 year';
+                break;
             case 'custom':
                 $days = intval($custom_days ?? 30);
-                return date('Y-m-d', strtotime("+{$days} days", $timestamp));
+                $interval = "+{$days} days";
+                break;
             default:
-                return date('Y-m-d', strtotime('+1 month', $timestamp));
+                $interval = '+1 month';
         }
+
+        // Calculate next billing date
+        $next_billing = strtotime($interval, $timestamp);
+
+        // If the next billing date is in the past, keep adding intervals until we get a future date
+        while ($next_billing < $today) {
+            $next_billing = strtotime($interval, $next_billing);
+        }
+
+        return date('Y-m-d', $next_billing);
     }
 }
 
