@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.2.8
+ * Version: 1.2.9
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -297,7 +297,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        $version = '1.2.8'; // Updated version for cache busting
+        $version = '1.2.9'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -321,7 +321,7 @@ class RizqTrack {
             return;
         }
 
-        $version = '1.2.8'; // Updated version for cache busting
+        $version = '1.2.9'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -2719,15 +2719,19 @@ HTML;
             $subscription->custom_cycle_days
         );
 
+        // Calculate new end date (coverage period ends day before next billing)
+        $new_end_date = date('Y-m-d', strtotime($new_next_billing . ' -1 day'));
+
         // Update subscription
         $result = $wpdb->update(
             $this->table_subscriptions,
             [
                 'next_billing_date' => $new_next_billing,
+                'end_date' => $new_end_date,
                 'status' => 'Active'
             ],
             ['id' => $id],
-            ['%s', '%s'],
+            ['%s', '%s', '%s'],
             ['%d']
         );
 
@@ -2815,9 +2819,6 @@ HTML;
 
         $previous_billing_date = date('Y-m-d', $previous_billing);
 
-        // Calculate previous end date (day before the previous billing date)
-        $previous_end_date = date('Y-m-d', strtotime($previous_billing_date . ' -1 day'));
-
         // Delete the most recent transaction for this subscription (created on last_renewed_date)
         $wpdb->delete(
             $this->table_transactions,
@@ -2829,16 +2830,16 @@ HTML;
             ['%d', '%s', '%s']
         );
 
-        // Update subscription: clear last_renewed_date and rollback next_billing_date and end_date
+        // Update subscription: clear last_renewed_date and rollback next_billing_date
+        // DON'T rollback end_date as it may go into the past and cause subscription to become inactive
         $result = $wpdb->update(
             $this->table_subscriptions,
             [
                 'next_billing_date' => $previous_billing_date,
-                'end_date' => $previous_end_date,
                 'last_renewed_date' => null
             ],
             ['id' => $id],
-            ['%s', '%s', '%s'],
+            ['%s', '%s'],
             ['%d']
         );
 
