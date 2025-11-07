@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.0.9
+ * Version: 1.1.1
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -297,7 +297,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        $version = '1.0.9'; // Updated version for cache busting
+        $version = '1.1.1'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -321,7 +321,7 @@ class RizqTrack {
             return;
         }
 
-        $version = '1.0.9'; // Updated version for cache busting
+        $version = '1.1.1'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -2571,6 +2571,7 @@ HTML;
             'amount' => $amount,
             'category_id' => intval($_POST['category_id']),
             'billing_cycle' => sanitize_text_field($_POST['billing_cycle']),
+            'start_date' => !empty($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : date('Y-m-d'),
             'custom_cycle_days' => !empty($_POST['custom_cycle_days']) ? intval($_POST['custom_cycle_days']) : null,
             'end_date' => !empty($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : null,
             'payment_method' => sanitize_text_field($_POST['payment_method']),
@@ -2583,7 +2584,7 @@ HTML;
             $this->table_subscriptions,
             $data,
             ['id' => $id, 'user_id' => $user_id],
-            [  '%s', '%f', '%d', '%s', '%d', '%s', '%s', '%d', '%d', '%s'],
+            ['%s', '%f', '%d', '%s', '%s', '%d', '%s', '%s', '%d', '%d', '%s'],
             ['%d', '%d']
         );
 
