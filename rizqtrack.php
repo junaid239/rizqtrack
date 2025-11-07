@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -287,7 +287,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.2');
+        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.3');
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
         wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', [], '4.4.0', true);
@@ -296,7 +296,7 @@ class RizqTrack {
         wp_enqueue_script('chart-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js', ['chart-js'], '2.2.0', true);
 
         // MODIFIED: Added 'chart-js-datalabels' as a dependency
-        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.2', true);
+        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.3', true);
 
         wp_localize_script('rizqtrack-script', 'rizqtrack', [
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -310,7 +310,7 @@ class RizqTrack {
             return;
         }
 
-        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.2');
+        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.3');
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
         wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', [], '4.4.0', true);
@@ -319,7 +319,7 @@ class RizqTrack {
         wp_enqueue_script('chart-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js', ['chart-js'], '2.2.0', true);
 
         // MODIFIED: Added 'chart-js-datalabels' as a dependency
-        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.2', true);
+        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.3', true);
 
         wp_localize_script('rizqtrack-script', 'rizqtrack', [
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -1429,6 +1429,9 @@ class RizqTrack {
     }
 
     private function generate_csv_report($transactions, $start_date, $end_date) {
+        global $wpdb;
+        $user_id = get_current_user_id();
+
         header('Content-Type: text/csv');
         header('Content-Disposition: attachment; filename="rizqtrack_report_' . date('Y-m-d') . '.csv"');
 
@@ -1437,6 +1440,9 @@ class RizqTrack {
         fputcsv($output, ['RizqTrack Financial Report']);
         fputcsv($output, ['Period: ' . $start_date . ' to ' . $end_date]);
         fputcsv($output, []);
+
+        // Transactions section
+        fputcsv($output, ['TRANSACTIONS']);
         fputcsv($output, ['Date', 'Type', 'Category', 'Amount', 'Payment Method', 'Description', 'Odometer (km)', 'Fuel (L)']);
 
         foreach ($transactions as $t) {
@@ -1449,6 +1455,35 @@ class RizqTrack {
                 $t->description,
                 $t->odometer_reading ? number_format($t->odometer_reading, 2) : '',
                 $t->fuel_liters ? number_format($t->fuel_liters, 2) : ''
+            ]);
+        }
+
+        // Subscriptions section
+        fputcsv($output, []);
+        fputcsv($output, []);
+        fputcsv($output, ['ACTIVE SUBSCRIPTIONS']);
+        fputcsv($output, ['Name', 'Amount', 'Billing Cycle', 'Category', 'Payment Method', 'Next Billing Date', 'Auto-Renew', 'Start Date', 'Notes']);
+
+        $subscriptions = $wpdb->get_results($wpdb->prepare(
+            "SELECT s.*, c.name as category_name
+            FROM {$this->table_subscriptions} s
+            LEFT JOIN {$this->table_categories} c ON s.category_id = c.id
+            WHERE s.user_id = %d AND s.status = 'Active'
+            ORDER BY s.next_billing_date ASC",
+            $user_id
+        ));
+
+        foreach ($subscriptions as $s) {
+            fputcsv($output, [
+                $s->name,
+                number_format($s->amount, 2),
+                ucfirst($s->billing_cycle) . ($s->billing_cycle === 'custom' && $s->custom_cycle_days ? ' (' . $s->custom_cycle_days . ' days)' : ''),
+                $s->category_name,
+                $s->payment_method,
+                $s->next_billing_date,
+                $s->auto_renew ? 'Yes' : 'No',
+                $s->start_date,
+                $s->notes
             ]);
         }
 
@@ -2419,6 +2454,9 @@ HTML;
 
             $days_diff = ($next_billing - $today_timestamp) / (60 * 60 * 24);
             $subscription->days_until_expiry = ceil($days_diff);
+
+            // Explicitly cast auto_renew to integer for consistency
+            $subscription->auto_renew = intval($subscription->auto_renew);
 
             // Update status to Inactive if expired
             if ($days_diff < 0 && $subscription->status === 'Active') {

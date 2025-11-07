@@ -2743,7 +2743,7 @@
                     <button class="btn btn-danger delete-subscription" data-id="${subscription.id}">🗑️ Delete</button>
                 `;
 
-            const autoRenewHtml = subscription.auto_renew == 1
+            const autoRenewHtml = subscription.auto_renew === 1
                 ? '<div class="auto-renew-indicator">🔄 Auto-renew enabled</div>'
                 : '';
 
@@ -2981,6 +2981,7 @@
             $('#subscription-category').val(subscription.category_id);
             $('#subscription-payment-method').val(subscription.payment_method);
             $('#subscription-billing-cycle').val(subscription.billing_cycle);
+            $('#subscription-start-date').val(subscription.start_date);
             $('#subscription-custom-days').val(subscription.custom_cycle_days);
             $('#subscription-reminder-days').val(subscription.reminder_days);
             $('#subscription-auto-renew').prop('checked', subscription.auto_renew == 1);

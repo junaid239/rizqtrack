@@ -3032,60 +3032,34 @@
 /* Subscription Card Styles */
 .subscription-card {
     background: var(--white);
-    border-radius: 16px;
-    padding: 28px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 2px solid transparent;
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    border: 2px solid var(--border-color);
     position: relative;
-    overflow: hidden;
     opacity: 0;
     animation: fadeInUp 0.6s ease forwards;
 }
 
-.subscription-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 5px;
-    transition: opacity 0.3s ease;
-}
-
 .subscription-card:hover {
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-    transform: translateY(-6px);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
 }
 
 /* Color coding for subscription status */
-.subscription-card.active::before {
-    background: linear-gradient(90deg, var(--success-color), #34d399);
-    opacity: 1;
-}
-
 .subscription-card.active {
     border-color: var(--success-color);
 }
 
-.subscription-card.inactive::before {
-    background: linear-gradient(90deg, var(--danger-color), #f87171);
-    opacity: 1;
-}
-
 .subscription-card.inactive {
     border-color: var(--danger-color);
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.03) 0%, rgba(248, 113, 113, 0.03) 100%);
-}
-
-.subscription-card.expiring-soon::before {
-    background: linear-gradient(90deg, var(--warning-color), #fbbf24);
-    opacity: 1;
+    background: linear-gradient(135deg, #fee2e2 0%, #ffffff 100%);
 }
 
 .subscription-card.expiring-soon {
     border-color: var(--warning-color);
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.03) 0%, rgba(251, 191, 36, 0.03) 100%);
+    background: linear-gradient(135deg, #fef3c7 0%, #ffffff 100%);
 }
 
 /* Stagger animation delay */
@@ -3099,19 +3073,19 @@
 .subscription-card-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 16px;
+    align-items: center;
+    margin-bottom: 12px;
 }
 
 .subscription-card h4 {
     font-family: 'Poppins', sans-serif;
-    font-size: 20px;
-    font-weight: 700;
+    font-size: 18px;
+    font-weight: 600;
     color: var(--text-dark);
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .subscription-status-badge {
@@ -3141,34 +3115,34 @@
 }
 
 .subscription-amount {
-    font-size: 15px;
-    color: var(--text-gray);
-    margin-bottom: 14px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
 }
 
 .subscription-amount strong {
     color: var(--primary-color);
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
 }
 
 .subscription-cycle {
-    font-size: 14px;
-    color: var(--text-gray);
-    margin-left: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-left: 4px;
 }
 
 .subscription-details {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
 
 .subscription-detail-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-    font-size: 14px;
-    color: var(--text-gray);
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
 }
 
 .subscription-detail-item span:first-child {
@@ -3177,11 +3151,11 @@
 }
 
 .subscription-billing-date {
-    font-size: 14px;
-    padding: 12px;
+    font-size: 13px;
+    padding: 10px 12px;
     background: rgba(8, 145, 178, 0.08);
-    border-radius: 8px;
-    margin-bottom: 16px;
+    border-radius: var(--radius);
+    margin-bottom: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -3198,26 +3172,26 @@
 }
 
 .days-indicator {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 8px;
+    padding: 6px 12px;
+    border-radius: var(--radius);
     display: inline-block;
-    margin-top: 4px;
+    margin-bottom: 12px;
 }
 
 .days-indicator.success {
-    background: rgba(16, 185, 129, 0.1);
+    background: rgba(16, 185, 129, 0.15);
     color: var(--success-color);
 }
 
 .days-indicator.warning {
-    background: rgba(245, 158, 11, 0.1);
+    background: rgba(245, 158, 11, 0.15);
     color: var(--warning-color);
 }
 
 .days-indicator.danger {
-    background: rgba(239, 68, 68, 0.1);
+    background: rgba(239, 68, 68, 0.15);
     color: var(--danger-color);
 }
 
@@ -3240,13 +3214,15 @@
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+    margin-top: 12px;
 }
 
 .subscription-actions .btn {
     flex: 1;
-    min-width: 100px;
-    padding: 10px 16px;
-    font-size: 13px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--radius);
 }
 
 .subscription-actions .btn-success {
@@ -3267,22 +3243,17 @@
     background: #d97706;
 }
 
-.subscription-actions .btn-icon {
-    padding: 10px;
-    min-width: auto;
-    flex: 0;
-}
-
 .auto-renew-indicator {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--success-color);
-    background: rgba(16, 185, 129, 0.1);
-    padding: 4px 10px;
-    border-radius: 8px;
-    margin-top: 8px;
+    background: rgba(16, 185, 129, 0.15);
+    padding: 6px 10px;
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    font-weight: 600;
 }
 
 /* Mobile Responsiveness */
