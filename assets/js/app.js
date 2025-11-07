@@ -158,6 +158,7 @@
             this.loadGoals();
             this.loadBudgets();
             this.checkBudgetAlerts();
+            this.loadSubscriptions();
             this.initializeDateFilters();
         },
 
@@ -193,6 +194,8 @@
             $(document).on('click', '.permanent-delete', this.handlePermanentDelete.bind(this));
             $(document).on('click', '.restore-goal', this.handleRestoreGoal.bind(this));
             $(document).on('click', '.permanent-delete-goal', this.handlePermanentDeleteGoal.bind(this));
+            $(document).on('click', '.restore-subscription', this.handleRestoreSubscription.bind(this));
+            $(document).on('click', '.permanent-delete-subscription', this.handlePermanentDeleteSubscription.bind(this));
 
             // Categories
             $('#manage-categories-card').on('click', this.openCategoriesModal.bind(this));
@@ -228,6 +231,37 @@
             $('#budget-form').on('submit', this.handleSaveBudget.bind(this));
             $(document).on('click', '.edit-budget-btn', this.handleEditBudget.bind(this));
             $(document).on('click', '.delete-budget-btn', this.handleDeleteBudget.bind(this));
+
+            // Subscriptions
+            $('#add-subscription-btn').on('click', this.openAddSubscriptionModal.bind(this));
+            $('#subscription-form').on('submit', this.handleAddSubscription.bind(this));
+            $(document).on('click', '.edit-subscription', (e) => {
+                const id = $(e.currentTarget).data('id');
+                this.handleEditSubscription(id);
+            });
+            $(document).on('click', '.delete-subscription', (e) => {
+                const id = $(e.currentTarget).data('id');
+                this.handleDeleteSubscription(id);
+            });
+            $(document).on('click', '.renew-subscription', (e) => {
+                const id = $(e.currentTarget).data('id');
+                this.handleRenewSubscription(id);
+            });
+            $(document).on('click', '.reactivate-subscription', (e) => {
+                const id = $(e.currentTarget).data('id');
+                this.handleReactivateSubscription(id);
+            });
+            $('.subscriptions-filter .filter-chip').on('click', (e) => {
+                const filter = $(e.currentTarget).data('filter');
+                this.handleSubscriptionFilterChange(filter);
+            });
+            $('#subscription-billing-cycle').on('change', function() {
+                if ($(this).val() === 'custom') {
+                    $('#custom-cycle-group').show();
+                } else {
+                    $('#custom-cycle-group').hide();
+                }
+            });
 
             // Email Reports
             $('#send-email-now-btn').on('click', this.handleSendEmailNow.bind(this));
@@ -360,7 +394,7 @@
         },
 
         populateCategorySelects: function(categories) {
-            const selects = ['#category', '#edit-category', '#filter-category'];
+            const selects = ['#category', '#edit-category', '#filter-category', '#subscription-category'];
 
             selects.forEach(selector => {
                 const $select = $(selector);
@@ -1838,20 +1872,21 @@
                 },
                 success: (response) => {
                     if (response.success) {
-                        this.renderTrash(response.data.transactions, response.data.goals);
+                        this.renderTrash(response.data.transactions, response.data.goals, response.data.subscriptions);
                     }
                 }
             });
         },
 
-        renderTrash: function(transactions, goals) {
+        renderTrash: function(transactions, goals, subscriptions) {
             const $tbody = $('#trash-tbody');
             $tbody.empty();
 
             if (!transactions) transactions = [];
             if (!goals) goals = [];
+            if (!subscriptions) subscriptions = [];
 
-            if (transactions.length === 0 && goals.length === 0) {
+            if (transactions.length === 0 && goals.length === 0 && subscriptions.length === 0) {
                 $tbody.html('<tr class="loading-row"><td colspan="6">Trash is empty</td></tr>');
                 return;
             }
@@ -1889,6 +1924,24 @@
                             <div class="action-btns">
                                 <button class="icon-btn restore-goal" data-id="${g.id}" title="Restore">↩️</button>
                                 <button class="icon-btn permanent-delete-goal" data-id="${g.id}" title="Delete Forever">💥</button>
+                            </div>
+                        </td>
+                    </tr>
+                `);
+            });
+
+            // Render subscriptions
+            subscriptions.forEach(s => {
+                $tbody.append(`
+                    <tr style="background: #fef2f2;">
+                        <td colspan="2"><strong>🔔 SUBSCRIPTION:</strong> ${s.name}</td>
+                        <td>${this.formatCurrency(s.amount)} / ${s.billing_cycle}</td>
+                        <td>${s.category_name || '-'}</td>
+                        <td>${s.payment_method || '-'}</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="icon-btn restore-subscription" data-id="${s.id}" title="Restore">↩️</button>
+                                <button class="icon-btn permanent-delete-subscription" data-id="${s.id}" title="Delete Forever">💥</button>
                             </div>
                         </td>
                     </tr>
@@ -2590,6 +2643,409 @@
                 },
                 error: () => {
                     this.showNotification('Failed to send report. Please try again.', 'error');
+                }
+            });
+        },
+
+        // ==================== SUBSCRIPTION MANAGEMENT ====================
+        currentSubscriptionFilter: 'all',
+        subscriptions: [],
+
+        loadSubscriptions: function() {
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_get_subscriptions',
+                    nonce: rizqtrack.nonce
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.subscriptions = response.data.subscriptions;
+                        this.renderSubscriptions();
+                        this.updateSubscriptionOverview();
+                    }
+                },
+                error: () => {
+                    $('#subscriptions-container').html('<p class="error-message">Failed to load subscriptions</p>');
+                }
+            });
+        },
+
+        renderSubscriptions: function() {
+            const container = $('#subscriptions-container');
+
+            if (this.subscriptions.length === 0) {
+                container.html('<p class="loading-message">No subscriptions found. Add your first subscription!</p>');
+                return;
+            }
+
+            // Filter subscriptions based on current filter
+            let filteredSubscriptions = this.subscriptions;
+            if (this.currentSubscriptionFilter === 'active') {
+                filteredSubscriptions = this.subscriptions.filter(s => s.status === 'Active');
+            } else if (this.currentSubscriptionFilter === 'inactive') {
+                filteredSubscriptions = this.subscriptions.filter(s => s.status === 'Inactive');
+            } else if (this.currentSubscriptionFilter === 'expiring') {
+                filteredSubscriptions = this.subscriptions.filter(s => {
+                    return s.status === 'Active' && s.days_until_expiry <= 7 && s.days_until_expiry > 0;
+                });
+            }
+
+            if (filteredSubscriptions.length === 0) {
+                container.html('<p class="loading-message">No subscriptions match this filter.</p>');
+                return;
+            }
+
+            container.empty();
+            filteredSubscriptions.forEach(subscription => {
+                container.append(this.renderSubscriptionCard(subscription));
+            });
+        },
+
+        renderSubscriptionCard: function(subscription) {
+            const isExpiringSoon = subscription.status === 'Active' && subscription.days_until_expiry <= 7 && subscription.days_until_expiry > 0;
+            const statusClass = subscription.status === 'Inactive' ? 'inactive' : (isExpiringSoon ? 'expiring-soon' : 'active');
+
+            const billingCycleText = {
+                'monthly': 'month',
+                'quarterly': 'quarter',
+                'yearly': 'year',
+                'custom': `${subscription.custom_cycle_days} days`
+            }[subscription.billing_cycle] || 'month';
+
+            let daysText = '';
+            let daysClass = '';
+            if (subscription.status === 'Inactive') {
+                const daysSinceExpiry = subscription.days_since_expiry || Math.abs(subscription.days_until_expiry);
+                daysText = `Expired ${daysSinceExpiry} days ago`;
+                daysClass = 'danger';
+            } else if (subscription.days_until_expiry <= 0) {
+                daysText = 'Due today';
+                daysClass = 'warning';
+            } else if (subscription.days_until_expiry <= 7) {
+                daysText = `${subscription.days_until_expiry} days left`;
+                daysClass = 'warning';
+            } else {
+                daysText = `${subscription.days_until_expiry} days left`;
+                daysClass = 'success';
+            }
+
+            const actionsHtml = subscription.status === 'Active'
+                ? `
+                    <button class="btn btn-success renew-subscription" data-id="${subscription.id}">💰 Renew</button>
+                    <button class="btn btn-secondary edit-subscription" data-id="${subscription.id}">✏️ Edit</button>
+                    <button class="btn btn-danger delete-subscription" data-id="${subscription.id}">🗑️ Delete</button>
+                `
+                : `
+                    <button class="btn btn-warning reactivate-subscription" data-id="${subscription.id}">🔄 Reactivate</button>
+                    <button class="btn btn-danger delete-subscription" data-id="${subscription.id}">🗑️ Delete</button>
+                `;
+
+            const autoRenewHtml = subscription.auto_renew == 1
+                ? '<div class="auto-renew-indicator">🔄 Auto-renew enabled</div>'
+                : '';
+
+            return `
+                <div class="subscription-card ${statusClass}" data-id="${subscription.id}">
+                    <div class="subscription-card-header">
+                        <h4>${subscription.category_emoji || '📌'} ${subscription.name}</h4>
+                        <span class="subscription-status-badge ${statusClass}">${subscription.status}</span>
+                    </div>
+                    <div class="subscription-amount">
+                        <strong>₹${parseFloat(subscription.amount).toFixed(2)}</strong>
+                        <span class="subscription-cycle">/ ${billingCycleText}</span>
+                    </div>
+                    <div class="subscription-billing-date">
+                        <span class="billing-date-label">Next Billing:</span>
+                        <span class="billing-date-value">${subscription.next_billing_date}</span>
+                    </div>
+                    <div class="days-indicator ${daysClass}">${daysText}</div>
+                    <div class="subscription-details">
+                        <div class="subscription-detail-item">
+                            <span>Category:</span>
+                            <span>${subscription.category_name}</span>
+                        </div>
+                        <div class="subscription-detail-item">
+                            <span>Payment:</span>
+                            <span>${subscription.payment_method}</span>
+                        </div>
+                        ${subscription.notes ? `<div class="subscription-detail-item"><span>Notes:</span><span>${subscription.notes}</span></div>` : ''}
+                    </div>
+                    ${autoRenewHtml}
+                    <div class="subscription-actions">
+                        ${actionsHtml}
+                    </div>
+                </div>
+            `;
+        },
+
+        updateSubscriptionOverview: function() {
+            const active = this.subscriptions.filter(s => s.status === 'Active');
+            const inactive = this.subscriptions.filter(s => s.status === 'Inactive');
+            const expiringSoon = active.filter(s => s.days_until_expiry <= 7 && s.days_until_expiry > 0);
+
+            $('#active-subscriptions-count').text(active.length);
+            $('#inactive-subscriptions-count').text(inactive.length);
+            $('#expiring-soon-count').text(expiringSoon.length);
+            $('#total-subscriptions-count').text(this.subscriptions.length);
+
+            // Calculate monthly costs
+            let totalMonthly = 0;
+            active.forEach(sub => {
+                const amount = parseFloat(sub.amount);
+                switch (sub.billing_cycle) {
+                    case 'monthly':
+                        totalMonthly += amount;
+                        break;
+                    case 'quarterly':
+                        totalMonthly += amount / 3;
+                        break;
+                    case 'yearly':
+                        totalMonthly += amount / 12;
+                        break;
+                    case 'custom':
+                        totalMonthly += (amount / parseInt(sub.custom_cycle_days || 30)) * 30;
+                        break;
+                }
+            });
+
+            const yearlyProjection = totalMonthly * 12;
+            const avgCost = active.length > 0 ? (totalMonthly / active.length) : 0;
+
+            $('#total-monthly-cost').text(`₹${totalMonthly.toFixed(2)}`);
+            $('#yearly-projection').text(`₹${yearlyProjection.toFixed(2)}`);
+            $('#avg-subscription-cost').text(`₹${avgCost.toFixed(2)}`);
+        },
+
+        handleAddSubscription: function(e) {
+            e.preventDefault();
+
+            const formData = {
+                name: $('#subscription-name').val(),
+                amount: $('#subscription-amount').val(),
+                category_id: $('#subscription-category').val(),
+                payment_method: $('#subscription-payment-method').val(),
+                billing_cycle: $('#subscription-billing-cycle').val(),
+                custom_cycle_days: $('#subscription-custom-days').val(),
+                start_date: $('#subscription-start-date').val(),
+                reminder_days: $('#subscription-reminder-days').val(),
+                auto_renew: $('#subscription-auto-renew').is(':checked') ? 1 : 0,
+                add_as_transaction: $('#subscription-add-transaction').is(':checked') ? 1 : 0,
+                notes: $('#subscription-notes').val()
+            };
+
+            const subscriptionId = $('#subscription-id').val();
+            const action = subscriptionId ? 'rizqtrack_update_subscription' : 'rizqtrack_add_subscription';
+
+            if (subscriptionId) {
+                formData.id = subscriptionId;
+            }
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: action,
+                    nonce: rizqtrack.nonce,
+                    ...formData
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification(response.data.message, 'success');
+                        this.closeModals();
+                        this.loadSubscriptions();
+                        this.loadTransactions(1);
+                        this.loadKPIData();
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                },
+                error: () => {
+                    this.showNotification('Failed to save subscription', 'error');
+                }
+            });
+        },
+
+        handleRenewSubscription: function(id) {
+            if (!confirm('Are you sure you want to renew this subscription? This will create an expense transaction for today.')) {
+                return;
+            }
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_renew_subscription',
+                    nonce: rizqtrack.nonce,
+                    id: id
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification(response.data.message, 'success');
+                        this.loadSubscriptions();
+                        this.loadTransactions(1);
+                        this.loadKPIData();
+                        this.loadChartData();
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                },
+                error: () => {
+                    this.showNotification('Failed to renew subscription', 'error');
+                }
+            });
+        },
+
+        handleReactivateSubscription: function(id) {
+            if (!confirm('Reactivate this subscription? The next billing date will be calculated from today.')) {
+                return;
+            }
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_reactivate_subscription',
+                    nonce: rizqtrack.nonce,
+                    id: id
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification(response.data.message, 'success');
+                        this.loadSubscriptions();
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                },
+                error: () => {
+                    this.showNotification('Failed to reactivate subscription', 'error');
+                }
+            });
+        },
+
+        handleDeleteSubscription: function(id) {
+            if (!confirm('Move this subscription to trash?')) {
+                return;
+            }
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_delete_subscription',
+                    nonce: rizqtrack.nonce,
+                    id: id
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification(response.data.message, 'success');
+                        this.loadSubscriptions();
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                },
+                error: () => {
+                    this.showNotification('Failed to delete subscription', 'error');
+                }
+            });
+        },
+
+        handleEditSubscription: function(id) {
+            const subscription = this.subscriptions.find(s => s.id == id);
+            if (!subscription) return;
+
+            $('#subscription-modal-title').text('Edit Subscription');
+            $('#subscription-id').val(subscription.id);
+            $('#subscription-name').val(subscription.name);
+            $('#subscription-amount').val(subscription.amount);
+            $('#subscription-category').val(subscription.category_id);
+            $('#subscription-payment-method').val(subscription.payment_method);
+            $('#subscription-billing-cycle').val(subscription.billing_cycle);
+            $('#subscription-custom-days').val(subscription.custom_cycle_days);
+            $('#subscription-reminder-days').val(subscription.reminder_days);
+            $('#subscription-auto-renew').prop('checked', subscription.auto_renew == 1);
+            $('#subscription-notes').val(subscription.notes);
+
+            // Hide add as transaction checkbox for edit
+            $('#add-as-transaction-group').hide();
+
+            // Show/hide custom days
+            if (subscription.billing_cycle === 'custom') {
+                $('#custom-cycle-group').show();
+            }
+
+            this.openModal('subscription-modal');
+        },
+
+        openAddSubscriptionModal: function() {
+            $('#subscription-modal-title').text('Add New Subscription');
+            $('#subscription-form')[0].reset();
+            $('#subscription-id').val('');
+            $('#add-as-transaction-group').show();
+            $('#custom-cycle-group').hide();
+            $('#subscription-start-date').val(new Date().toISOString().split('T')[0]);
+            this.openModal('subscription-modal');
+        },
+
+        handleSubscriptionFilterChange: function(filter) {
+            this.currentSubscriptionFilter = filter;
+            $('.subscriptions-filter .filter-chip').removeClass('active');
+            $(`.subscriptions-filter .filter-chip[data-filter="${filter}"]`).addClass('active');
+            this.renderSubscriptions();
+        },
+
+        handleRestoreSubscription: function(e) {
+            const subscriptionId = $(e.currentTarget).data('id');
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_restore_subscription',
+                    nonce: rizqtrack.nonce,
+                    id: subscriptionId
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification('Subscription restored successfully', 'success');
+                        this.loadTrash();
+                        this.loadSubscriptions();
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                },
+                error: () => {
+                    this.showNotification('Failed to restore subscription', 'error');
+                }
+            });
+        },
+
+        handlePermanentDeleteSubscription: function(e) {
+            const subscriptionId = $(e.currentTarget).data('id');
+
+            if (!confirm('PERMANENTLY delete this subscription? This cannot be undone!')) {
+                return;
+            }
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_permanent_delete_subscription',
+                    nonce: rizqtrack.nonce,
+                    id: subscriptionId
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification('Subscription permanently deleted', 'success');
+                        this.loadTrash();
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                },
+                error: () => {
+                    this.showNotification('Failed to permanently delete subscription', 'error');
                 }
             });
         }

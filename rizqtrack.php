@@ -20,6 +20,7 @@ class RizqTrack {
     private $table_achievements;
     private $table_challenges;
     private $table_budgets;
+    private $table_subscriptions;
 
     public static function get_instance() {
         if (self::$instance == null) {
@@ -36,6 +37,7 @@ class RizqTrack {
         $this->table_achievements = $wpdb->prefix . 'rizqtrack_achievements';
         $this->table_challenges = $wpdb->prefix . 'rizqtrack_challenges';
         $this->table_budgets = $wpdb->prefix . 'rizqtrack_budgets';
+        $this->table_subscriptions = $wpdb->prefix . 'rizqtrack_subscriptions';
 
         register_activation_hook(__FILE__, [$this, 'activate']);
         add_action('admin_menu', [$this, 'add_menu']);
@@ -192,6 +194,31 @@ class RizqTrack {
             KEY status (status)
         ) $charset;";
 
+        $sql_subscriptions = "CREATE TABLE IF NOT EXISTS {$this->table_subscriptions} (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) NOT NULL,
+            name varchar(200) NOT NULL,
+            amount decimal(10,2) NOT NULL,
+            category_id bigint(20) NOT NULL,
+            billing_cycle enum('monthly','quarterly','yearly','custom') DEFAULT 'monthly',
+            custom_cycle_days int DEFAULT NULL,
+            start_date date NOT NULL,
+            next_billing_date date NOT NULL,
+            last_renewed_date date DEFAULT NULL,
+            payment_method varchar(50) NOT NULL,
+            auto_renew tinyint(1) DEFAULT 0,
+            reminder_days int DEFAULT 7,
+            notes text DEFAULT NULL,
+            status enum('Active','Inactive','Trash') DEFAULT 'Active',
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY user_id (user_id),
+            KEY category_id (category_id),
+            KEY status (status),
+            KEY next_billing_date (next_billing_date)
+        ) $charset;";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql_transactions);
         dbDelta($sql_categories);
@@ -199,6 +226,7 @@ class RizqTrack {
         dbDelta($sql_achievements);
         dbDelta($sql_challenges);
         dbDelta($sql_budgets);
+        dbDelta($sql_subscriptions);
 
         // Migration: Add goal_id column if it doesn't exist
         $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{$this->table_transactions}' AND column_name = 'goal_id'");
@@ -335,7 +363,9 @@ class RizqTrack {
             'get_email_settings', 'save_email_settings', 'test_email', 'send_email_now',
             'get_achievements', 'check_achievements',
             'get_challenges', 'start_challenge', 'update_challenge', 'complete_challenge', 'delete_challenge',
-            'get_budgets', 'add_budget', 'update_budget', 'delete_budget', 'check_budget_alerts', 'get_budget_vs_actual'
+            'get_budgets', 'add_budget', 'update_budget', 'delete_budget', 'check_budget_alerts', 'get_budget_vs_actual',
+            'get_subscriptions', 'add_subscription', 'update_subscription', 'delete_subscription',
+            'restore_subscription', 'permanent_delete_subscription', 'renew_subscription', 'reactivate_subscription'
         ];
 
         foreach ($endpoints as $endpoint) {
@@ -345,6 +375,7 @@ class RizqTrack {
         // Register cron hooks
         add_action('rizqtrack_send_weekly_email', [$this, 'send_weekly_report']);
         add_action('rizqtrack_send_monthly_email', [$this, 'send_monthly_report']);
+        add_action('rizqtrack_check_expired_subscriptions', [$this, 'check_expired_subscriptions']);
     }
 
     // Transaction AJAX Handlers
@@ -1017,9 +1048,20 @@ class RizqTrack {
             $user_id
         ));
 
+        // Get trashed subscriptions
+        $subscriptions = $wpdb->get_results($wpdb->prepare(
+            "SELECT s.*, c.name as category_name, c.emoji as category_emoji, 'subscription' as item_type
+            FROM {$this->table_subscriptions} s
+            LEFT JOIN {$this->table_categories} c ON s.category_id = c.id
+            WHERE s.user_id = %d AND s.status = 'Trash'
+            ORDER BY s.created_at DESC",
+            $user_id
+        ));
+
         wp_send_json_success([
             'transactions' => $transactions,
-            'goals' => $goals
+            'goals' => $goals,
+            'subscriptions' => $subscriptions
         ]);
         wp_die();
     }
@@ -2352,6 +2394,368 @@ HTML;
 
         wp_send_json_success(['alerts' => $alerts]);
         wp_die();
+    }
+
+    // Subscription Management
+    public function ajax_get_subscriptions() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+
+        $subscriptions = $wpdb->get_results($wpdb->prepare(
+            "SELECT s.*, c.name as category_name, c.emoji as category_emoji
+            FROM {$this->table_subscriptions} s
+            LEFT JOIN {$this->table_categories} c ON s.category_id = c.id
+            WHERE s.user_id = %d AND s.status != 'Trash'
+            ORDER BY s.next_billing_date ASC",
+            $user_id
+        ));
+
+        // Calculate days until expiry and update status for expired subscriptions
+        $today = date('Y-m-d');
+        foreach ($subscriptions as $subscription) {
+            $next_billing = strtotime($subscription->next_billing_date);
+            $today_timestamp = strtotime($today);
+
+            $days_diff = ($next_billing - $today_timestamp) / (60 * 60 * 24);
+            $subscription->days_until_expiry = ceil($days_diff);
+
+            // Update status to Inactive if expired
+            if ($days_diff < 0 && $subscription->status === 'Active') {
+                $wpdb->update(
+                    $this->table_subscriptions,
+                    ['status' => 'Inactive'],
+                    ['id' => $subscription->id],
+                    ['%s'],
+                    ['%d']
+                );
+                $subscription->status = 'Inactive';
+                $subscription->days_since_expiry = abs(ceil($days_diff));
+            }
+        }
+
+        wp_send_json_success(['subscriptions' => $subscriptions]);
+        wp_die();
+    }
+
+    public function ajax_add_subscription() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+
+        if (!$user_id) {
+            wp_send_json_error(['message' => 'You must be logged in']);
+            return;
+        }
+
+        $amount = floatval($_POST['amount']);
+        if ($amount <= 0) {
+            wp_send_json_error(['message' => 'Amount must be greater than 0']);
+            return;
+        }
+
+        // Calculate next billing date based on cycle
+        $start_date = sanitize_text_field($_POST['start_date']);
+        $billing_cycle = sanitize_text_field($_POST['billing_cycle']);
+        $next_billing_date = $this->calculate_next_billing_date($start_date, $billing_cycle, $_POST['custom_cycle_days'] ?? null);
+
+        $data = [
+            'user_id' => $user_id,
+            'name' => sanitize_text_field($_POST['name']),
+            'amount' => $amount,
+            'category_id' => intval($_POST['category_id']),
+            'billing_cycle' => $billing_cycle,
+            'custom_cycle_days' => !empty($_POST['custom_cycle_days']) ? intval($_POST['custom_cycle_days']) : null,
+            'start_date' => $start_date,
+            'next_billing_date' => $next_billing_date,
+            'payment_method' => sanitize_text_field($_POST['payment_method']),
+            'auto_renew' => isset($_POST['auto_renew']) ? 1 : 0,
+            'reminder_days' => intval($_POST['reminder_days'] ?? 7),
+            'notes' => sanitize_textarea_field($_POST['notes'] ?? ''),
+            'status' => 'Active'
+        ];
+
+        $result = $wpdb->insert($this->table_subscriptions, $data);
+
+        if ($result) {
+            // If "add_as_transaction" is checked, create initial transaction
+            if (isset($_POST['add_as_transaction']) && $_POST['add_as_transaction']) {
+                $wpdb->insert($this->table_transactions, [
+                    'user_id' => $user_id,
+                    'type' => 'expense',
+                    'amount' => $amount,
+                    'date' => $start_date,
+                    'category_id' => intval($_POST['category_id']),
+                    'payment_method' => sanitize_text_field($_POST['payment_method']),
+                    'description' => 'Subscription: ' . sanitize_text_field($_POST['name']),
+                    'status' => 'Active'
+                ]);
+            }
+
+            wp_send_json_success(['message' => 'Subscription added successfully']);
+        } else {
+            wp_send_json_error(['message' => 'Failed to add subscription']);
+        }
+        wp_die();
+    }
+
+    public function ajax_update_subscription() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $id = intval($_POST['id']);
+
+        $amount = floatval($_POST['amount']);
+        if ($amount <= 0) {
+            wp_send_json_error(['message' => 'Amount must be greater than 0']);
+            return;
+        }
+
+        $data = [
+            'name' => sanitize_text_field($_POST['name']),
+            'amount' => $amount,
+            'category_id' => intval($_POST['category_id']),
+            'billing_cycle' => sanitize_text_field($_POST['billing_cycle']),
+            'custom_cycle_days' => !empty($_POST['custom_cycle_days']) ? intval($_POST['custom_cycle_days']) : null,
+            'payment_method' => sanitize_text_field($_POST['payment_method']),
+            'auto_renew' => isset($_POST['auto_renew']) ? 1 : 0,
+            'reminder_days' => intval($_POST['reminder_days'] ?? 7),
+            'notes' => sanitize_textarea_field($_POST['notes'] ?? '')
+        ];
+
+        $result = $wpdb->update(
+            $this->table_subscriptions,
+            $data,
+            ['id' => $id, 'user_id' => $user_id],
+            [  '%s', '%f', '%d', '%s', '%d', '%s', '%d', '%d', '%s'],
+            ['%d', '%d']
+        );
+
+        if ($result !== false) {
+            wp_send_json_success(['message' => 'Subscription updated successfully']);
+        } else {
+            wp_send_json_error(['message' => 'Failed to update subscription']);
+        }
+        wp_die();
+    }
+
+    public function ajax_renew_subscription() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $id = intval($_POST['id']);
+
+        // Get subscription details
+        $subscription = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$this->table_subscriptions} WHERE id = %d AND user_id = %d",
+            $id, $user_id
+        ));
+
+        if (!$subscription) {
+            wp_send_json_error(['message' => 'Subscription not found']);
+            return;
+        }
+
+        $today = date('Y-m-d');
+
+        // Create transaction for renewal
+        $result = $wpdb->insert($this->table_transactions, [
+            'user_id' => $user_id,
+            'type' => 'expense',
+            'amount' => $subscription->amount,
+            'date' => $today,
+            'category_id' => $subscription->category_id,
+            'payment_method' => $subscription->payment_method,
+            'description' => 'Subscription Renewal: ' . $subscription->name,
+            'status' => 'Active'
+        ]);
+
+        if (!$result) {
+            wp_send_json_error(['message' => 'Failed to create transaction']);
+            return;
+        }
+
+        // Calculate new next billing date
+        $new_next_billing = $this->calculate_next_billing_date(
+            $today,
+            $subscription->billing_cycle,
+            $subscription->custom_cycle_days
+        );
+
+        // Update subscription
+        $wpdb->update(
+            $this->table_subscriptions,
+            [
+                'next_billing_date' => $new_next_billing,
+                'last_renewed_date' => $today,
+                'status' => 'Active'
+            ],
+            ['id' => $id],
+            ['%s', '%s', '%s'],
+            ['%d']
+        );
+
+        wp_send_json_success([
+            'message' => 'Subscription renewed successfully',
+            'next_billing_date' => $new_next_billing
+        ]);
+        wp_die();
+    }
+
+    public function ajax_reactivate_subscription() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $id = intval($_POST['id']);
+
+        // Get subscription details
+        $subscription = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$this->table_subscriptions} WHERE id = %d AND user_id = %d",
+            $id, $user_id
+        ));
+
+        if (!$subscription) {
+            wp_send_json_error(['message' => 'Subscription not found']);
+            return;
+        }
+
+        $today = date('Y-m-d');
+
+        // Calculate new next billing date from today
+        $new_next_billing = $this->calculate_next_billing_date(
+            $today,
+            $subscription->billing_cycle,
+            $subscription->custom_cycle_days
+        );
+
+        // Update subscription
+        $result = $wpdb->update(
+            $this->table_subscriptions,
+            [
+                'next_billing_date' => $new_next_billing,
+                'status' => 'Active'
+            ],
+            ['id' => $id],
+            ['%s', '%s'],
+            ['%d']
+        );
+
+        if ($result !== false) {
+            wp_send_json_success([
+                'message' => 'Subscription reactivated successfully',
+                'next_billing_date' => $new_next_billing
+            ]);
+        } else {
+            wp_send_json_error(['message' => 'Failed to reactivate subscription']);
+        }
+        wp_die();
+    }
+
+    public function ajax_delete_subscription() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $id = intval($_POST['id']);
+
+        $result = $wpdb->update(
+            $this->table_subscriptions,
+            ['status' => 'Trash'],
+            ['id' => $id, 'user_id' => $user_id],
+            ['%s'],
+            ['%d', '%d']
+        );
+
+        if ($result !== false) {
+            wp_send_json_success(['message' => 'Subscription moved to trash']);
+        } else {
+            wp_send_json_error(['message' => 'Failed to delete subscription']);
+        }
+        wp_die();
+    }
+
+    public function ajax_restore_subscription() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $id = intval($_POST['id']);
+
+        $result = $wpdb->update(
+            $this->table_subscriptions,
+            ['status' => 'Active'],
+            ['id' => $id, 'user_id' => $user_id],
+            ['%s'],
+            ['%d', '%d']
+        );
+
+        if ($result !== false) {
+            wp_send_json_success(['message' => 'Subscription restored successfully']);
+        } else {
+            wp_send_json_error(['message' => 'Failed to restore subscription']);
+        }
+        wp_die();
+    }
+
+    public function ajax_permanent_delete_subscription() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $id = intval($_POST['id']);
+
+        $result = $wpdb->delete(
+            $this->table_subscriptions,
+            ['id' => $id, 'user_id' => $user_id, 'status' => 'Trash'],
+            ['%d', '%d', '%s']
+        );
+
+        if ($result) {
+            wp_send_json_success(['message' => 'Subscription permanently deleted']);
+        } else {
+            wp_send_json_error(['message' => 'Failed to delete subscription permanently']);
+        }
+        wp_die();
+    }
+
+    // Helper function to calculate next billing date
+    private function calculate_next_billing_date($from_date, $billing_cycle, $custom_days = null) {
+        $timestamp = strtotime($from_date);
+
+        switch ($billing_cycle) {
+            case 'monthly':
+                return date('Y-m-d', strtotime('+1 month', $timestamp));
+            case 'quarterly':
+                return date('Y-m-d', strtotime('+3 months', $timestamp));
+            case 'yearly':
+                return date('Y-m-d', strtotime('+1 year', $timestamp));
+            case 'custom':
+                $days = intval($custom_days ?? 30);
+                return date('Y-m-d', strtotime("+{$days} days", $timestamp));
+            default:
+                return date('Y-m-d', strtotime('+1 month', $timestamp));
+        }
+    }
+
+    // Cron job to check and auto-trash expired subscriptions after 90 days
+    public function check_expired_subscriptions() {
+        global $wpdb;
+
+        $ninety_days_ago = date('Y-m-d', strtotime('-90 days'));
+
+        // Get all inactive subscriptions that haven't been renewed in 90 days
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$this->table_subscriptions}
+            SET status = 'Trash'
+            WHERE status = 'Inactive'
+            AND next_billing_date < %s",
+            $ninety_days_ago
+        ));
     }
 }
 

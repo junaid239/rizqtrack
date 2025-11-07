@@ -416,6 +416,77 @@
         </div>
     </div>
 
+    <div class="subscriptions-section" style="margin-top: 32px;">
+        <div class="section-header">
+            <h2 class="section-title">🔔 Subscription Management</h2>
+            <button class="btn btn-secondary" id="add-subscription-btn">➕ Add Subscription</button>
+        </div>
+
+        <div class="subscriptions-overview-card">
+            <div class="subscriptions-overview-header">
+                <h3>📊 Subscriptions Overview</h3>
+                <div class="subscriptions-stats-badges">
+                    <div class="stat-badge">
+                        <span class="badge-label">Active</span>
+                        <span class="badge-value" id="active-subscriptions-count">0</span>
+                    </div>
+                    <div class="stat-badge warning">
+                        <span class="badge-label">Inactive</span>
+                        <span class="badge-value" id="inactive-subscriptions-count">0</span>
+                    </div>
+                    <div class="stat-badge danger">
+                        <span class="badge-label">Expiring Soon</span>
+                        <span class="badge-value" id="expiring-soon-count">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="subscriptions-overview-content">
+                <div class="overview-main-stats">
+                    <div class="main-stat-item">
+                        <span class="main-stat-label">Total Monthly Cost</span>
+                        <span class="main-stat-value" id="total-monthly-cost">₹0.00</span>
+                    </div>
+                    <div class="main-stat-item">
+                        <span class="main-stat-label">Yearly Projection</span>
+                        <span class="main-stat-value" id="yearly-projection">₹0.00</span>
+                    </div>
+                </div>
+
+                <div class="overview-insights">
+                    <div class="insight-item">
+                        <span class="insight-icon">📅</span>
+                        <div class="insight-content">
+                            <span class="insight-label">Avg. Cost/Month</span>
+                            <span class="insight-value" id="avg-subscription-cost">₹0.00</span>
+                        </div>
+                    </div>
+                    <div class="insight-item">
+                        <span class="insight-icon">💳</span>
+                        <div class="insight-content">
+                            <span class="insight-label">Total Subscriptions</span>
+                            <span class="insight-value" id="total-subscriptions-count">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="individual-subscriptions-header">
+            <h3>Individual Subscriptions</h3>
+            <div class="subscriptions-filter">
+                <button class="filter-chip active" data-filter="all">All</button>
+                <button class="filter-chip" data-filter="active">Active</button>
+                <button class="filter-chip" data-filter="inactive">Inactive</button>
+                <button class="filter-chip" data-filter="expiring">Expiring Soon</button>
+            </div>
+        </div>
+
+        <div id="subscriptions-container" class="subscriptions-grid">
+            <div class="loading-message">Loading subscriptions...</div>
+        </div>
+    </div>
+
     <div class="trash-section">
         <div class="collapsible-header" id="trash-header">
             <h2 class="section-title">🗑️ Trash</h2>
@@ -800,6 +871,104 @@
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save Budget</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="subscription-modal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h2 id="subscription-modal-title">Add New Subscription</h2>
+            <span class="close">&times;</span>
+        </div>
+        <form id="subscription-form">
+            <input type="hidden" id="subscription-id">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="subscription-name">Subscription Name <span class="required">*</span></label>
+                    <input type="text" id="subscription-name" maxlength="200" required placeholder="e.g., Netflix, Spotify, Gym">
+                </div>
+
+                <div class="form-group">
+                    <label for="subscription-amount">Amount <span class="required">*</span></label>
+                    <input type="number" id="subscription-amount" step="0.01" min="0" required placeholder="0.00">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="subscription-category">Category <span class="required">*</span></label>
+                    <select id="subscription-category" required>
+                        <option value="">Select Category</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="subscription-payment-method">Payment Method <span class="required">*</span></label>
+                    <select id="subscription-payment-method" required>
+                        <option value="UPI">UPI</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Debit Card">Debit Card</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="subscription-billing-cycle">Billing Cycle <span class="required">*</span></label>
+                    <select id="subscription-billing-cycle" required>
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly (3 months)</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="custom-cycle-group" style="display: none;">
+                    <label for="subscription-custom-days">Custom Cycle (Days)</label>
+                    <input type="number" id="subscription-custom-days" min="1" placeholder="e.g., 30">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="subscription-start-date">Start Date <span class="required">*</span></label>
+                    <input type="date" id="subscription-start-date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="subscription-reminder-days">Reminder (Days Before)</label>
+                    <input type="number" id="subscription-reminder-days" min="1" max="30" value="7">
+                    <small>Get reminded before renewal</small>
+                </div>
+            </div>
+
+            <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="subscription-auto-renew">
+                    <span class="checkbox-text">Auto-renew subscription</span>
+                </label>
+            </div>
+
+            <div class="form-group checkbox-group" id="add-as-transaction-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="subscription-add-transaction" checked>
+                    <span class="checkbox-text">Add as transaction (creates expense for start date)</span>
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label for="subscription-notes">Notes (Optional)</label>
+                <textarea id="subscription-notes" rows="3" maxlength="500" placeholder="Add any notes about this subscription..."></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Subscription</button>
             </div>
         </form>
     </div>
