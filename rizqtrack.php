@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.2.4
+ * Version: 1.2.5
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -297,7 +297,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        $version = '1.2.4'; // Updated version for cache busting
+        $version = '1.2.5'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -321,7 +321,7 @@ class RizqTrack {
             return;
         }
 
-        $version = '1.2.4'; // Updated version for cache busting
+        $version = '1.2.5'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -377,7 +377,8 @@ class RizqTrack {
             'get_challenges', 'start_challenge', 'update_challenge', 'complete_challenge', 'delete_challenge',
             'get_budgets', 'add_budget', 'update_budget', 'delete_budget', 'check_budget_alerts', 'get_budget_vs_actual',
             'get_subscriptions', 'add_subscription', 'update_subscription', 'delete_subscription',
-            'restore_subscription', 'permanent_delete_subscription', 'renew_subscription', 'reactivate_subscription'
+            'restore_subscription', 'permanent_delete_subscription', 'renew_subscription', 'reactivate_subscription',
+            'undo_payment'
         ];
 
         foreach ($endpoints as $endpoint) {
@@ -2732,6 +2733,89 @@ HTML;
             ]);
         } else {
             wp_send_json_error(['message' => 'Failed to reactivate subscription']);
+        }
+        wp_die();
+    }
+
+    public function ajax_undo_payment() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $id = intval($_POST['id']);
+
+        // Get subscription details
+        $subscription = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$this->table_subscriptions} WHERE id = %d AND user_id = %d",
+            $id, $user_id
+        ));
+
+        if (!$subscription) {
+            wp_send_json_error(['message' => 'Subscription not found']);
+            return;
+        }
+
+        if (!$subscription->last_renewed_date) {
+            wp_send_json_error(['message' => 'No payment to undo']);
+            return;
+        }
+
+        // Calculate previous next billing date (rollback one cycle)
+        $current_billing = strtotime($subscription->next_billing_date);
+
+        switch ($subscription->billing_cycle) {
+            case 'monthly':
+                $previous_billing = strtotime('-1 month', $current_billing);
+                break;
+            case 'quarterly':
+                $previous_billing = strtotime('-3 months', $current_billing);
+                break;
+            case 'yearly':
+                $previous_billing = strtotime('-1 year', $current_billing);
+                break;
+            case '5year':
+                $previous_billing = strtotime('-5 years', $current_billing);
+                break;
+            case 'custom':
+                $days = intval($subscription->custom_cycle_days ?? 30);
+                $previous_billing = strtotime("-{$days} days", $current_billing);
+                break;
+            default:
+                $previous_billing = strtotime('-1 month', $current_billing);
+        }
+
+        $previous_billing_date = date('Y-m-d', $previous_billing);
+
+        // Delete the most recent transaction for this subscription (created on last_renewed_date)
+        $wpdb->delete(
+            $this->table_transactions,
+            [
+                'user_id' => $user_id,
+                'date' => $subscription->last_renewed_date,
+                'description' => 'Subscription Renewal: ' . $subscription->name
+            ],
+            ['%d', '%s', '%s']
+        );
+
+        // Update subscription: clear last_renewed_date and rollback next_billing_date
+        $result = $wpdb->update(
+            $this->table_subscriptions,
+            [
+                'next_billing_date' => $previous_billing_date,
+                'last_renewed_date' => null
+            ],
+            ['id' => $id],
+            ['%s', '%s'],
+            ['%d']
+        );
+
+        if ($result !== false) {
+            wp_send_json_success([
+                'message' => 'Payment undone successfully',
+                'next_billing_date' => $previous_billing_date
+            ]);
+        } else {
+            wp_send_json_error(['message' => 'Failed to undo payment']);
         }
         wp_die();
     }

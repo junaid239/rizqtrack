@@ -252,6 +252,10 @@
                 const id = $(e.currentTarget).data('id');
                 this.handleReactivateSubscription(id);
             });
+            $(document).on('click', '.undo-payment-subscription', (e) => {
+                const id = $(e.currentTarget).data('id');
+                this.handleUndoPayment(id);
+            });
             $(document).on('click', '.subscriptions-filter .filter-chip', (e) => {
                 const filter = $(e.currentTarget).data('filter');
                 this.handleSubscriptionFilterChange(filter);
@@ -2792,7 +2796,12 @@
         renderSubscriptionCard: function(subscription) {
             const isExpiringSoon = subscription.status === 'Active' && subscription.days_until_expiry <= 7 && subscription.days_until_expiry > 0;
             const statusClass = subscription.status === 'Inactive' ? 'inactive' : (isExpiringSoon ? 'expiring-soon' : 'active');
-            const isOneTime = subscription.billing_cycle === 'one-time';
+
+            // HARD FIX: Check multiple conditions for one-time or long-term payments
+            // Check if billing_cycle is one-time, OR if it's 5year, OR if days_until_expiry > 365 (indicating long-term)
+            const isOneTime = subscription.billing_cycle === 'one-time' ||
+                            subscription.billing_cycle === '5year' ||
+                            (subscription.end_date && subscription.days_until_expiry > 365);
 
             const billingCycleText = {
                 'monthly': 'month',
@@ -2807,7 +2816,7 @@
             let daysClass = '';
 
             if (isOneTime) {
-                // For one-time payments, show validity period
+                // For one-time payments and 5-year subscriptions, show validity period
                 if (subscription.end_date) {
                     if (subscription.status === 'Inactive') {
                         daysText = 'Coverage expired';
@@ -2817,7 +2826,7 @@
                         daysClass = 'success';
                     }
                 } else {
-                    daysText = 'One-time payment';
+                    daysText = subscription.billing_cycle === '5year' ? '5-year subscription' : 'One-time payment';
                     daysClass = 'success';
                 }
             } else if (subscription.status === 'Inactive') {
@@ -2844,6 +2853,11 @@
                 daysClass = 'success';
             }
 
+            // Undo Last Payment button (only show if last_paid_date exists)
+            const undoPaymentBtn = subscription.last_paid_date
+                ? `<button class="btn btn-sm btn-warning undo-payment-subscription" data-id="${subscription.id}" title="Undo Last Payment">↶ Undo</button>`
+                : '';
+
             const actionsHtml = subscription.status === 'Active'
                 ? (isOneTime
                     ? `
@@ -2852,6 +2866,7 @@
                     `
                     : `
                         <button class="btn btn-success renew-subscription" data-id="${subscription.id}">💰 Paid</button>
+                        ${undoPaymentBtn}
                         <button class="btn btn-secondary edit-subscription" data-id="${subscription.id}">✏️ Edit</button>
                         <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️</button>
                     `)
@@ -2876,7 +2891,7 @@
 
             const paymentDateSection = `
                 <div class="subscription-billing-date">
-                    <span class="billing-date-label">Payment Date:</span>
+                    <span class="billing-date-label">Next Payment:</span>
                     <span class="billing-date-value">${this.formatDate(paymentDateValue)}</span>
                 </div>`;
 
@@ -3078,6 +3093,36 @@
                 },
                 error: () => {
                     this.showNotification('Failed to reactivate subscription', 'error');
+                }
+            });
+        },
+
+        handleUndoPayment: function(id) {
+            if (!confirm('Undo the last payment for this subscription? This will roll back the last billing date.')) {
+                return;
+            }
+
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_undo_payment',
+                    nonce: rizqtrack.nonce,
+                    id: id
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification(response.data.message, 'success');
+                        this.loadSubscriptions();
+                        this.loadTransactions(1);
+                        this.loadKPIData();
+                        this.loadChartData();
+                    } else {
+                        this.showNotification(response.data.message, 'error');
+                    }
+                },
+                error: () => {
+                    this.showNotification('Failed to undo payment', 'error');
                 }
             });
         },
