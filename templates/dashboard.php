@@ -826,30 +826,67 @@
                 <small>Enter the email address where you want to receive the report</small>
             </div>
 
-            <div class="form-row">
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="email-auto-send">
+                    <span class="checkbox-text">🔄 Enable automatic monthly emails</span>
+                </label>
+                <small style="margin-left: 24px; display: block; margin-top: 4px;">Automatically send a monthly report on your chosen date</small>
+            </div>
+
+            <div id="auto-email-settings" style="display: none; margin-top: 16px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
+                <div class="form-group">
+                    <label for="email-send-day">📅 Send on day of month <span class="required">*</span></label>
+                    <select id="email-send-day">
+                        <option value="1">1st of every month</option>
+                        <option value="2">2nd of every month</option>
+                        <option value="3">3rd of every month</option>
+                        <option value="4">4th of every month</option>
+                        <option value="5">5th of every month</option>
+                        <option value="6">6th of every month</option>
+                        <option value="7">7th of every month</option>
+                        <option value="8">8th of every month</option>
+                        <option value="9">9th of every month</option>
+                        <option value="10">10th of every month</option>
+                        <option value="15">15th of every month</option>
+                        <option value="20">20th of every month</option>
+                        <option value="25">25th of every month</option>
+                        <option value="-1" selected>Last day of every month</option>
+                    </select>
+                    <small>Choose which day of the month to receive your automatic report</small>
+                </div>
+            </div>
+
+            <div class="form-row" style="margin-top: 24px;">
                 <div class="form-group">
                     <label for="email-start-date">Start Date <span class="required">*</span></label>
                     <input type="date" id="email-start-date" required>
+                    <small>For manual reports only</small>
                 </div>
                 <div class="form-group">
                     <label for="email-end-date">End Date <span class="required">*</span></label>
                     <input type="date" id="email-end-date" required>
+                    <small>For manual reports only</small>
                 </div>
             </div>
 
-            <div class="info-box">
-                <strong>📊 Report will include:</strong>
-                <ul>
-                    <li>💰 Income vs Expense summary for the selected date range</li>
+            <div class="info-box" style="margin-top: 20px;">
+                <strong>📊 Monthly report includes:</strong>
+                <ul style="margin: 8px 0; padding-left: 24px;">
+                    <li>💰 Income vs Expense summary</li>
                     <li>🏆 Top spending categories</li>
-                    <li>📊 Budget status and progress</li>
-                    <li>📈 Transaction summary</li>
+                    <li>💳 Subscription alerts (expiring soon)</li>
+                    <li>📊 Budget status and overspending alerts</li>
+                    <li>🎯 Goals progress and achievements</li>
+                    <li>📈 Key financial metrics (KPIs)</li>
+                    <li>📉 Spending trends</li>
                 </ul>
             </div>
 
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
-                <button type="button" class="btn btn-success" id="send-email-now-btn">📨 Send Report</button>
+                <button type="button" class="btn btn-primary" id="save-email-settings-btn">💾 Save Settings</button>
+                <button type="button" class="btn btn-success" id="send-email-now-btn">📨 Send Now</button>
             </div>
         </form>
     </div>
