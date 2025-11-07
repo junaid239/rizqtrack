@@ -126,7 +126,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white !important;
+    color: #ffffff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    -webkit-text-fill-color: #ffffff !important;
 }
 
 /* Mobile Navigation */
@@ -190,7 +193,10 @@
 
     .fab-icon {
         font-size: 32px;
-        color: white !important;
+        color: #ffffff !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: #ffffff !important;
     }
 
     /* Compact Transaction Form for Mobile */
@@ -206,6 +212,13 @@
         gap: 10px;
     }
 
+    /* Row 2 & 3: Amount + Category side by side */
+    .transaction-form .form-row:nth-child(2),
+    .transaction-form .form-row:nth-child(3) {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
     /* Row 4: Date and Payment side by side */
     .transaction-form .form-row:nth-child(4) {
         grid-template-columns: 1fr 1fr;
@@ -215,7 +228,6 @@
     /* Description textarea */
     .transaction-form textarea {
         font-size: 14px;
-        rows: 2;
     }
 }
 
@@ -375,7 +387,10 @@
 .btn-refresh-quote {
     background: rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white !important;
+    color: #ffffff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    -webkit-text-fill-color: #ffffff !important;
     width: 42px;
     height: 42px;
     border-radius: 50%;
@@ -428,7 +443,10 @@
         width: 36px;
         height: 36px;
         font-size: 16px;
-        color: white !important;
+        color: #ffffff !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: #ffffff !important;
     }
 }
 
