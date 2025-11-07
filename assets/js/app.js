@@ -2266,8 +2266,11 @@
         },
 
         scrollToTransactionForm: function() {
+            const navHeight = $('#quick-nav').outerHeight() || 0;
+            const offset = navHeight + 20;
+
             $('html, body').animate({
-                scrollTop: $('#transaction-form').offset().top - 100
+                scrollTop: $('#transaction-form').offset().top - offset
             }, 500);
             // Focus on the amount field
             setTimeout(() => {
@@ -2281,8 +2284,12 @@
             const $target = $(target);
 
             if ($target.length) {
+                // Calculate offset based on sticky nav height
+                const navHeight = $('#quick-nav').outerHeight() || 0;
+                const offset = navHeight + 20; // Add some extra spacing
+
                 $('html, body').animate({
-                    scrollTop: $target.offset().top - 100
+                    scrollTop: $target.offset().top - offset
                 }, 500);
 
                 // Close mobile menu if open
