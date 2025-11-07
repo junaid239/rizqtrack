@@ -250,12 +250,12 @@
                 </div>
                 <div class="filter-date-group">
                     <div class="form-group">
-                        <label for="filter-start-date">Start Date</label>
-                        <input type="date" id="filter-start-date">
+                        <label for="transaction-filter-start-date">From Date</label>
+                        <input type="date" id="transaction-filter-start-date" placeholder="All dates">
                     </div>
                     <div class="form-group">
-                        <label for="filter-end-date">End Date</label>
-                        <input type="date" id="filter-end-date">
+                        <label for="transaction-filter-end-date">To Date</label>
+                        <input type="date" id="transaction-filter-end-date">
                     </div>
                 </div>
                 <div class="filter-actions">
@@ -919,43 +919,36 @@
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="subscription-billing-cycle">Billing Cycle <span class="required">*</span></label>
-                    <select id="subscription-billing-cycle" required>
-                        <option value="monthly">Monthly</option>
-                        <option value="quarterly">Quarterly (3 months)</option>
-                        <option value="yearly">Yearly</option>
-                        <option value="custom">Custom</option>
-                    </select>
-                </div>
-
-                <div class="form-group" id="custom-cycle-group" style="display: none;">
-                    <label for="subscription-custom-days">Custom Cycle (Days)</label>
-                    <input type="number" id="subscription-custom-days" min="1" placeholder="e.g., 30">
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="subscription-start-date">Start Date <span class="required">*</span></label>
-                    <input type="date" id="subscription-start-date" required>
-                </div>
-            </div>
-
             <div class="form-group">
-                <label for="subscription-duration-type">Subscription Duration <span class="required">*</span></label>
-                <select id="subscription-duration-type" required>
-                    <option value="recurring">Recurring (Ongoing)</option>
-                    <option value="fixed">Fixed Term (Has End Date)</option>
+                <label for="subscription-billing-cycle">How often do you pay this amount? <span class="required">*</span></label>
+                <select id="subscription-billing-cycle" required>
+                    <option value="monthly">Monthly (every month)</option>
+                    <option value="quarterly">Quarterly (every 3 months)</option>
+                    <option value="yearly">Yearly (once a year)</option>
+                    <option value="one-time">One-Time Payment</option>
                 </select>
-                <small>Choose "Recurring" for ongoing subscriptions or "Fixed Term" for subscriptions with an expiry date</small>
+                <small>Choose how frequently you are charged this amount</small>
             </div>
 
-            <div class="form-group" id="subscription-end-date-group" style="display: none;">
-                <label for="subscription-end-date">End Date (Expiry) <span class="required">*</span></label>
-                <input type="date" id="subscription-end-date">
-                <small>When this subscription expires</small>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="subscription-start-date">When did it start? <span class="required">*</span></label>
+                    <input type="date" id="subscription-start-date" required>
+                    <small>The date when this subscription began</small>
+                </div>
+            </div>
+
+            <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="subscription-has-expiry">
+                    <span class="checkbox-text">This subscription expires on a specific date</span>
+                </label>
+            </div>
+
+            <div class="form-group" id="subscription-expiry-group" style="display: none;">
+                <label for="subscription-expiry-date">Expiry Date <span class="required">*</span></label>
+                <input type="date" id="subscription-expiry-date">
+                <small>When does this subscription end?</small>
             </div>
 
             <div class="form-group checkbox-group">

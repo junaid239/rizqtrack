@@ -160,6 +160,7 @@
             this.checkBudgetAlerts();
             this.loadSubscriptions();
             this.initializeDateFilters();
+            this.initializeTransactionFilters();
         },
 
         setupEventListeners: function() {
@@ -255,25 +256,13 @@
                 const filter = $(e.currentTarget).data('filter');
                 this.handleSubscriptionFilterChange(filter);
             });
-            $('#subscription-billing-cycle').on('change', function() {
-                if ($(this).val() === 'custom') {
-                    $('#custom-cycle-group').show();
+            $('#subscription-has-expiry').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#subscription-expiry-group').show();
+                    $('#subscription-expiry-date').prop('required', true);
                 } else {
-                    $('#custom-cycle-group').hide();
-                }
-            });
-            $('#subscription-duration-type').on('change', function() {
-                const durationType = $(this).val();
-                if (durationType === 'fixed') {
-                    $('#subscription-end-date-group').show();
-                    $('#subscription-end-date').prop('required', true);
-                    $('#subscription-billing-cycle').prop('required', false);
-                    $('#subscription-billing-cycle').closest('.form-row').hide();
-                } else {
-                    $('#subscription-end-date-group').hide();
-                    $('#subscription-end-date').prop('required', false);
-                    $('#subscription-billing-cycle').prop('required', true);
-                    $('#subscription-billing-cycle').closest('.form-row').show();
+                    $('#subscription-expiry-group').hide();
+                    $('#subscription-expiry-date').prop('required', false);
                 }
             });
             $(document).on('click', '#confirm-renew-btn', this.confirmRenewSubscription.bind(this));
@@ -552,8 +541,8 @@
             const filters = {
                 search: $('#filter-search').val().trim(),
                 category_id: $('#filter-category').val(),
-                start_date: $('#filter-start-date').val(),
-                end_date: $('#filter-end-date').val()
+                start_date: $('#transaction-filter-start-date').val(),
+                end_date: $('#transaction-filter-end-date').val()
             };
 
             this.currentFilters = filters; // Store filters
@@ -563,8 +552,7 @@
         resetTransactionFilters: function() {
             $('#filter-search').val('');
             $('#filter-category').val('0');
-            $('#filter-start-date').val('');
-            $('#filter-end-date').val('');
+            this.initializeTransactionFilters(); // Reset to defaults: only TO date
             this.currentFilters = {}; // Clear stored filters
             this.loadTransactions(1);
         },
@@ -779,11 +767,21 @@
         },
 
         initializeDateFilters: function() {
-            // Set default dates: today
+            // Set default dates for charts: last 30 days to today
             const today = new Date();
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+            // For charts (financial overview)
             $('#filter-end-date').val(this.formatDateInput(today));
-            $('#filter-start-date').val(this.formatDateInput(today));
+            $('#filter-start-date').val(this.formatDateInput(thirtyDaysAgo));
+        },
+
+        initializeTransactionFilters: function() {
+            // Set default for transaction filters: only TO date (today), FROM date empty
+            const today = new Date();
+            $('#transaction-filter-end-date').val(this.formatDateInput(today));
+            $('#transaction-filter-start-date').val(''); // Leave empty
         },
 
         formatDateInput: function(date) {
@@ -2840,17 +2838,15 @@
         handleAddSubscription: function(e) {
             e.preventDefault();
 
-            const durationType = $('#subscription-duration-type').val();
+            const hasExpiry = $('#subscription-has-expiry').is(':checked');
             const formData = {
                 name: $('#subscription-name').val(),
                 amount: $('#subscription-amount').val(),
                 category_id: $('#subscription-category').val(),
                 payment_method: $('#subscription-payment-method').val(),
-                billing_cycle: durationType === 'recurring' ? $('#subscription-billing-cycle').val() : 'monthly',
-                custom_cycle_days: $('#subscription-custom-days').val(),
+                billing_cycle: $('#subscription-billing-cycle').val(),
                 start_date: $('#subscription-start-date').val(),
-                end_date: durationType === 'fixed' ? $('#subscription-end-date').val() : null,
-                duration_type: durationType,
+                end_date: hasExpiry ? $('#subscription-expiry-date').val() : null,
                 auto_renew: $('#subscription-auto-renew').is(':checked') ? 1 : 0,
                 add_as_transaction: $('#subscription-add-transaction').is(':checked') ? 1 : 0,
                 notes: $('#subscription-notes').val()
@@ -3002,34 +2998,22 @@
             $('#subscription-payment-method').val(subscription.payment_method);
             $('#subscription-billing-cycle').val(subscription.billing_cycle);
             $('#subscription-start-date').val(subscription.start_date);
-            $('#subscription-custom-days').val(subscription.custom_cycle_days);
             $('#subscription-auto-renew').prop('checked', subscription.auto_renew == 1);
             $('#subscription-notes').val(subscription.notes);
 
             // Hide add as transaction checkbox for edit
             $('#add-as-transaction-group').hide();
 
-            // Show/hide custom days
-            if (subscription.billing_cycle === 'custom') {
-                $('#custom-cycle-group').show();
+            // Handle expiry date
+            if (subscription.end_date) {
+                $('#subscription-has-expiry').prop('checked', true);
+                $('#subscription-expiry-date').val(subscription.end_date);
+                $('#subscription-expiry-group').show();
+                $('#subscription-expiry-date').prop('required', true);
             } else {
-                $('#custom-cycle-group').hide();
-            }
-
-            // Handle duration type
-            const durationType = subscription.end_date ? 'fixed' : 'recurring';
-            $('#subscription-duration-type').val(durationType);
-            if (durationType === 'fixed') {
-                $('#subscription-end-date').val(subscription.end_date);
-                $('#subscription-end-date-group').show();
-                $('#subscription-end-date').prop('required', true);
-                $('#subscription-billing-cycle').prop('required', false);
-                $('#subscription-billing-cycle').closest('.form-row').hide();
-            } else {
-                $('#subscription-end-date-group').hide();
-                $('#subscription-end-date').prop('required', false);
-                $('#subscription-billing-cycle').prop('required', true);
-                $('#subscription-billing-cycle').closest('.form-row').show();
+                $('#subscription-has-expiry').prop('checked', false);
+                $('#subscription-expiry-group').hide();
+                $('#subscription-expiry-date').prop('required', false);
             }
 
             $('#subscription-modal').addClass('active');
@@ -3040,12 +3024,9 @@
             $('#subscription-form')[0].reset();
             $('#subscription-id').val('');
             $('#add-as-transaction-group').show();
-            $('#custom-cycle-group').hide();
-            $('#subscription-end-date-group').hide();
-            $('#subscription-end-date').prop('required', false);
-            $('#subscription-billing-cycle').prop('required', true);
-            $('#subscription-billing-cycle').closest('.form-row').show();
-            $('#subscription-duration-type').val('recurring');
+            $('#subscription-expiry-group').hide();
+            $('#subscription-expiry-date').prop('required', false);
+            $('#subscription-has-expiry').prop('checked', false);
             $('#subscription-start-date').val(new Date().toISOString().split('T')[0]);
             $('#subscription-modal').addClass('active');
         },

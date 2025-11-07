@@ -2077,8 +2077,11 @@
     }
 
     .section-title {
-        font-size: 20px;
+        font-size: 18px;
         margin-bottom: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .rizqtrack-card {
