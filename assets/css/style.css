@@ -280,49 +280,71 @@
 .motivational-quote-card {
     background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
     border-radius: var(--radius);
-    padding: 24px 28px;
+    padding: 28px 32px;
     margin-bottom: 20px;
     box-shadow: var(--shadow-md);
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 24px;
     border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.motivational-quote-card::before {
+    content: '"';
+    position: absolute;
+    top: -10px;
+    left: 15px;
+    font-size: 120px;
+    color: rgba(255, 255, 255, 0.1);
+    font-family: Georgia, serif;
+    line-height: 1;
+    z-index: 0;
 }
 
 .quote-icon {
-    font-size: 42px;
+    font-size: 48px;
     flex-shrink: 0;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    z-index: 1;
 }
 
 .quote-content {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 24px;
+    z-index: 1;
 }
 
 .quote-wrapper {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
 .quote-text {
     color: white;
-    font-size: 18px;
+    font-size: 19px;
     font-weight: 500;
     margin: 0;
     font-style: italic;
-    line-height: 1.6;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .quote-source {
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 14px;
-    font-weight: 400;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 13px;
+    font-weight: 500;
     margin: 0;
     font-style: normal;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    opacity: 0.9;
 }
 
 .btn-refresh-quote {
@@ -350,20 +372,31 @@
 /* Mobile adjustments for quote card */
 @media (max-width: 768px) {
     .motivational-quote-card {
-        padding: 18px 20px;
-        gap: 14px;
+        padding: 20px 22px;
+        gap: 16px;
+    }
+
+    .motivational-quote-card::before {
+        font-size: 80px;
+        top: -5px;
+        left: 10px;
     }
 
     .quote-icon {
-        font-size: 32px;
+        font-size: 36px;
+    }
+
+    .quote-wrapper {
+        gap: 6px;
     }
 
     .quote-text {
-        font-size: 15px;
+        font-size: 16px;
+        line-height: 1.5;
     }
 
     .quote-source {
-        font-size: 12px;
+        font-size: 11px;
     }
 
     .btn-refresh-quote {
