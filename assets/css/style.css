@@ -3139,7 +3139,7 @@
 .subscription-detail-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 8px;
     margin-bottom: 6px;
     font-size: 13px;
     color: var(--text-secondary);
@@ -3148,6 +3148,7 @@
 .subscription-detail-item span:first-child {
     font-weight: 600;
     color: var(--text-dark);
+    min-width: 70px;
 }
 
 .subscription-billing-date {
@@ -3157,7 +3158,7 @@
     border-radius: var(--radius);
     margin-bottom: 12px;
     display: flex;
-    justify-content: space-between;
+    gap: 12px;
     align-items: center;
 }
 

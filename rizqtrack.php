@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.0.3
+ * Version: 1.0.4
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -287,7 +287,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.3');
+        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.4');
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
         wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', [], '4.4.0', true);
@@ -296,7 +296,7 @@ class RizqTrack {
         wp_enqueue_script('chart-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js', ['chart-js'], '2.2.0', true);
 
         // MODIFIED: Added 'chart-js-datalabels' as a dependency
-        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.3', true);
+        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.4', true);
 
         wp_localize_script('rizqtrack-script', 'rizqtrack', [
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -310,7 +310,7 @@ class RizqTrack {
             return;
         }
 
-        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.3');
+        wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], '1.0.4');
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
         wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', [], '4.4.0', true);
@@ -319,7 +319,7 @@ class RizqTrack {
         wp_enqueue_script('chart-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js', ['chart-js'], '2.2.0', true);
 
         // MODIFIED: Added 'chart-js-datalabels' as a dependency
-        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.3', true);
+        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], '1.0.4', true);
 
         wp_localize_script('rizqtrack-script', 'rizqtrack', [
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -2508,7 +2508,7 @@ HTML;
             'start_date' => $start_date,
             'next_billing_date' => $next_billing_date,
             'payment_method' => sanitize_text_field($_POST['payment_method']),
-            'auto_renew' => isset($_POST['auto_renew']) ? 1 : 0,
+            'auto_renew' => intval($_POST['auto_renew'] ?? 0),
             'reminder_days' => intval($_POST['reminder_days'] ?? 7),
             'notes' => sanitize_textarea_field($_POST['notes'] ?? ''),
             'status' => 'Active'
@@ -2560,7 +2560,7 @@ HTML;
             'billing_cycle' => sanitize_text_field($_POST['billing_cycle']),
             'custom_cycle_days' => !empty($_POST['custom_cycle_days']) ? intval($_POST['custom_cycle_days']) : null,
             'payment_method' => sanitize_text_field($_POST['payment_method']),
-            'auto_renew' => isset($_POST['auto_renew']) ? 1 : 0,
+            'auto_renew' => intval($_POST['auto_renew'] ?? 0),
             'reminder_days' => intval($_POST['reminder_days'] ?? 7),
             'notes' => sanitize_textarea_field($_POST['notes'] ?? '')
         ];
