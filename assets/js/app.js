@@ -2775,16 +2775,25 @@
             let daysClass = '';
             if (subscription.status === 'Inactive') {
                 const daysSinceExpiry = subscription.days_since_expiry || Math.abs(subscription.days_until_expiry);
-                daysText = `Expired ${daysSinceExpiry} days ago`;
+                if (daysSinceExpiry > 30) {
+                    const monthsSinceExpiry = Math.floor(daysSinceExpiry / 30);
+                    daysText = `Expired ${monthsSinceExpiry} ${monthsSinceExpiry === 1 ? 'month' : 'months'} ago`;
+                } else {
+                    daysText = `Expired ${daysSinceExpiry} ${daysSinceExpiry === 1 ? 'day' : 'days'} ago`;
+                }
                 daysClass = 'danger';
             } else if (subscription.days_until_expiry <= 0) {
                 daysText = 'Due today';
                 daysClass = 'warning';
             } else if (subscription.days_until_expiry <= 7) {
-                daysText = `${subscription.days_until_expiry} days left`;
+                daysText = `${subscription.days_until_expiry} ${subscription.days_until_expiry === 1 ? 'day' : 'days'} left`;
                 daysClass = 'warning';
-            } else {
+            } else if (subscription.days_until_expiry <= 30) {
                 daysText = `${subscription.days_until_expiry} days left`;
+                daysClass = 'success';
+            } else {
+                const monthsLeft = Math.floor(subscription.days_until_expiry / 30);
+                daysText = `${monthsLeft} ${monthsLeft === 1 ? 'month' : 'months'} left`;
                 daysClass = 'success';
             }
 
