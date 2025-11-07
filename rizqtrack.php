@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.3.0
+ * Version: 1.3.1
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -297,7 +297,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        $version = '1.3.0'; // Updated version for cache busting
+        $version = '1.3.1'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -321,7 +321,7 @@ class RizqTrack {
             return;
         }
 
-        $version = '1.3.0'; // Updated version for cache busting
+        $version = '1.3.1'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -2712,15 +2712,32 @@ HTML;
 
         $today = date('Y-m-d');
 
-        // Calculate new next billing date from today
-        $new_next_billing = $this->calculate_next_billing_date(
-            $today,
-            $subscription->billing_cycle,
-            $subscription->custom_cycle_days
-        );
+        // For one-time and 5-year subscriptions, calculate based on original coverage period
+        if ($subscription->billing_cycle === 'one-time' || $subscription->billing_cycle === '5year') {
+            // Calculate original coverage period
+            if ($subscription->start_date && $subscription->end_date) {
+                $start_timestamp = strtotime($subscription->start_date);
+                $original_end_timestamp = strtotime($subscription->end_date);
+                $coverage_days = ($original_end_timestamp - $start_timestamp) / (60 * 60 * 24);
 
-        // Calculate new end date (coverage period ends day before next billing)
-        $new_end_date = date('Y-m-d', strtotime($new_next_billing . ' -1 day'));
+                // Extend from today by the same coverage period
+                $new_end_date = date('Y-m-d', strtotime($today . " +{$coverage_days} days"));
+                $new_next_billing = date('Y-m-d', strtotime($new_end_date . ' +1 day'));
+            } else {
+                // Default: 1 year coverage for one-time, 5 years for 5-year
+                $years = $subscription->billing_cycle === '5year' ? 5 : 1;
+                $new_end_date = date('Y-m-d', strtotime($today . " +{$years} years"));
+                $new_next_billing = date('Y-m-d', strtotime($new_end_date . ' +1 day'));
+            }
+        } else {
+            // For recurring subscriptions (monthly, yearly, etc.)
+            $new_next_billing = $this->calculate_next_billing_date(
+                $today,
+                $subscription->billing_cycle,
+                $subscription->custom_cycle_days
+            );
+            $new_end_date = date('Y-m-d', strtotime($new_next_billing . ' -1 day'));
+        }
 
         // Update subscription
         $result = $wpdb->update(
