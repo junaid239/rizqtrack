@@ -144,11 +144,6 @@
                     <label for="amount">Amount <span class="required">*</span></label>
                     <input type="number" id="amount" name="amount" step="0.01" min="0" required placeholder="0.00">
                 </div>
-
-                <div class="form-group">
-                    <label for="date">Date <span class="required">*</span></label>
-                    <input type="date" id="date" name="date" required>
-                </div>
             </div>
 
             <div class="form-row">
@@ -157,6 +152,13 @@
                     <select id="category" name="category_id" required>
                         <option value="">Select Category</option>
                     </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="date">Date <span class="required">*</span></label>
+                    <input type="date" id="date" name="date" required>
                 </div>
 
                 <div class="form-group">

@@ -126,7 +126,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: white !important;
 }
 
 /* Mobile Navigation */
@@ -190,7 +190,7 @@
 
     .fab-icon {
         font-size: 32px;
-        color: white;
+        color: white !important;
     }
 
     /* Compact Transaction Form for Mobile */
@@ -199,28 +199,15 @@
         gap: 16px;
     }
 
-    .transaction-form .form-row:first-child .form-group.type-toggle {
-        width: 100%;
-    }
-
-    .transaction-form .form-row:first-child .form-group.type-toggle .toggle-buttons {
+    /* Row 1: Type toggle buttons side by side */
+    .transaction-form .form-row:first-child .toggle-buttons {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 10px;
     }
 
-    /* Second row: Amount full width */
-    .transaction-form .form-row:nth-child(2) {
-        grid-template-columns: 1fr;
-    }
-
-    /* Third row: Category full width */
-    .transaction-form .form-row:nth-child(3) {
-        grid-template-columns: 1fr;
-    }
-
-    /* Fourth row: Date and Payment side by side */
-    .transaction-form .form-row:nth-child(3):has(#date) {
+    /* Row 4: Date and Payment side by side */
+    .transaction-form .form-row:nth-child(4) {
         grid-template-columns: 1fr 1fr;
         gap: 10px;
     }
@@ -228,6 +215,7 @@
     /* Description textarea */
     .transaction-form textarea {
         font-size: 14px;
+        rows: 2;
     }
 }
 
