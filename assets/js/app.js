@@ -2797,11 +2797,9 @@
             const isExpiringSoon = subscription.status === 'Active' && subscription.days_until_expiry <= 7 && subscription.days_until_expiry > 0;
             const statusClass = subscription.status === 'Inactive' ? 'inactive' : (isExpiringSoon ? 'expiring-soon' : 'active');
 
-            // HARD FIX: Check multiple conditions for one-time or long-term payments
-            // Check if billing_cycle is one-time, OR if it's 5year, OR if days_until_expiry > 365 (indicating long-term)
+            // Check if billing_cycle is one-time or 5-year
             const isOneTime = subscription.billing_cycle === 'one-time' ||
-                            subscription.billing_cycle === '5year' ||
-                            (subscription.end_date && subscription.days_until_expiry > 365);
+                            subscription.billing_cycle === '5year';
 
             const billingCycleText = {
                 'monthly': 'month',
@@ -2865,7 +2863,7 @@
                         <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️</button>
                     `
                     : `
-                        <button class="btn btn-success renew-subscription" data-id="${subscription.id}">💰 Paid</button>
+                        <button class="btn btn-success renew-subscription" data-id="${subscription.id}">💰 Pay Now</button>
                         ${undoPaymentBtn}
                         <button class="btn btn-secondary edit-subscription" data-id="${subscription.id}">✏️ Edit</button>
                         <button class="btn btn-text delete-subscription" data-id="${subscription.id}" title="Delete">🗑️</button>
