@@ -2347,51 +2347,98 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 8px;
 }
 
 .category-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
-    background: var(--bg-light);
-    border-radius: var(--radius-sm);
+    padding: 18px 20px;
+    background: var(--white);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
     transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 .category-item:hover {
-    background: #f3f4f6;
+    background: #fafafa;
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
 }
 
 .category-info {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
+    flex: 1;
 }
 
 .category-emoji {
-    font-size: 24px;
+    font-size: 28px;
+    line-height: 1;
+    min-width: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .category-details {
     display: flex;
     flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.category-name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .category-name {
     font-weight: 600;
+    font-size: 16px;
     color: var(--text-dark);
+    line-height: 1.2;
+}
+
+.category-badge {
+    display: inline-flex;
+    align-items: center;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
 }
 
 .category-type {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-gray);
     text-transform: capitalize;
+    font-weight: 500;
 }
 
 .category-actions {
     display: flex;
     gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.category-actions .btn {
+    min-width: 100px;
+    white-space: nowrap;
 }
 
 /* Loading and Messages */
@@ -2732,6 +2779,29 @@
 
     .badge-value {
         font-size: 24px;
+    }
+
+    .category-item {
+        padding: 14px 16px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .category-info {
+        width: 100%;
+    }
+
+    .category-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .category-actions .btn {
+        min-width: auto;
+        width: auto;
+        padding: 8px 16px;
+        font-size: 13px;
     }
 }
 
