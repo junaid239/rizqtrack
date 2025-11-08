@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.3.2
+ * Version: 1.3.3
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -297,7 +297,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        $version = '1.3.2'; // Updated version for cache busting
+        $version = '1.3.3'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -321,7 +321,7 @@ class RizqTrack {
             return;
         }
 
-        $version = '1.3.2'; // Updated version for cache busting
+        $version = '1.3.3'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -1514,8 +1514,9 @@ class RizqTrack {
         }
 
         $settings = [
-            'frequency' => get_user_meta($user_id, 'rizqtrack_email_frequency', true),
-            'email' => get_user_meta($user_id, 'rizqtrack_email_address', true) ?: wp_get_current_user()->user_email
+            'email' => get_user_meta($user_id, 'rizqtrack_email_address', true) ?: wp_get_current_user()->user_email,
+            'auto_send' => get_user_meta($user_id, 'rizqtrack_auto_send', true) ?: 0,
+            'send_day' => get_user_meta($user_id, 'rizqtrack_send_day', true) ?: -1
         ];
 
         wp_send_json_success($settings);
@@ -1531,21 +1532,31 @@ class RizqTrack {
             wp_die();
         }
 
-        $frequency = sanitize_text_field($_POST['frequency']);
         $email = sanitize_email($_POST['email']);
+        $auto_send = isset($_POST['auto_send']) ? intval($_POST['auto_send']) : 0;
+        $send_day = isset($_POST['send_day']) ? intval($_POST['send_day']) : -1;
 
         if (!is_email($email)) {
             wp_send_json_error(['message' => 'Invalid email address']);
             wp_die();
         }
 
-        update_user_meta($user_id, 'rizqtrack_email_frequency', $frequency);
         update_user_meta($user_id, 'rizqtrack_email_address', $email);
+        update_user_meta($user_id, 'rizqtrack_auto_send', $auto_send);
+        update_user_meta($user_id, 'rizqtrack_send_day', $send_day);
 
-        // Schedule/unschedule cron jobs
-        $this->update_user_cron($user_id, $frequency);
+        // Schedule/unschedule monthly cron job based on auto_send
+        if ($auto_send == 1) {
+            // Schedule monthly email on the selected day
+            if (!wp_next_scheduled('rizqtrack_send_monthly_email', [$user_id])) {
+                wp_schedule_event(time(), 'daily', 'rizqtrack_send_monthly_email', [$user_id]);
+            }
+        } else {
+            // Unschedule if auto-send is disabled
+            wp_clear_scheduled_hook('rizqtrack_send_monthly_email', [$user_id]);
+        }
 
-        wp_send_json_success(['message' => 'Settings saved successfully']);
+        wp_send_json_success(['message' => 'Email settings saved successfully!']);
         wp_die();
     }
 
@@ -1685,7 +1696,35 @@ class RizqTrack {
     }
 
     public function send_monthly_report($user_id) {
-        $this->send_email_report($user_id, 'monthly');
+        // Check if user has auto-send enabled
+        $auto_send = get_user_meta($user_id, 'rizqtrack_auto_send', true);
+        if ($auto_send != 1) {
+            return; // Auto-send is disabled
+        }
+
+        // Get the user's preferred send day
+        $send_day = get_user_meta($user_id, 'rizqtrack_send_day', true) ?: -1;
+        $today = date('j'); // Current day of month
+        $last_day = date('t'); // Last day of current month
+
+        // Check if today matches the send day
+        if ($send_day == -1) {
+            // Send on last day of month
+            if ($today != $last_day) {
+                return; // Not the last day yet
+            }
+        } else {
+            // Send on specific day
+            if ($today != $send_day) {
+                return; // Not the right day
+            }
+        }
+
+        // Send the report for the current month (1st to today)
+        $start_date = date('Y-m-01'); // First day of current month
+        $end_date = date('Y-m-d'); // Today
+
+        $this->send_email_report($user_id, 'monthly', $start_date, $end_date);
     }
 
     private function send_email_report($user_id, $period = null, $start_date = null, $end_date = null) {

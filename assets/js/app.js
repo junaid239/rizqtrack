@@ -283,6 +283,8 @@
 
             // Email Reports
             $('#send-email-now-btn').on('click', this.handleSendEmailNow.bind(this));
+            $('#save-email-settings-btn').on('click', this.handleSaveEmailSettings.bind(this));
+            $('#email-auto-send').on('change', this.toggleAutoEmailSettings.bind(this));
 
             // Navigation toggle
             $('#nav-toggle').on('click', this.toggleNavMenu.bind(this));
@@ -2178,6 +2180,14 @@
         },
 
         openEmailReportModal: function() {
+            // Set default dates to current month (1st to last day)
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+            $('#email-start-date').val(this.formatDateInput(firstDay));
+            $('#email-end-date').val(this.formatDateInput(lastDay));
+
             // Load current settings
             $.ajax({
                 url: rizqtrack.ajax_url,
@@ -2188,16 +2198,48 @@
                 },
                 success: (response) => {
                     if (response.success) {
-                        $('#email-frequency').val(response.data.frequency || 'none');
                         $('#email-address').val(response.data.email || '');
+
+                        // Load auto-send settings
+                        const autoSend = response.data.auto_send == 1;
+                        $('#email-auto-send').prop('checked', autoSend);
+                        if (autoSend) {
+                            $('#auto-email-settings').show();
+                        }
+
+                        // Load send day
+                        if (response.data.send_day) {
+                            $('#email-send-day').val(response.data.send_day);
+                        }
                     }
                     $('#email-report-modal').addClass('active');
                 }
             });
         },
 
+        toggleAutoEmailSettings: function() {
+            if ($('#email-auto-send').is(':checked')) {
+                $('#auto-email-settings').slideDown(300);
+            } else {
+                $('#auto-email-settings').slideUp(300);
+            }
+        },
+
         handleSaveEmailSettings: function(e) {
-            e.preventDefault();
+            if (e) e.preventDefault();
+
+            const emailAddress = $('#email-address').val();
+            if (!emailAddress) {
+                this.showNotification('Please enter an email address', 'error');
+                return;
+            }
+
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(emailAddress)) {
+                this.showNotification('Please enter a valid email address', 'error');
+                return;
+            }
 
             $.ajax({
                 url: rizqtrack.ajax_url,
@@ -2205,12 +2247,13 @@
                 data: {
                     action: 'rizqtrack_save_email_settings',
                     nonce: rizqtrack.nonce,
-                    frequency: $('#email-frequency').val(),
-                    email: $('#email-address').val()
+                    email: emailAddress,
+                    auto_send: $('#email-auto-send').is(':checked') ? 1 : 0,
+                    send_day: $('#email-send-day').val()
                 },
                 success: (response) => {
                     if (response.success) {
-                        this.showNotification('Email report settings saved!', 'success');
+                        this.showNotification('Email settings saved successfully!', 'success');
                         this.closeModals();
                     } else {
                         this.showNotification(response.data.message || 'Failed to save settings', 'error');

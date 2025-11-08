@@ -870,20 +870,7 @@
                 </div>
             </div>
 
-            <div class="info-box" style="margin-top: 20px;">
-                <strong>📊 Monthly report includes:</strong>
-                <ul style="margin: 8px 0; padding-left: 24px;">
-                    <li>💰 Income vs Expense summary</li>
-                    <li>🏆 Top spending categories</li>
-                    <li>💳 Subscription alerts (expiring soon)</li>
-                    <li>📊 Budget status and overspending alerts</li>
-                    <li>🎯 Goals progress and achievements</li>
-                    <li>📈 Key financial metrics (KPIs)</li>
-                    <li>📉 Spending trends</li>
-                </ul>
-            </div>
-
-            <div class="modal-actions">
+            <div class="modal-actions" style="margin-top: 24px;">
                 <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
                 <button type="button" class="btn btn-primary" id="save-email-settings-btn">💾 Save Settings</button>
                 <button type="button" class="btn btn-success" id="send-email-now-btn">📨 Send Now</button>
