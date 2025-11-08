@@ -285,6 +285,7 @@
             $('#send-email-now-btn').on('click', this.handleSendEmailNow.bind(this));
             $('#save-email-settings-btn').on('click', this.handleSaveEmailSettings.bind(this));
             $('#email-auto-send').on('change', this.toggleAutoEmailSettings.bind(this));
+            $('#email-frequency').on('change', this.toggleMonthlyDaySelector.bind(this));
 
             // Navigation toggle
             $('#nav-toggle').on('click', this.toggleNavMenu.bind(this));
@@ -2211,6 +2212,17 @@
                             $('#auto-email-settings').show();
                         }
 
+                        // Load frequency
+                        const frequency = response.data.frequency || 'monthly';
+                        $('#email-frequency').val(frequency);
+
+                        // Show/hide monthly day selector based on frequency
+                        if (frequency === 'monthly') {
+                            $('#monthly-day-selector').show();
+                        } else {
+                            $('#monthly-day-selector').hide();
+                        }
+
                         // Load send day
                         if (response.data.send_day) {
                             $('#email-send-day').val(response.data.send_day);
@@ -2226,6 +2238,15 @@
                 $('#auto-email-settings').slideDown(300);
             } else {
                 $('#auto-email-settings').slideUp(300);
+            }
+        },
+
+        toggleMonthlyDaySelector: function() {
+            const frequency = $('#email-frequency').val();
+            if (frequency === 'monthly') {
+                $('#monthly-day-selector').slideDown(300);
+            } else {
+                $('#monthly-day-selector').slideUp(300);
             }
         },
 
@@ -2253,6 +2274,7 @@
                     nonce: rizqtrack.nonce,
                     email: emailAddress,
                     auto_send: $('#email-auto-send').is(':checked') ? 1 : 0,
+                    frequency: $('#email-frequency').val(),
                     send_day: $('#email-send-day').val()
                 },
                 success: (response) => {
@@ -2367,37 +2389,42 @@
 
         // Section Navigation
         getSections: function() {
-            return [
-                '#transaction-form',
-                '#kpi-section',
-                '#transactions-section',
-                '#goals-section',
-                '#budget-section',
-                '#subscription-section',
-                '#email-reports-section',
-                '#trash-section'
-            ];
+            // Find all elements with section-title class and get their parent sections
+            const sections = [];
+            $('.section-title').each(function() {
+                const $parent = $(this).closest('[id]');
+                if ($parent.length && $parent.attr('id')) {
+                    sections.push('#' + $parent.attr('id'));
+                } else {
+                    // If no parent with ID, use the title itself as anchor
+                    const $title = $(this);
+                    if (!$title.attr('id')) {
+                        $title.attr('id', 'section-' + sections.length);
+                    }
+                    sections.push('#' + $title.attr('id'));
+                }
+            });
+            return sections.length > 0 ? sections : ['#transaction-form'];
         },
 
-        getCurrentSection: function() {
+        getCurrentSectionIndex: function() {
             const sections = this.getSections();
             const scrollPos = $(window).scrollTop();
             const navHeight = $('#quick-nav').outerHeight() || 0;
 
-            let currentSection = sections[0];
+            let currentIndex = 0;
             for (let i = 0; i < sections.length; i++) {
                 const $section = $(sections[i]);
                 if ($section.length && $section.offset().top - navHeight - 100 <= scrollPos) {
-                    currentSection = sections[i];
+                    currentIndex = i;
                 }
             }
-            return currentSection;
+            return currentIndex;
         },
 
         navigateToNextSection: function() {
             const sections = this.getSections();
-            const current = this.getCurrentSection();
-            const currentIndex = sections.indexOf(current);
+            const currentIndex = this.getCurrentSectionIndex();
 
             if (currentIndex < sections.length - 1) {
                 const nextSection = sections[currentIndex + 1];
@@ -2407,8 +2434,7 @@
 
         navigateToPreviousSection: function() {
             const sections = this.getSections();
-            const current = this.getCurrentSection();
-            const currentIndex = sections.indexOf(current);
+            const currentIndex = this.getCurrentSectionIndex();
 
             if (currentIndex > 0) {
                 const prevSection = sections[currentIndex - 1];
