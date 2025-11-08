@@ -268,7 +268,7 @@
         </div>
 
         <div class="rizqtrack-card transactions-card" id="transactions-section">
-            <h3>All Transactions</h3>
+            <h3 class="section-title">All Transactions</h3>
             
             <div class="filter-bar" id="transaction-filter-bar">
                 <div class="form-group filter-search">
