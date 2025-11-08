@@ -2389,34 +2389,52 @@
 
         // Section Navigation
         getSections: function() {
-            // Find all elements with section-title class and get their parent sections
+            // Find all major sections - use h2.section-title as anchors
             const sections = [];
-            $('.section-title').each(function() {
-                const $parent = $(this).closest('[id]');
+
+            // Add all h2 section titles
+            $('h2.section-title, h3.section-title').each(function(index) {
+                const $title = $(this);
+
+                // First check if parent has an ID
+                let $parent = $title.closest('[id]');
                 if ($parent.length && $parent.attr('id')) {
-                    sections.push('#' + $parent.attr('id'));
+                    const id = '#' + $parent.attr('id');
+                    if (sections.indexOf(id) === -1) {
+                        sections.push(id);
+                    }
                 } else {
-                    // If no parent with ID, use the title itself as anchor
-                    const $title = $(this);
+                    // Otherwise, assign ID to the title itself
                     if (!$title.attr('id')) {
-                        $title.attr('id', 'section-' + sections.length);
+                        $title.attr('id', 'section-title-' + index);
                     }
                     sections.push('#' + $title.attr('id'));
                 }
             });
+
+            // Fallback to major divs if no section titles found
+            if (sections.length === 0) {
+                $('[id*="section"], [id*="card"]').each(function() {
+                    sections.push('#' + $(this).attr('id'));
+                });
+            }
+
             return sections.length > 0 ? sections : ['#transaction-form'];
         },
 
         getCurrentSectionIndex: function() {
             const sections = this.getSections();
-            const scrollPos = $(window).scrollTop();
+            const scrollPos = $(window).scrollTop() + 150; // Add offset for better detection
             const navHeight = $('#quick-nav').outerHeight() || 0;
 
             let currentIndex = 0;
             for (let i = 0; i < sections.length; i++) {
                 const $section = $(sections[i]);
-                if ($section.length && $section.offset().top - navHeight - 100 <= scrollPos) {
-                    currentIndex = i;
+                if ($section.length) {
+                    const sectionTop = $section.offset().top - navHeight;
+                    if (scrollPos >= sectionTop) {
+                        currentIndex = i;
+                    }
                 }
             }
             return currentIndex;

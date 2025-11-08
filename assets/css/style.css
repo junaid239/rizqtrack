@@ -72,10 +72,10 @@
 /* Floating Action Button */
 .fab {
     position: fixed;
-    bottom: 80px;
+    bottom: 30px;
     right: 30px;
-    width: 64px;
-    height: 64px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
     color: white;
@@ -92,7 +92,7 @@
 .fab::before {
     content: '💳 Quick Add';
     position: absolute;
-    right: 75px;
+    right: 68px;
     background: rgba(0, 0, 0, 0.85);
     color: white;
     padding: 10px 14px;
@@ -123,32 +123,32 @@
 .section-nav-arrows {
     position: fixed;
     right: 30px;
-    bottom: 155px;
+    bottom: 100px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     z-index: 997;
 }
 
 .nav-arrow {
-    width: 40px;
-    height: 40px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
     color: white;
     border: none;
-    box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
+    box-shadow: 0 6px 20px rgba(8, 145, 178, 0.4);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 20px;
     transition: all 0.3s ease;
 }
 
 .nav-arrow:hover {
     transform: scale(1.1);
-    box-shadow: 0 6px 16px rgba(8, 145, 178, 0.4);
+    box-shadow: 0 8px 25px rgba(8, 145, 178, 0.5);
 }
 
 .nav-arrow:active {
@@ -223,10 +223,10 @@
     }
 
     .fab {
-        bottom: 80px;
+        bottom: 25px;
         right: 20px;
-        width: 58px;
-        height: 58px;
+        width: 50px;
+        height: 50px;
     }
 
     .fab::before {
@@ -244,14 +244,14 @@
 
     .section-nav-arrows {
         right: 20px;
-        bottom: 145px;
-        gap: 5px;
+        bottom: 90px;
+        gap: 6px;
     }
 
     .nav-arrow {
-        width: 36px;
-        height: 36px;
-        font-size: 16px;
+        width: 50px;
+        height: 50px;
+        font-size: 18px;
     }
 
     /* Compact Transaction Form for Mobile */
