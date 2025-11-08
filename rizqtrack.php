@@ -2451,10 +2451,10 @@ HTML;
                     <hr style="margin: 20px 0;">
                     <h3>Your Cron Endpoint URLs</h3>
                     <p><strong>Weekly Cron:</strong></p>
-                    <input type="text" readonly value="<?php echo esc_attr(site_url('/wp-json/rizqtrack/v1/cron/weekly?key=' . $cronjob_api_key)); ?>" class="large-text" onclick="this.select();" style="font-family: monospace; margin-bottom: 10px;" />
+                    <input type="text" readonly value="<?php echo esc_attr(site_url('/wp-json/rizqtrack/v1/cron/weekly?key=' . urlencode($cronjob_api_key))); ?>" class="large-text" onclick="this.select();" style="font-family: monospace; margin-bottom: 10px;" />
 
                     <p style="margin-top: 15px;"><strong>Monthly Cron:</strong></p>
-                    <input type="text" readonly value="<?php echo esc_attr(site_url('/wp-json/rizqtrack/v1/cron/monthly?key=' . $cronjob_api_key)); ?>" class="large-text" onclick="this.select();" style="font-family: monospace; margin-bottom: 10px;" />
+                    <input type="text" readonly value="<?php echo esc_attr(site_url('/wp-json/rizqtrack/v1/cron/monthly?key=' . urlencode($cronjob_api_key))); ?>" class="large-text" onclick="this.select();" style="font-family: monospace; margin-bottom: 10px;" />
 
                     <p style="margin-top: 15px;">
                         <strong>How to set up on cron-job.org:</strong><br>
@@ -2564,7 +2564,8 @@ HTML;
                 const resultDiv = document.getElementById('test-result');
                 resultDiv.innerHTML = '<p>Running ' + type + ' cron job...</p>';
 
-                fetch('<?php echo site_url('/wp-json/rizqtrack/v1/cron/'); ?>' + type + '?key=<?php echo esc_js($cronjob_api_key); ?>')
+                const apiKey = encodeURIComponent('<?php echo esc_js($cronjob_api_key); ?>');
+                fetch('<?php echo site_url('/wp-json/rizqtrack/v1/cron/'); ?>' + type + '?key=' + apiKey)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
