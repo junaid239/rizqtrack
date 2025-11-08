@@ -21,6 +21,7 @@ class RizqTrack {
     private $table_challenges;
     private $table_budgets;
     private $table_subscriptions;
+    private $table_cron_logs;
 
     public static function get_instance() {
         if (self::$instance == null) {
@@ -38,6 +39,7 @@ class RizqTrack {
         $this->table_challenges = $wpdb->prefix . 'rizqtrack_challenges';
         $this->table_budgets = $wpdb->prefix . 'rizqtrack_budgets';
         $this->table_subscriptions = $wpdb->prefix . 'rizqtrack_subscriptions';
+        $this->table_cron_logs = $wpdb->prefix . 'rizqtrack_cron_logs';
 
         register_activation_hook(__FILE__, [$this, 'activate']);
         add_action('admin_menu', [$this, 'add_menu']);
@@ -50,6 +52,9 @@ class RizqTrack {
 
         // AJAX endpoints
         $this->register_ajax_endpoints();
+
+        // REST API endpoints
+        add_action('rest_api_init', [$this, 'register_rest_routes']);
     }
 
     public function run_migrations() {
@@ -92,6 +97,9 @@ class RizqTrack {
 
         // Migration: Update billing_cycle enum to include '5year' and 'one-time'
         $wpdb->query("ALTER TABLE {$this->table_subscriptions} MODIFY COLUMN billing_cycle enum('monthly','quarterly','yearly','5year','one-time') DEFAULT 'monthly'");
+
+        // Migration: Create cron logs table if it doesn't exist
+        $this->create_cron_logs_table();
     }
 
     public function activate() {
@@ -238,6 +246,9 @@ class RizqTrack {
         dbDelta($sql_budgets);
         dbDelta($sql_subscriptions);
 
+        // Create cron logs table
+        $this->create_cron_logs_table();
+
         // Migration: Add goal_id column if it doesn't exist
         $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{$this->table_transactions}' AND column_name = 'goal_id'");
         if (empty($row)) {
@@ -282,6 +293,32 @@ class RizqTrack {
         }
     }
 
+    private function create_cron_logs_table() {
+        global $wpdb;
+        $charset = $wpdb->get_charset_collate();
+
+        $sql = "CREATE TABLE IF NOT EXISTS {$this->table_cron_logs} (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            job_type varchar(50) NOT NULL,
+            status enum('success','error') NOT NULL,
+            execution_time datetime DEFAULT CURRENT_TIMESTAMP,
+            duration_ms int DEFAULT NULL,
+            users_processed int DEFAULT 0,
+            emails_sent int DEFAULT 0,
+            errors_count int DEFAULT 0,
+            error_message text DEFAULT NULL,
+            request_ip varchar(45) DEFAULT NULL,
+            request_user_agent text DEFAULT NULL,
+            PRIMARY KEY (id),
+            KEY job_type (job_type),
+            KEY status (status),
+            KEY execution_time (execution_time)
+        ) $charset;";
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+    }
+
     public function add_menu() {
         add_menu_page(
             'RizqTrack Dashboard',
@@ -292,10 +329,22 @@ class RizqTrack {
             'dashicons-chart-pie',
             30
         );
+
+        // Add submenu for Cron Logs (admin only)
+        if (current_user_can('manage_options')) {
+            add_submenu_page(
+                'rizqtrack',
+                'Cron Logs',
+                'Cron Logs',
+                'manage_options',
+                'rizqtrack-cron-logs',
+                [$this, 'render_cron_logs_page']
+            );
+        }
     }
 
     public function enqueue_assets($hook) {
-        if ($hook !== 'toplevel_page_rizqtrack') return;
+        if ($hook !== 'toplevel_page_rizqtrack' && $hook !== 'rizqtrack_page_rizqtrack-cron-logs') return;
 
         $version = '1.4.3'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
@@ -388,6 +437,229 @@ class RizqTrack {
         // Register cron hooks
         add_action('rizqtrack_send_weekly_email', [$this, 'send_weekly_report']);
         add_action('rizqtrack_send_monthly_email', [$this, 'send_monthly_report']);
+    }
+
+    public function register_rest_routes() {
+        // Weekly cron endpoint
+        register_rest_route('rizqtrack/v1', '/cron/weekly', [
+            'methods' => 'GET',
+            'callback' => [$this, 'rest_cron_weekly'],
+            'permission_callback' => [$this, 'verify_cron_request']
+        ]);
+
+        // Monthly cron endpoint
+        register_rest_route('rizqtrack/v1', '/cron/monthly', [
+            'methods' => 'GET',
+            'callback' => [$this, 'rest_cron_monthly'],
+            'permission_callback' => [$this, 'verify_cron_request']
+        ]);
+
+        // Cron logs endpoint (admin only)
+        register_rest_route('rizqtrack/v1', '/cron/logs', [
+            'methods' => 'GET',
+            'callback' => [$this, 'rest_get_cron_logs'],
+            'permission_callback' => [$this, 'verify_admin_request']
+        ]);
+    }
+
+    public function verify_cron_request($request) {
+        // Option 1: Check for a secret key in the request
+        $secret_key = get_option('rizqtrack_cron_secret_key');
+
+        // If no secret key is set, generate one
+        if (empty($secret_key)) {
+            $secret_key = wp_generate_password(32, false);
+            update_option('rizqtrack_cron_secret_key', $secret_key);
+        }
+
+        $provided_key = $request->get_param('key');
+
+        // Allow request if key matches or if it's from localhost/internal (for testing)
+        if ($provided_key === $secret_key) {
+            return true;
+        }
+
+        // For testing: allow from localhost
+        $remote_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+        if (in_array($remote_ip, ['127.0.0.1', '::1'])) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function verify_admin_request($request) {
+        return current_user_can('manage_options');
+    }
+
+    public function rest_cron_weekly($request) {
+        $start_time = microtime(true);
+        $users_processed = 0;
+        $emails_sent = 0;
+        $errors = [];
+
+        try {
+            // Get all users who have weekly email enabled
+            $users = get_users(['meta_key' => 'rizqtrack_email_frequency', 'meta_value' => 'weekly']);
+
+            foreach ($users as $user) {
+                try {
+                    $users_processed++;
+
+                    // Check if auto-send is enabled
+                    $auto_send = get_user_meta($user->ID, 'rizqtrack_auto_send', true);
+                    if ($auto_send == 1) {
+                        $this->send_weekly_report($user->ID);
+                        $emails_sent++;
+                    }
+                } catch (Exception $e) {
+                    $errors[] = "User {$user->ID}: " . $e->getMessage();
+                }
+            }
+
+            $duration_ms = round((microtime(true) - $start_time) * 1000);
+
+            // Log success
+            $this->log_cron_execution('weekly', 'success', $duration_ms, $users_processed, $emails_sent, count($errors), implode('; ', $errors), $request);
+
+            return new WP_REST_Response([
+                'success' => true,
+                'message' => 'Weekly cron job completed successfully',
+                'stats' => [
+                    'users_processed' => $users_processed,
+                    'emails_sent' => $emails_sent,
+                    'errors' => count($errors),
+                    'duration_ms' => $duration_ms
+                ],
+                'errors' => $errors
+            ], 200);
+
+        } catch (Exception $e) {
+            $duration_ms = round((microtime(true) - $start_time) * 1000);
+
+            // Log error
+            $this->log_cron_execution('weekly', 'error', $duration_ms, $users_processed, $emails_sent, 1, $e->getMessage(), $request);
+
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => 'Weekly cron job failed: ' . $e->getMessage(),
+                'stats' => [
+                    'users_processed' => $users_processed,
+                    'emails_sent' => $emails_sent,
+                    'duration_ms' => $duration_ms
+                ]
+            ], 500);
+        }
+    }
+
+    public function rest_cron_monthly($request) {
+        $start_time = microtime(true);
+        $users_processed = 0;
+        $emails_sent = 0;
+        $errors = [];
+
+        try {
+            // Get all users who have monthly email enabled
+            $users = get_users(['meta_key' => 'rizqtrack_email_frequency', 'meta_value' => 'monthly']);
+
+            foreach ($users as $user) {
+                try {
+                    $users_processed++;
+
+                    // The send_monthly_report function already checks auto_send and send_day
+                    $this->send_monthly_report($user->ID);
+
+                    // Count as sent if auto-send is enabled
+                    $auto_send = get_user_meta($user->ID, 'rizqtrack_auto_send', true);
+                    if ($auto_send == 1) {
+                        $emails_sent++;
+                    }
+                } catch (Exception $e) {
+                    $errors[] = "User {$user->ID}: " . $e->getMessage();
+                }
+            }
+
+            $duration_ms = round((microtime(true) - $start_time) * 1000);
+
+            // Log success
+            $this->log_cron_execution('monthly', 'success', $duration_ms, $users_processed, $emails_sent, count($errors), implode('; ', $errors), $request);
+
+            return new WP_REST_Response([
+                'success' => true,
+                'message' => 'Monthly cron job completed successfully',
+                'stats' => [
+                    'users_processed' => $users_processed,
+                    'emails_sent' => $emails_sent,
+                    'errors' => count($errors),
+                    'duration_ms' => $duration_ms
+                ],
+                'errors' => $errors
+            ], 200);
+
+        } catch (Exception $e) {
+            $duration_ms = round((microtime(true) - $start_time) * 1000);
+
+            // Log error
+            $this->log_cron_execution('monthly', 'error', $duration_ms, $users_processed, $emails_sent, 1, $e->getMessage(), $request);
+
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => 'Monthly cron job failed: ' . $e->getMessage(),
+                'stats' => [
+                    'users_processed' => $users_processed,
+                    'emails_sent' => $emails_sent,
+                    'duration_ms' => $duration_ms
+                ]
+            ], 500);
+        }
+    }
+
+    public function rest_get_cron_logs($request) {
+        global $wpdb;
+
+        $limit = $request->get_param('limit') ?: 50;
+        $offset = $request->get_param('offset') ?: 0;
+        $job_type = $request->get_param('job_type');
+
+        $where = '';
+        if ($job_type && in_array($job_type, ['weekly', 'monthly'])) {
+            $where = $wpdb->prepare(" WHERE job_type = %s", $job_type);
+        }
+
+        $logs = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$this->table_cron_logs}
+             {$where}
+             ORDER BY execution_time DESC
+             LIMIT %d OFFSET %d",
+            $limit,
+            $offset
+        ));
+
+        $total = $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_cron_logs} {$where}");
+
+        return new WP_REST_Response([
+            'success' => true,
+            'logs' => $logs,
+            'total' => (int) $total,
+            'limit' => (int) $limit,
+            'offset' => (int) $offset
+        ], 200);
+    }
+
+    private function log_cron_execution($job_type, $status, $duration_ms, $users_processed, $emails_sent, $errors_count, $error_message, $request) {
+        global $wpdb;
+
+        $wpdb->insert($this->table_cron_logs, [
+            'job_type' => $job_type,
+            'status' => $status,
+            'duration_ms' => $duration_ms,
+            'users_processed' => $users_processed,
+            'emails_sent' => $emails_sent,
+            'errors_count' => $errors_count,
+            'error_message' => !empty($error_message) ? $error_message : null,
+            'request_ip' => $_SERVER['REMOTE_ADDR'] ?? null,
+            'request_user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null
+        ]);
     }
 
     // Transaction AJAX Handlers
@@ -2089,6 +2361,181 @@ HTML;
 
     public function render_dashboard() {
         include plugin_dir_path(__FILE__) . 'templates/dashboard.php';
+    }
+
+    public function render_cron_logs_page() {
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized access');
+        }
+
+        global $wpdb;
+
+        // Get cron secret key
+        $secret_key = get_option('rizqtrack_cron_secret_key');
+        if (empty($secret_key)) {
+            $secret_key = wp_generate_password(32, false);
+            update_option('rizqtrack_cron_secret_key', $secret_key);
+        }
+
+        // Get filter
+        $filter_type = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
+
+        // Build query
+        $where = '';
+        if ($filter_type === 'weekly' || $filter_type === 'monthly') {
+            $where = $wpdb->prepare(" WHERE job_type = %s", $filter_type);
+        }
+
+        // Get logs
+        $logs = $wpdb->get_results(
+            "SELECT * FROM {$this->table_cron_logs}
+             {$where}
+             ORDER BY execution_time DESC
+             LIMIT 100"
+        );
+
+        // Get statistics
+        $stats = $wpdb->get_results(
+            "SELECT
+                job_type,
+                COUNT(*) as total_runs,
+                SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful_runs,
+                SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as failed_runs,
+                AVG(duration_ms) as avg_duration_ms,
+                SUM(users_processed) as total_users_processed,
+                SUM(emails_sent) as total_emails_sent
+             FROM {$this->table_cron_logs}
+             GROUP BY job_type"
+        );
+
+        ?>
+        <div class="wrap">
+            <h1>RizqTrack - Cron Job Logs</h1>
+
+            <div class="notice notice-info" style="margin: 20px 0;">
+                <h2>Cron Endpoint URLs</h2>
+                <p><strong>Weekly Cron:</strong></p>
+                <code><?php echo site_url('/wp-json/rizqtrack/v1/cron/weekly?key=' . $secret_key); ?></code>
+                <p style="margin-top: 15px;"><strong>Monthly Cron:</strong></p>
+                <code><?php echo site_url('/wp-json/rizqtrack/v1/cron/monthly?key=' . $secret_key); ?></code>
+                <p style="margin-top: 15px;"><em>Use these URLs in your cron-job.org configuration. Keep the secret key secure!</em></p>
+            </div>
+
+            <?php if (!empty($stats)): ?>
+            <h2>Statistics</h2>
+            <table class="wp-list-table widefat fixed striped" style="margin-bottom: 20px;">
+                <thead>
+                    <tr>
+                        <th>Job Type</th>
+                        <th>Total Runs</th>
+                        <th>Successful</th>
+                        <th>Failed</th>
+                        <th>Avg Duration (ms)</th>
+                        <th>Total Users Processed</th>
+                        <th>Total Emails Sent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($stats as $stat): ?>
+                    <tr>
+                        <td><strong><?php echo esc_html(ucfirst($stat->job_type)); ?></strong></td>
+                        <td><?php echo esc_html($stat->total_runs); ?></td>
+                        <td style="color: green;"><?php echo esc_html($stat->successful_runs); ?></td>
+                        <td style="color: red;"><?php echo esc_html($stat->failed_runs); ?></td>
+                        <td><?php echo esc_html(round($stat->avg_duration_ms, 2)); ?></td>
+                        <td><?php echo esc_html($stat->total_users_processed); ?></td>
+                        <td><?php echo esc_html($stat->total_emails_sent); ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+
+            <h2>Recent Executions</h2>
+
+            <div style="margin-bottom: 15px;">
+                <a href="?page=rizqtrack-cron-logs&filter_type=all" class="button <?php echo $filter_type === 'all' ? 'button-primary' : ''; ?>">All</a>
+                <a href="?page=rizqtrack-cron-logs&filter_type=weekly" class="button <?php echo $filter_type === 'weekly' ? 'button-primary' : ''; ?>">Weekly</a>
+                <a href="?page=rizqtrack-cron-logs&filter_type=monthly" class="button <?php echo $filter_type === 'monthly' ? 'button-primary' : ''; ?>">Monthly</a>
+            </div>
+
+            <?php if (empty($logs)): ?>
+                <p>No cron executions logged yet.</p>
+            <?php else: ?>
+            <table class="wp-list-table widefat fixed striped">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">ID</th>
+                        <th style="width: 100px;">Job Type</th>
+                        <th style="width: 80px;">Status</th>
+                        <th style="width: 150px;">Execution Time</th>
+                        <th style="width: 100px;">Duration (ms)</th>
+                        <th style="width: 80px;">Users</th>
+                        <th style="width: 80px;">Emails</th>
+                        <th style="width: 80px;">Errors</th>
+                        <th>Error Message</th>
+                        <th style="width: 120px;">IP Address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($logs as $log): ?>
+                    <tr>
+                        <td><?php echo esc_html($log->id); ?></td>
+                        <td><strong><?php echo esc_html(ucfirst($log->job_type)); ?></strong></td>
+                        <td>
+                            <span style="color: <?php echo $log->status === 'success' ? 'green' : 'red'; ?>;">
+                                <?php echo esc_html(ucfirst($log->status)); ?>
+                            </span>
+                        </td>
+                        <td><?php echo esc_html($log->execution_time); ?></td>
+                        <td><?php echo esc_html($log->duration_ms); ?></td>
+                        <td><?php echo esc_html($log->users_processed); ?></td>
+                        <td><?php echo esc_html($log->emails_sent); ?></td>
+                        <td><?php echo esc_html($log->errors_count); ?></td>
+                        <td><?php echo esc_html($log->error_message ?: '-'); ?></td>
+                        <td><?php echo esc_html($log->request_ip ?: '-'); ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+
+            <div style="margin-top: 20px;">
+                <h2>Test Endpoints</h2>
+                <p>Click the buttons below to manually trigger the cron jobs for testing:</p>
+                <button class="button" onclick="testCron('weekly')">Test Weekly Cron</button>
+                <button class="button" onclick="testCron('monthly')">Test Monthly Cron</button>
+                <div id="test-result" style="margin-top: 15px;"></div>
+            </div>
+
+            <script>
+            function testCron(type) {
+                const resultDiv = document.getElementById('test-result');
+                resultDiv.innerHTML = '<p>Running ' + type + ' cron job...</p>';
+
+                fetch('<?php echo site_url('/wp-json/rizqtrack/v1/cron/'); ?>' + type + '?key=<?php echo $secret_key; ?>')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            resultDiv.innerHTML = '<div class="notice notice-success"><p><strong>Success!</strong><br>' +
+                                'Users processed: ' + data.stats.users_processed + '<br>' +
+                                'Emails sent: ' + data.stats.emails_sent + '<br>' +
+                                'Errors: ' + data.stats.errors + '<br>' +
+                                'Duration: ' + data.stats.duration_ms + 'ms</p></div>';
+                        } else {
+                            resultDiv.innerHTML = '<div class="notice notice-error"><p><strong>Error!</strong><br>' +
+                                data.message + '</p></div>';
+                        }
+                        setTimeout(() => location.reload(), 3000);
+                    })
+                    .catch(error => {
+                        resultDiv.innerHTML = '<div class="notice notice-error"><p><strong>Error!</strong><br>' +
+                            error.message + '</p></div>';
+                    });
+            }
+            </script>
+        </div>
+        <?php
     }
 
     /**
