@@ -292,6 +292,10 @@
             // Floating Action Button
             $('#fab-add-transaction').on('click', this.scrollToTransactionForm.bind(this));
 
+            // Section Navigation Arrows
+            $('#nav-arrow-up').on('click', this.navigateToPreviousSection.bind(this));
+            $('#nav-arrow-down').on('click', this.navigateToNextSection.bind(this));
+
             // Smooth scroll for navigation items
             $('.nav-item').on('click', this.handleNavItemClick.bind(this));
         },
@@ -2361,6 +2365,69 @@
             }
         },
 
+        // Section Navigation
+        getSections: function() {
+            return [
+                '#transaction-form',
+                '#kpi-section',
+                '#transactions-section',
+                '#goals-section',
+                '#budget-section',
+                '#subscription-section',
+                '#email-reports-section',
+                '#trash-section'
+            ];
+        },
+
+        getCurrentSection: function() {
+            const sections = this.getSections();
+            const scrollPos = $(window).scrollTop();
+            const navHeight = $('#quick-nav').outerHeight() || 0;
+
+            let currentSection = sections[0];
+            for (let i = 0; i < sections.length; i++) {
+                const $section = $(sections[i]);
+                if ($section.length && $section.offset().top - navHeight - 100 <= scrollPos) {
+                    currentSection = sections[i];
+                }
+            }
+            return currentSection;
+        },
+
+        navigateToNextSection: function() {
+            const sections = this.getSections();
+            const current = this.getCurrentSection();
+            const currentIndex = sections.indexOf(current);
+
+            if (currentIndex < sections.length - 1) {
+                const nextSection = sections[currentIndex + 1];
+                this.scrollToSection(nextSection);
+            }
+        },
+
+        navigateToPreviousSection: function() {
+            const sections = this.getSections();
+            const current = this.getCurrentSection();
+            const currentIndex = sections.indexOf(current);
+
+            if (currentIndex > 0) {
+                const prevSection = sections[currentIndex - 1];
+                this.scrollToSection(prevSection);
+            }
+        },
+
+        scrollToSection: function(sectionId) {
+            const $section = $(sectionId);
+            if ($section.length) {
+                const navHeight = $('#quick-nav').outerHeight() || 0;
+                const offset = navHeight + 20;
+
+                $('html, body').animate({
+                    scrollTop: $section.offset().top - offset
+                }, 400);
+            }
+        },
+
         // ===========================================
         // ACHIEVEMENTS SYSTEM
         // ===========================================
@@ -3039,11 +3106,25 @@
                 }
             });
 
-            const yearlyProjection = totalMonthly * 12;
+            // Calculate next month commitment (actual payments due next month)
+            const now = new Date();
+            const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            const nextMonthEnd = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+
+            let nextMonthCommitment = 0;
+            active.forEach(sub => {
+                if (sub.next_billing_date) {
+                    const billingDate = new Date(sub.next_billing_date + 'T00:00:00');
+                    if (billingDate >= nextMonthStart && billingDate <= nextMonthEnd) {
+                        nextMonthCommitment += parseFloat(sub.amount);
+                    }
+                }
+            });
+
             const avgCost = active.length > 0 ? (totalMonthly / active.length) : 0;
 
             $('#total-monthly-cost').text(`₹${totalMonthly.toFixed(2)}`);
-            $('#yearly-projection').text(`₹${yearlyProjection.toFixed(2)}`);
+            $('#next-month-commitment').text(`₹${nextMonthCommitment.toFixed(2)}`);
             $('#avg-subscription-cost').text(`₹${avgCost.toFixed(2)}`);
         },
 
