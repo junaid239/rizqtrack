@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.3.3
+ * Version: 1.3.4
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -297,7 +297,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        $version = '1.3.3'; // Updated version for cache busting
+        $version = '1.3.4'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -321,7 +321,7 @@ class RizqTrack {
             return;
         }
 
-        $version = '1.3.3'; // Updated version for cache busting
+        $version = '1.3.4'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -1779,14 +1779,48 @@ class RizqTrack {
             $user_id
         ));
 
+        // Get expiring subscriptions (within 7 days)
+        $expiring_subscriptions = $wpdb->get_results($wpdb->prepare(
+            "SELECT s.*, c.name as category_name, c.emoji as category_emoji
+            FROM {$this->table_subscriptions} s
+            LEFT JOIN {$this->table_categories} c ON s.category_id = c.id
+            WHERE s.user_id = %d AND s.status = 'Active'
+            AND s.end_date IS NOT NULL
+            AND DATEDIFF(s.end_date, CURDATE()) BETWEEN 0 AND 7
+            ORDER BY s.end_date ASC",
+            $user_id
+        ));
+
+        // Get budget status
+        $budgets = $wpdb->get_results($wpdb->prepare(
+            "SELECT b.*, c.name as category_name, c.emoji as category_emoji,
+            COALESCE((SELECT SUM(amount) FROM {$this->table_transactions} t
+                WHERE t.category_id = b.category_id AND t.type = 'expense'
+                AND t.user_id = %d AND t.status = 'Active'
+                AND t.date >= %s AND t.date <= %s), 0) as spent
+            FROM {$this->table_budgets} b
+            LEFT JOIN {$this->table_categories} c ON b.category_id = c.id
+            WHERE b.user_id = %d AND b.period = 'monthly'
+            ORDER BY (spent / b.amount) DESC",
+            $user_id, $start_date, $end_date, $user_id
+        ));
+
+        // Calculate KPIs
+        $kpis = [
+            'savings_rate' => $summary->total_income > 0 ? round((($summary->total_income - $summary->total_expense) / $summary->total_income) * 100, 1) : 0,
+            'transaction_count' => $summary->transaction_count,
+            'avg_transaction' => $summary->transaction_count > 0 ? round($summary->total_expense / $summary->transaction_count, 2) : 0,
+            'top_category' => !empty($top_categories) ? $top_categories[0]->name : 'N/A'
+        ];
+
         $subject = sprintf('RizqTrack Report - %s', $period_label);
-        $message = $this->generate_email_html($summary, $top_categories, $goals, $period_label);
+        $message = $this->generate_email_html($summary, $top_categories, $goals, $expiring_subscriptions, $budgets, $kpis, $period_label);
 
         $headers = ['Content-Type: text/html; charset=UTF-8'];
         wp_mail($email, $subject, $message, $headers);
     }
 
-    private function generate_email_html($summary, $top_categories, $goals, $period) {
+    private function generate_email_html($summary, $top_categories, $goals, $expiring_subscriptions, $budgets, $kpis, $period) {
         $income = number_format($summary->total_income, 2);
         $expense = number_format($summary->total_expense, 2);
         $savings = number_format($summary->total_income - $summary->total_expense, 2);
@@ -1800,6 +1834,125 @@ class RizqTrack {
                 $cat->name,
                 number_format($cat->total, 2)
             );
+        }
+
+        // Generate KPIs HTML
+        $kpis_html = sprintf('
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 30px;">
+                <div style="padding: 15px; background: #f0f9ff; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Savings Rate</div>
+                    <div style="font-size: 22px; font-weight: bold; color: #0891b2;">%s%%</div>
+                </div>
+                <div style="padding: 15px; background: #f0fdf4; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Transactions</div>
+                    <div style="font-size: 22px; font-weight: bold; color: #10b981;">%d</div>
+                </div>
+                <div style="padding: 15px; background: #fef3c7; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Avg/Transaction</div>
+                    <div style="font-size: 22px; font-weight: bold; color: #f59e0b;">₹%s</div>
+                </div>
+                <div style="padding: 15px; background: #f3f4f6; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Top Category</div>
+                    <div style="font-size: 16px; font-weight: bold; color: #1f2937;">%s</div>
+                </div>
+            </div>
+        ',
+            $kpis['savings_rate'],
+            $kpis['transaction_count'],
+            number_format($kpis['avg_transaction'], 2),
+            $kpis['top_category']
+        );
+
+        // Generate subscription alerts HTML
+        $subscriptions_html = '';
+        if (!empty($expiring_subscriptions)) {
+            foreach ($expiring_subscriptions as $sub) {
+                $days_until = max(0, floor((strtotime($sub->end_date) - time()) / (60 * 60 * 24)));
+                $urgency_color = $days_until <= 3 ? '#ef4444' : '#f59e0b';
+                $urgency_bg = $days_until <= 3 ? '#fef2f2' : '#fef3c7';
+
+                $subscriptions_html .= sprintf('
+                    <div style="margin-bottom: 12px; padding: 12px; background: %s; border-left: 4px solid %s; border-radius: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="color: #1f2937; font-size: 14px;">%s %s</strong>
+                                <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+                                    Expires: %s (%d days)
+                                </div>
+                            </div>
+                            <div style="background: white; padding: 6px 12px; border-radius: 6px; font-weight: bold; color: %s; font-size: 13px;">
+                                %d days
+                            </div>
+                        </div>
+                    </div>
+                ',
+                    $urgency_bg,
+                    $urgency_color,
+                    $sub->category_emoji,
+                    $sub->name,
+                    date('M d, Y', strtotime($sub->end_date)),
+                    $days_until,
+                    $urgency_color,
+                    $days_until
+                );
+            }
+        } else {
+            $subscriptions_html = '<p style="color: #6b7280; font-size: 14px; text-align: center; padding: 20px;">No subscriptions expiring soon. You\'re all set! ✅</p>';
+        }
+
+        // Generate budget status HTML
+        $budgets_html = '';
+        if (!empty($budgets)) {
+            foreach ($budgets as $budget) {
+                $spent_amount = floatval($budget->spent);
+                $budget_amount = floatval($budget->amount);
+                $percentage = $budget_amount > 0 ? ($spent_amount / $budget_amount * 100) : 0;
+                $percentage_rounded = round($percentage, 1);
+                $progress_width = min($percentage, 100);
+
+                // Determine color based on spending
+                $status_color = '#10b981'; // Green - under budget
+                $status_bg = '#ecfdf5';
+                $status_text = 'On Track';
+
+                if ($percentage >= 100) {
+                    $status_color = '#ef4444'; // Red - over budget
+                    $status_bg = '#fef2f2';
+                    $status_text = 'Over Budget!';
+                } elseif ($percentage >= 80) {
+                    $status_color = '#f59e0b'; // Orange - warning
+                    $status_bg = '#fef3c7';
+                    $status_text = 'Warning';
+                }
+
+                $budgets_html .= sprintf('
+                    <div style="margin-bottom: 16px; padding: 12px; background: #f9fafb; border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <strong style="color: #1f2937; font-size: 14px;">%s %s</strong>
+                            <span style="background: %s; color: %s; padding: 3px 8px; border-radius: 8px; font-size: 10px; font-weight: 700;">%s</span>
+                        </div>
+                        <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">
+                            ₹%s / ₹%s (%s%%)
+                        </div>
+                        <div style="background: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div style="background: %s; height: 100%%; width: %s%%;"></div>
+                        </div>
+                    </div>
+                ',
+                    $budget->category_emoji,
+                    $budget->category_name,
+                    $status_bg,
+                    $status_color,
+                    $status_text,
+                    number_format($spent_amount, 2),
+                    number_format($budget_amount, 2),
+                    $percentage_rounded,
+                    $status_color,
+                    $progress_width
+                );
+            }
+        } else {
+            $budgets_html = '<p style="color: #6b7280; font-size: 14px; text-align: center; padding: 20px;">No budgets set. Create budgets to track your spending!</p>';
         }
 
         // Generate goals HTML
@@ -1884,6 +2037,19 @@ class RizqTrack {
                     </td>
                 </tr>
             </table>
+
+            <h2 style="color: #1f2937;">📊 Key Performance Indicators</h2>
+            {$kpis_html}
+
+            <h2 style="color: #1f2937;">⚠️ Subscription Alerts</h2>
+            <div style="margin-bottom: 30px;">
+                {$subscriptions_html}
+            </div>
+
+            <h2 style="color: #1f2937;">💳 Budget Status</h2>
+            <div style="margin-bottom: 30px;">
+                {$budgets_html}
+            </div>
 
             <h2 style="color: #1f2937;">Top Spending Categories</h2>
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
