@@ -458,19 +458,23 @@
 
             categories.forEach(cat => {
                 const isDefault = cat.user_id == 0;
-                const badgeHtml = isDefault ? '<span style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 8px;">DEFAULT</span>' : '';
+                const badgeHtml = isDefault ? '<span class="category-badge">DEFAULT</span>' : '';
+                const deleteBtn = isDefault ? '' : '<button class="btn btn-danger btn-sm delete-category" data-id="' + cat.id + '">🗑️ Delete</button>';
 
                 $list.append(`
                     <div class="category-item">
                         <div class="category-info">
                             <span class="category-emoji">${cat.emoji}</span>
                             <div class="category-details">
-                                <span class="category-name">${cat.name}${badgeHtml}</span>
+                                <div class="category-name-row">
+                                    <span class="category-name">${cat.name}</span>
+                                    ${badgeHtml}
+                                </div>
                                 <span class="category-type">${cat.type}</span>
                             </div>
                         </div>
                         <div class="category-actions">
-                            <button class="btn btn-danger btn-sm delete-category" data-id="${cat.id}">Delete</button>
+                            ${deleteBtn}
                         </div>
                     </div>
                 `);
