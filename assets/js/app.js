@@ -2217,27 +2217,18 @@
 
                         // Load frequency settings
                         const frequency = response.data.frequency || 'monthly';
-                        const weeklyEnabled = response.data.weekly_enabled == 1;
-                        const monthlyEnabled = response.data.monthly_enabled == 1;
+                        const weeklyEnabled = parseInt(response.data.weekly_enabled) === 1;
+                        const monthlyEnabled = parseInt(response.data.monthly_enabled) === 1;
 
-                        // Set checkbox states based on saved data or legacy frequency field
-                        if (frequency === 'both' || (weeklyEnabled && monthlyEnabled)) {
-                            $('#email-frequency-weekly').prop('checked', true);
-                            $('#email-frequency-monthly').prop('checked', true);
-                            $('#monthly-day-selector').show();
-                        } else if (frequency === 'weekly' || weeklyEnabled) {
-                            $('#email-frequency-weekly').prop('checked', true);
-                            $('#email-frequency-monthly').prop('checked', false);
-                            $('#monthly-day-selector').hide();
-                        } else if (frequency === 'monthly' || monthlyEnabled) {
-                            $('#email-frequency-weekly').prop('checked', false);
-                            $('#email-frequency-monthly').prop('checked', true);
+                        // Set checkbox states - prioritize individual enabled flags over legacy frequency
+                        $('#email-frequency-weekly').prop('checked', weeklyEnabled);
+                        $('#email-frequency-monthly').prop('checked', monthlyEnabled);
+
+                        // Show/hide monthly day selector based on monthly checkbox
+                        if (monthlyEnabled) {
                             $('#monthly-day-selector').show();
                         } else {
-                            // Default to monthly if no frequency set
-                            $('#email-frequency-weekly').prop('checked', false);
-                            $('#email-frequency-monthly').prop('checked', true);
-                            $('#monthly-day-selector').show();
+                            $('#monthly-day-selector').hide();
                         }
 
                         // Load send day

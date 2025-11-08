@@ -1800,11 +1800,11 @@ class RizqTrack {
 
         $settings = [
             'email' => get_user_meta($user_id, 'rizqtrack_email_address', true) ?: wp_get_current_user()->user_email,
-            'auto_send' => get_user_meta($user_id, 'rizqtrack_auto_send', true) ?: 0,
+            'auto_send' => (int) get_user_meta($user_id, 'rizqtrack_auto_send', true),
             'frequency' => get_user_meta($user_id, 'rizqtrack_email_frequency', true) ?: 'monthly',
-            'weekly_enabled' => get_user_meta($user_id, 'rizqtrack_weekly_enabled', true) ?: 0,
-            'monthly_enabled' => get_user_meta($user_id, 'rizqtrack_monthly_enabled', true) ?: 0,
-            'send_day' => get_user_meta($user_id, 'rizqtrack_send_day', true) ?: -1
+            'weekly_enabled' => (int) get_user_meta($user_id, 'rizqtrack_weekly_enabled', true),
+            'monthly_enabled' => (int) get_user_meta($user_id, 'rizqtrack_monthly_enabled', true),
+            'send_day' => (int) (get_user_meta($user_id, 'rizqtrack_send_day', true) ?: -1)
         ];
 
         wp_send_json_success($settings);
