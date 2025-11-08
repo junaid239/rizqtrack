@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.3.7
+ * Version: 1.3.8
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -297,7 +297,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack') return;
 
-        $version = '1.3.7'; // Updated version for cache busting
+        $version = '1.3.8'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -321,7 +321,7 @@ class RizqTrack {
             return;
         }
 
-        $version = '1.3.7'; // Updated version for cache busting
+        $version = '1.3.8'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -2676,32 +2676,49 @@ HTML;
         // Calculate days until expiry and update status for expired subscriptions
         $today = date('Y-m-d');
         foreach ($subscriptions as $subscription) {
+            $today_timestamp = strtotime($today);
+            $should_mark_inactive = false;
+
             // Calculate days until expiry based on END DATE, not next billing date
             if (!empty($subscription->end_date)) {
                 $end_date_timestamp = strtotime($subscription->end_date);
-                $today_timestamp = strtotime($today);
                 $days_diff = ($end_date_timestamp - $today_timestamp) / (60 * 60 * 24);
                 $subscription->days_until_expiry = ceil($days_diff);
 
-                // Update status to Inactive if past end_date
+                // Mark as inactive if past end_date
                 if ($days_diff < 0 && $subscription->status === 'Active') {
-                    $wpdb->update(
-                        $this->table_subscriptions,
-                        ['status' => 'Inactive'],
-                        ['id' => $subscription->id],
-                        ['%s'],
-                        ['%d']
-                    );
-                    $subscription->status = 'Inactive';
+                    $should_mark_inactive = true;
                     $subscription->days_since_expiry = abs(ceil($days_diff));
                 }
             } else {
                 // No end date means subscription doesn't expire
                 // Calculate days until next billing for display purposes
                 $next_billing = strtotime($subscription->next_billing_date);
-                $today_timestamp = strtotime($today);
                 $days_diff = ($next_billing - $today_timestamp) / (60 * 60 * 24);
                 $subscription->days_until_expiry = ceil($days_diff);
+            }
+
+            // Also check if next_billing_date has passed without payment (for subscriptions without end_date)
+            if (empty($subscription->end_date) && !empty($subscription->next_billing_date)) {
+                $next_billing_timestamp = strtotime($subscription->next_billing_date);
+                $days_since_billing = ($today_timestamp - $next_billing_timestamp) / (60 * 60 * 24);
+
+                // If next billing date has passed by more than 3 days and auto_renew is off, mark as inactive
+                if ($days_since_billing > 3 && $subscription->auto_renew == 0 && $subscription->status === 'Active') {
+                    $should_mark_inactive = true;
+                }
+            }
+
+            // Update status to Inactive if needed
+            if ($should_mark_inactive) {
+                $wpdb->update(
+                    $this->table_subscriptions,
+                    ['status' => 'Inactive'],
+                    ['id' => $subscription->id],
+                    ['%s'],
+                    ['%d']
+                );
+                $subscription->status = 'Inactive';
             }
 
             // Explicitly cast auto_renew to integer for consistency
