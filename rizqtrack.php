@@ -464,7 +464,7 @@ class RizqTrack {
 
     public function verify_cron_request($request) {
         // Get the cron-job.org API key from settings
-        $cronjob_api_key = get_option('rizqtrack_cronjob_api_key');
+        $cronjob_api_key = trim(get_option('rizqtrack_cronjob_api_key'));
 
         // If no API key is set, allow localhost for testing
         if (empty($cronjob_api_key)) {
@@ -476,7 +476,7 @@ class RizqTrack {
         }
 
         // Get the provided key from URL parameter
-        $provided_key = $request->get_param('key');
+        $provided_key = trim($request->get_param('key'));
 
         // Check if key matches
         if ($provided_key === $cronjob_api_key) {
@@ -2376,7 +2376,7 @@ HTML;
 
         // Handle API key save
         if (isset($_POST['save_cronjob_api_key']) && check_admin_referer('rizqtrack_save_cronjob_key')) {
-            $api_key = sanitize_text_field($_POST['cronjob_api_key']);
+            $api_key = trim(sanitize_text_field($_POST['cronjob_api_key']));
             update_option('rizqtrack_cronjob_api_key', $api_key);
             echo '<div class="notice notice-success is-dismissible"><p>Cron-job.org API key saved successfully!</p></div>';
         }
