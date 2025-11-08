@@ -2619,38 +2619,39 @@ HTML;
 
         global $wpdb;
 
-        // Get overview statistics
+        // Get overview statistics (privacy-focused)
         $total_users = count(get_users());
-        $active_users = $wpdb->get_var("
+        $active_users_30d = $wpdb->get_var("
             SELECT COUNT(DISTINCT user_id)
             FROM {$this->table_transactions}
             WHERE date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
         ");
+        $active_users_7d = $wpdb->get_var("
+            SELECT COUNT(DISTINCT user_id)
+            FROM {$this->table_transactions}
+            WHERE date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        ");
 
         $total_transactions = $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_transactions} WHERE status = 'Active'");
-        $total_amount = $wpdb->get_var("SELECT SUM(amount) FROM {$this->table_transactions} WHERE status = 'Active'");
 
-        // Get user growth (last 30 days)
-        $user_growth = $wpdb->get_results("
-            SELECT DATE(user_registered) as date, COUNT(*) as count
-            FROM {$wpdb->users}
-            WHERE user_registered >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-            GROUP BY DATE(user_registered)
-            ORDER BY date ASC
+        // Feature adoption metrics
+        $users_with_goals = $wpdb->get_var("SELECT COUNT(DISTINCT user_id) FROM {$this->table_goals} WHERE status = 'active'");
+        $users_with_budgets = $wpdb->get_var("SELECT COUNT(DISTINCT user_id) FROM {$this->table_budgets} WHERE status = 'active'");
+        $users_with_subscriptions = $wpdb->get_var("SELECT COUNT(DISTINCT user_id) FROM {$this->table_subscriptions} WHERE status = 'Active'");
+        $users_with_email = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = 'rizqtrack_auto_send' AND meta_value = '1'");
+
+        // Engagement metrics
+        $avg_transactions_per_user = $wpdb->get_var("
+            SELECT ROUND(AVG(transaction_count), 1)
+            FROM (
+                SELECT COUNT(*) as transaction_count
+                FROM {$this->table_transactions}
+                WHERE status = 'Active'
+                GROUP BY user_id
+            ) as user_counts
         ");
 
-        // Get top categories
-        $top_categories = $wpdb->get_results("
-            SELECT c.name, c.emoji, COUNT(t.id) as transaction_count, SUM(t.amount) as total_amount
-            FROM {$this->table_transactions} t
-            JOIN {$this->table_categories} c ON t.category_id = c.id
-            WHERE t.status = 'Active'
-            GROUP BY c.id
-            ORDER BY transaction_count DESC
-            LIMIT 10
-        ");
-
-        // Get all users with their statistics
+        // Get all users with their statistics (NO financial amounts)
         $users_stats = $wpdb->get_results("
             SELECT
                 u.ID,
@@ -2658,11 +2659,10 @@ HTML;
                 u.user_email,
                 u.user_registered,
                 COUNT(DISTINCT t.id) as transaction_count,
-                COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as total_income,
-                COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as total_expense,
                 MAX(t.date) as last_transaction_date,
                 (SELECT COUNT(*) FROM {$this->table_goals} WHERE user_id = u.ID AND status = 'active') as active_goals,
                 (SELECT COUNT(*) FROM {$this->table_budgets} WHERE user_id = u.ID AND status = 'active') as active_budgets,
+                (SELECT COUNT(*) FROM {$this->table_subscriptions} WHERE user_id = u.ID AND status = 'Active') as active_subscriptions,
                 (SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = u.ID AND meta_key = 'rizqtrack_auto_send') as auto_send,
                 (SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = u.ID AND meta_key = 'rizqtrack_email_frequency') as email_frequency
             FROM {$wpdb->users} u
@@ -2671,17 +2671,25 @@ HTML;
             ORDER BY transaction_count DESC
         ");
 
-        // Get transaction trends (last 30 days)
-        $transaction_trends = $wpdb->get_results("
-            SELECT
-                DATE(date) as date,
-                COUNT(*) as count,
-                SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
-                SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense
-            FROM {$this->table_transactions}
-            WHERE date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND status = 'Active'
-            GROUP BY DATE(date)
-            ORDER BY date ASC
+        // User retention (users who were active in both previous and current week)
+        $retention_rate = $wpdb->get_var("
+            SELECT ROUND(
+                COUNT(DISTINCT CASE
+                    WHEN t1.user_id IS NOT NULL AND t2.user_id IS NOT NULL
+                    THEN t1.user_id
+                END) * 100.0 / NULLIF(COUNT(DISTINCT t1.user_id), 0),
+            1)
+            FROM (
+                SELECT DISTINCT user_id
+                FROM {$this->table_transactions}
+                WHERE date >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+                AND date < DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+            ) t1
+            LEFT JOIN (
+                SELECT DISTINCT user_id
+                FROM {$this->table_transactions}
+                WHERE date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+            ) t2 ON t1.user_id = t2.user_id
         ");
 
         ?>
@@ -2694,7 +2702,7 @@ HTML;
                 <div class="rizqtrack-stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Total Users</div>
                     <div style="font-size: 36px; font-weight: 700;"><?php echo number_format($total_users); ?></div>
-                    <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">Active: <?php echo $active_users; ?> (last 30 days)</div>
+                    <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">Active: <?php echo $active_users_30d; ?> (last 30 days)</div>
                 </div>
 
                 <div class="rizqtrack-stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -2704,46 +2712,62 @@ HTML;
                 </div>
 
                 <div class="rizqtrack-stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Total Amount Tracked</div>
-                    <div style="font-size: 36px; font-weight: 700;">₹<?php echo number_format($total_amount, 0); ?></div>
-                    <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">Combined platform total</div>
+                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Average Engagement</div>
+                    <div style="font-size: 36px; font-weight: 700;"><?php echo $avg_transactions_per_user ?: '0'; ?></div>
+                    <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">Transactions per user</div>
                 </div>
 
                 <div class="rizqtrack-stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Email Reports</div>
-                    <div style="font-size: 36px; font-weight: 700;"><?php
-                        $email_enabled = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = 'rizqtrack_auto_send' AND meta_value = '1'");
-                        echo $email_enabled;
-                    ?></div>
-                    <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">Users with auto-send enabled</div>
+                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">7-Day Retention</div>
+                    <div style="font-size: 36px; font-weight: 700;"><?php echo $retention_rate ?: '0'; ?>%</div>
+                    <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">Week-over-week retention</div>
                 </div>
             </div>
 
-            <!-- Top Categories -->
+            <!-- Feature Adoption -->
             <div style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px;">
-                <h2 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 600;">📊 Top Categories</h2>
-                <table class="wp-list-table widefat fixed striped">
-                    <thead>
-                        <tr>
-                            <th>Category</th>
-                            <th>Transactions</th>
-                            <th>Total Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (!empty($top_categories)): ?>
-                            <?php foreach ($top_categories as $category): ?>
-                            <tr>
-                                <td><?php echo esc_html($category->emoji . ' ' . $category->name); ?></td>
-                                <td><?php echo number_format($category->transaction_count); ?></td>
-                                <td>₹<?php echo number_format($category->total_amount, 2); ?></td>
-                            </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr><td colspan="3">No category data yet</td></tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                <h2 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 600;">📊 Feature Adoption</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
+                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Goals Feature</div>
+                        <div style="font-size: 32px; font-weight: 700;">
+                            <?php echo $total_users > 0 ? round(($users_with_goals / $total_users) * 100, 1) : 0; ?>%
+                        </div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">
+                            <?php echo $users_with_goals; ?> of <?php echo $total_users; ?> users
+                        </div>
+                    </div>
+
+                    <div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 8px; color: white;">
+                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Budgets Feature</div>
+                        <div style="font-size: 32px; font-weight: 700;">
+                            <?php echo $total_users > 0 ? round(($users_with_budgets / $total_users) * 100, 1) : 0; ?>%
+                        </div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">
+                            <?php echo $users_with_budgets; ?> of <?php echo $total_users; ?> users
+                        </div>
+                    </div>
+
+                    <div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 8px; color: white;">
+                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Subscriptions Feature</div>
+                        <div style="font-size: 32px; font-weight: 700;">
+                            <?php echo $total_users > 0 ? round(($users_with_subscriptions / $total_users) * 100, 1) : 0; ?>%
+                        </div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">
+                            <?php echo $users_with_subscriptions; ?> of <?php echo $total_users; ?> users
+                        </div>
+                    </div>
+
+                    <div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 8px; color: white;">
+                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Email Reports</div>
+                        <div style="font-size: 32px; font-weight: 700;">
+                            <?php echo $total_users > 0 ? round(($users_with_email / $total_users) * 100, 1) : 0; ?>%
+                        </div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">
+                            <?php echo $users_with_email; ?> of <?php echo $total_users; ?> users
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- User Management -->
@@ -2757,10 +2781,9 @@ HTML;
                             <th>Email</th>
                             <th>Registered</th>
                             <th>Transactions</th>
-                            <th>Income</th>
-                            <th>Expense</th>
                             <th>Goals</th>
                             <th>Budgets</th>
+                            <th>Subscriptions</th>
                             <th>Email Reports</th>
                             <th>Last Activity</th>
                         </tr>
@@ -2774,10 +2797,9 @@ HTML;
                                 <td><?php echo esc_html($user->user_email); ?></td>
                                 <td><?php echo date('M d, Y', strtotime($user->user_registered)); ?></td>
                                 <td><?php echo number_format($user->transaction_count); ?></td>
-                                <td style="color: #10b981;">₹<?php echo number_format($user->total_income, 0); ?></td>
-                                <td style="color: #ef4444;">₹<?php echo number_format($user->total_expense, 0); ?></td>
                                 <td><?php echo $user->active_goals; ?></td>
                                 <td><?php echo $user->active_budgets; ?></td>
+                                <td><?php echo $user->active_subscriptions; ?></td>
                                 <td>
                                     <?php if ($user->auto_send == 1): ?>
                                         <span style="color: #10b981; font-weight: 600;">✓ <?php echo ucfirst($user->email_frequency); ?></span>
@@ -2795,40 +2817,7 @@ HTML;
                             </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <tr><td colspan="11">No users found</td></tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Transaction Trends Chart -->
-            <div style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px;">
-                <h2 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 600;">📈 Transaction Trends (Last 30 Days)</h2>
-                <table class="wp-list-table widefat fixed striped">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Transactions</th>
-                            <th>Income</th>
-                            <th>Expense</th>
-                            <th>Net</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (!empty($transaction_trends)): ?>
-                            <?php foreach ($transaction_trends as $trend): ?>
-                            <tr>
-                                <td><?php echo date('M d, Y', strtotime($trend->date)); ?></td>
-                                <td><?php echo number_format($trend->count); ?></td>
-                                <td style="color: #10b981;">₹<?php echo number_format($trend->income, 0); ?></td>
-                                <td style="color: #ef4444;">₹<?php echo number_format($trend->expense, 0); ?></td>
-                                <td style="font-weight: 600; color: <?php echo ($trend->income - $trend->expense) >= 0 ? '#10b981' : '#ef4444'; ?>;">
-                                    ₹<?php echo number_format($trend->income - $trend->expense, 0); ?>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr><td colspan="5">No transaction data for the last 30 days</td></tr>
+                            <tr><td colspan="10">No users found</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
