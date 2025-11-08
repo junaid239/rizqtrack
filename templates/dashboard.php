@@ -897,10 +897,12 @@
                 </div>
             </div>
 
-            <div class="modal-actions">
-                <button type="button" class="btn btn-secondary cancel-btn">✕ Cancel</button>
-                <button type="button" class="btn btn-primary" id="save-email-settings-btn">💾 Save Configuration</button>
-                <button type="button" class="btn btn-success" id="send-email-now-btn">📧 Send Report Now</button>
+            <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 24px;">
+                <button type="button" class="btn btn-secondary cancel-btn" style="margin: 0;">✕ Cancel</button>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-primary" id="save-email-settings-btn" style="margin: 0;">💾 Save Settings</button>
+                    <button type="button" class="btn btn-success" id="send-email-now-btn" style="margin: 0;">📧 Send Now</button>
+                </div>
             </div>
         </form>
     </div>
