@@ -839,13 +839,22 @@
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" id="email-auto-send">
-                    <span class="checkbox-text">🔄 Enable automatic monthly emails</span>
+                    <span class="checkbox-text">🔄 Enable automatic emails</span>
                 </label>
-                <small style="margin-left: 24px; display: block; margin-top: 4px;">Automatically send a monthly report on your chosen date</small>
+                <small style="margin-left: 24px; display: block; margin-top: 4px;">Automatically send reports on your chosen schedule</small>
             </div>
 
             <div id="auto-email-settings" style="display: none; margin-top: 16px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
                 <div class="form-group">
+                    <label for="email-frequency">📆 Report Frequency <span class="required">*</span></label>
+                    <select id="email-frequency">
+                        <option value="weekly">Weekly (Every Monday)</option>
+                        <option value="monthly" selected>Monthly</option>
+                    </select>
+                    <small>Choose how often you want to receive automatic reports</small>
+                </div>
+
+                <div class="form-group" id="monthly-day-selector" style="margin-top: 12px;">
                     <label for="email-send-day">📅 Send on day of month <span class="required">*</span></label>
                     <select id="email-send-day">
                         <option value="1">1st of every month</option>
