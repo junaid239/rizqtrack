@@ -2632,13 +2632,45 @@ HTML;
             WHERE date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
         ");
 
+        // New users this week
+        $new_users_7d = $wpdb->get_var("
+            SELECT COUNT(*)
+            FROM {$wpdb->users}
+            WHERE user_registered >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        ");
+
         $total_transactions = $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_transactions} WHERE status = 'Active'");
+
+        // Transactions growth (last 7 days vs previous 7 days)
+        $transactions_7d = $wpdb->get_var("
+            SELECT COUNT(*)
+            FROM {$this->table_transactions}
+            WHERE date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+            AND status = 'Active'
+        ");
+        $transactions_prev_7d = $wpdb->get_var("
+            SELECT COUNT(*)
+            FROM {$this->table_transactions}
+            WHERE date >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+            AND date < DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+            AND status = 'Active'
+        ");
+        $transaction_growth = 0;
+        if ($transactions_prev_7d > 0) {
+            $transaction_growth = round((($transactions_7d - $transactions_prev_7d) / $transactions_prev_7d) * 100, 1);
+        }
 
         // Feature adoption metrics
         $users_with_goals = $wpdb->get_var("SELECT COUNT(DISTINCT user_id) FROM {$this->table_goals} WHERE status = 'active'");
         $users_with_budgets = $wpdb->get_var("SELECT COUNT(DISTINCT user_id) FROM {$this->table_budgets} WHERE status = 'active'");
         $users_with_subscriptions = $wpdb->get_var("SELECT COUNT(DISTINCT user_id) FROM {$this->table_subscriptions} WHERE status = 'Active'");
         $users_with_email = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = 'rizqtrack_auto_send' AND meta_value = '1'");
+
+        // Total feature counts
+        $total_goals = $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_goals} WHERE status = 'active'");
+        $total_budgets = $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_budgets} WHERE status = 'active'");
+        $total_subscriptions = $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_subscriptions} WHERE status = 'Active'");
+        $total_categories = $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_categories}");
 
         // Engagement metrics
         $avg_transactions_per_user = $wpdb->get_var("
@@ -2698,73 +2730,111 @@ HTML;
             <p style="color: #666; margin-bottom: 30px;">Overview of all RizqTrack users and system statistics</p>
 
             <!-- Overview Cards -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
-                <div class="rizqtrack-stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Total Users</div>
-                    <div style="font-size: 36px; font-weight: 700;"><?php echo number_format($total_users); ?></div>
-                    <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">Active: <?php echo $active_users_30d; ?> (last 30 days)</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                <!-- Total Users Card -->
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(102,126,234,0.3); transition: transform 0.2s;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <div style="font-size: 14px; opacity: 0.9; font-weight: 500;">👥 Total Users</div>
+                        <?php if ($new_users_7d > 0): ?>
+                            <span style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 11px;">+<?php echo $new_users_7d; ?> this week</span>
+                        <?php endif; ?>
+                    </div>
+                    <div style="font-size: 42px; font-weight: 700; margin-bottom: 8px;"><?php echo number_format($total_users); ?></div>
+                    <div style="font-size: 13px; opacity: 0.85;">
+                        <strong><?php echo $active_users_7d; ?></strong> active (7d) •
+                        <strong><?php echo $active_users_30d; ?></strong> active (30d)
+                    </div>
                 </div>
 
-                <div class="rizqtrack-stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Total Transactions</div>
-                    <div style="font-size: 36px; font-weight: 700;"><?php echo number_format($total_transactions); ?></div>
-                    <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">Across all users</div>
+                <!-- Total Transactions Card -->
+                <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(240,147,251,0.3); transition: transform 0.2s;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <div style="font-size: 14px; opacity: 0.9; font-weight: 500;">📊 Transactions</div>
+                        <?php if ($transaction_growth != 0): ?>
+                            <span style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 11px;">
+                                <?php echo $transaction_growth > 0 ? '↗' : '↘'; ?> <?php echo abs($transaction_growth); ?>%
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                    <div style="font-size: 42px; font-weight: 700; margin-bottom: 8px;"><?php echo number_format($total_transactions); ?></div>
+                    <div style="font-size: 13px; opacity: 0.85;">
+                        <strong><?php echo number_format($transactions_7d); ?></strong> this week •
+                        <strong><?php echo $total_categories; ?></strong> categories
+                    </div>
                 </div>
 
-                <div class="rizqtrack-stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Average Engagement</div>
-                    <div style="font-size: 36px; font-weight: 700;"><?php echo $avg_transactions_per_user ?: '0'; ?></div>
-                    <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">Transactions per user</div>
+                <!-- Average Engagement Card -->
+                <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(79,172,254,0.3); transition: transform 0.2s;">
+                    <div style="font-size: 14px; opacity: 0.9; font-weight: 500; margin-bottom: 12px;">📈 Avg Engagement</div>
+                    <div style="font-size: 42px; font-weight: 700; margin-bottom: 8px;"><?php echo $avg_transactions_per_user ?: '0'; ?></div>
+                    <div style="font-size: 13px; opacity: 0.85;">
+                        Transactions per user •
+                        <?php
+                        $engagement_rate = $total_users > 0 ? round(($active_users_7d / $total_users) * 100, 1) : 0;
+                        echo $engagement_rate;
+                        ?>% active (7d)
+                    </div>
                 </div>
 
-                <div class="rizqtrack-stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">7-Day Retention</div>
-                    <div style="font-size: 36px; font-weight: 700;"><?php echo $retention_rate ?: '0'; ?>%</div>
-                    <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">Week-over-week retention</div>
+                <!-- Retention Card -->
+                <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(67,233,123,0.3); transition: transform 0.2s;">
+                    <div style="font-size: 14px; opacity: 0.9; font-weight: 500; margin-bottom: 12px;">🔄 User Retention</div>
+                    <div style="font-size: 42px; font-weight: 700; margin-bottom: 8px;"><?php echo $retention_rate ?: '0'; ?>%</div>
+                    <div style="font-size: 13px; opacity: 0.85;">
+                        Week-over-week retention rate
+                    </div>
                 </div>
             </div>
 
             <!-- Feature Adoption -->
             <div style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px;">
-                <h2 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 600;">📊 Feature Adoption</h2>
+                <h2 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 600; color: #1e293b;">📊 Feature Adoption</h2>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                    <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Goals Feature</div>
-                        <div style="font-size: 32px; font-weight: 700;">
+                    <!-- Goals Feature -->
+                    <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white; box-shadow: 0 4px 12px rgba(102,126,234,0.25);">
+                        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 10px; font-weight: 500;">🎯 Goals Feature</div>
+                        <div style="font-size: 36px; font-weight: 700; margin-bottom: 8px;">
                             <?php echo $total_users > 0 ? round(($users_with_goals / $total_users) * 100, 1) : 0; ?>%
                         </div>
-                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">
-                            <?php echo $users_with_goals; ?> of <?php echo $total_users; ?> users
+                        <div style="font-size: 12px; opacity: 0.85;">
+                            <strong><?php echo $users_with_goals; ?></strong> of <strong><?php echo $total_users; ?></strong> users •
+                            <strong><?php echo number_format($total_goals); ?></strong> total goals
                         </div>
                     </div>
 
-                    <div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 8px; color: white;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Budgets Feature</div>
-                        <div style="font-size: 32px; font-weight: 700;">
+                    <!-- Budgets Feature -->
+                    <div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; color: white; box-shadow: 0 4px 12px rgba(240,147,251,0.25);">
+                        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 10px; font-weight: 500;">💰 Budgets Feature</div>
+                        <div style="font-size: 36px; font-weight: 700; margin-bottom: 8px;">
                             <?php echo $total_users > 0 ? round(($users_with_budgets / $total_users) * 100, 1) : 0; ?>%
                         </div>
-                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">
-                            <?php echo $users_with_budgets; ?> of <?php echo $total_users; ?> users
+                        <div style="font-size: 12px; opacity: 0.85;">
+                            <strong><?php echo $users_with_budgets; ?></strong> of <strong><?php echo $total_users; ?></strong> users •
+                            <strong><?php echo number_format($total_budgets); ?></strong> total budgets
                         </div>
                     </div>
 
-                    <div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 8px; color: white;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Subscriptions Feature</div>
-                        <div style="font-size: 32px; font-weight: 700;">
+                    <!-- Subscriptions Feature -->
+                    <div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; color: white; box-shadow: 0 4px 12px rgba(79,172,254,0.25);">
+                        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 10px; font-weight: 500;">🔄 Subscriptions</div>
+                        <div style="font-size: 36px; font-weight: 700; margin-bottom: 8px;">
                             <?php echo $total_users > 0 ? round(($users_with_subscriptions / $total_users) * 100, 1) : 0; ?>%
                         </div>
-                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">
-                            <?php echo $users_with_subscriptions; ?> of <?php echo $total_users; ?> users
+                        <div style="font-size: 12px; opacity: 0.85;">
+                            <strong><?php echo $users_with_subscriptions; ?></strong> of <strong><?php echo $total_users; ?></strong> users •
+                            <strong><?php echo number_format($total_subscriptions); ?></strong> active
                         </div>
                     </div>
 
-                    <div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 8px; color: white;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Email Reports</div>
-                        <div style="font-size: 32px; font-weight: 700;">
+                    <!-- Email Reports -->
+                    <div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 10px; color: white; box-shadow: 0 4px 12px rgba(67,233,123,0.25);">
+                        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 10px; font-weight: 500;">📧 Email Reports</div>
+                        <div style="font-size: 36px; font-weight: 700; margin-bottom: 8px;">
                             <?php echo $total_users > 0 ? round(($users_with_email / $total_users) * 100, 1) : 0; ?>%
                         </div>
-                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">
-                            <?php echo $users_with_email; ?> of <?php echo $total_users; ?> users
+                        <div style="font-size: 12px; opacity: 0.85;">
+                            <strong><?php echo $users_with_email; ?></strong> of <strong><?php echo $total_users; ?></strong> users •
+                            Auto-send enabled
                         </div>
                     </div>
                 </div>
@@ -2772,7 +2842,7 @@ HTML;
 
             <!-- User Management -->
             <div style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px;">
-                <h2 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 600;">👥 User Management</h2>
+                <h2 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 600; color: #1e293b;">👥 User Management</h2>
                 <table class="wp-list-table widefat fixed striped">
                     <thead>
                         <tr>
@@ -2825,47 +2895,72 @@ HTML;
 
             <!-- System Health -->
             <div style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <h2 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 600;">⚙️ System Health</h2>
+                <h2 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 600; color: #1e293b;">⚙️ System Health</h2>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
                     <?php
                     $last_cron_run = $wpdb->get_row("SELECT * FROM {$this->table_cron_logs} ORDER BY execution_time DESC LIMIT 1");
+                    $total_cron_runs = $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_cron_logs}");
                     $cron_success_rate = $wpdb->get_var("
                         SELECT ROUND(
                             (SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) / COUNT(*)) * 100, 1
                         )
                         FROM {$this->table_cron_logs}
                     ");
+                    $total_cron_success = $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_cron_logs} WHERE status = 'success'");
+                    $table_size = $wpdb->get_var("
+                        SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2)
+                        FROM information_schema.TABLES
+                        WHERE table_schema = DATABASE()
+                        AND table_name LIKE '{$wpdb->prefix}rizqtrack_%'
+                    ");
                     ?>
-                    <div style="padding: 16px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Last Cron Run</div>
-                        <div style="font-weight: 600; color: #333;">
+
+                    <!-- Last Cron Run -->
+                    <div style="padding: 20px; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border-radius: 10px; color: white; box-shadow: 0 4px 12px rgba(250,112,154,0.25);">
+                        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 10px; font-weight: 500;">⏰ Last Cron Run</div>
+                        <div style="font-size: 16px; font-weight: 700; margin-bottom: 6px;">
                             <?php echo $last_cron_run ? date('M d, g:i A', strtotime($last_cron_run->execution_time)) : 'Never'; ?>
                         </div>
+                        <div style="font-size: 12px; opacity: 0.85;">
+                            <?php if ($last_cron_run): ?>
+                                <strong><?php echo ucfirst($last_cron_run->job_type); ?></strong> •
+                                <?php echo $last_cron_run->emails_sent; ?> emails sent
+                            <?php else: ?>
+                                No cron jobs executed yet
+                            <?php endif; ?>
+                        </div>
                     </div>
-                    <div style="padding: 16px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Cron Success Rate</div>
-                        <div style="font-weight: 600; color: <?php echo $cron_success_rate >= 90 ? '#10b981' : '#ef4444'; ?>;">
+
+                    <!-- Cron Success Rate -->
+                    <div style="padding: 20px; background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); border-radius: 10px; color: white; box-shadow: 0 4px 12px rgba(48,207,208,0.25);">
+                        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 10px; font-weight: 500;">✅ Cron Success Rate</div>
+                        <div style="font-size: 36px; font-weight: 700; margin-bottom: 6px;">
                             <?php echo $cron_success_rate ?: '0'; ?>%
                         </div>
-                    </div>
-                    <div style="padding: 16px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Database Size</div>
-                        <div style="font-weight: 600; color: #333;">
-                            <?php
-                            $table_size = $wpdb->get_var("
-                                SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2)
-                                FROM information_schema.TABLES
-                                WHERE table_schema = DATABASE()
-                                AND table_name LIKE '{$wpdb->prefix}rizqtrack_%'
-                            ");
-                            echo $table_size ? $table_size . ' MB' : 'N/A';
-                            ?>
+                        <div style="font-size: 12px; opacity: 0.85;">
+                            <strong><?php echo number_format($total_cron_success); ?></strong> of <strong><?php echo number_format($total_cron_runs); ?></strong> jobs successful
                         </div>
                     </div>
-                    <div style="padding: 16px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 12px; color: #666; margin-bottom: 4px;">WordPress Version</div>
-                        <div style="font-weight: 600; color: #333;">
-                            <?php echo get_bloginfo('version'); ?>
+
+                    <!-- Database Size -->
+                    <div style="padding: 20px; background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); border-radius: 10px; color: #1e293b; box-shadow: 0 4px 12px rgba(168,237,234,0.25);">
+                        <div style="font-size: 13px; opacity: 0.8; margin-bottom: 10px; font-weight: 600;">💾 Database Size</div>
+                        <div style="font-size: 36px; font-weight: 700; margin-bottom: 6px;">
+                            <?php echo $table_size ? $table_size : '0'; ?> MB
+                        </div>
+                        <div style="font-size: 12px; opacity: 0.7; font-weight: 500;">
+                            RizqTrack plugin tables
+                        </div>
+                    </div>
+
+                    <!-- WordPress Version -->
+                    <div style="padding: 20px; background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); border-radius: 10px; color: #1e293b; box-shadow: 0 4px 12px rgba(255,236,210,0.25);">
+                        <div style="font-size: 13px; opacity: 0.8; margin-bottom: 10px; font-weight: 600;">🔧 WordPress</div>
+                        <div style="font-size: 24px; font-weight: 700; margin-bottom: 6px;">
+                            v<?php echo get_bloginfo('version'); ?>
+                        </div>
+                        <div style="font-size: 12px; opacity: 0.7; font-weight: 500;">
+                            PHP <?php echo PHP_VERSION; ?>
                         </div>
                     </div>
                 </div>
