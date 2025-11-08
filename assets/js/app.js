@@ -459,7 +459,6 @@
             categories.forEach(cat => {
                 const isDefault = cat.user_id == 0;
                 const badgeHtml = isDefault ? '<span class="category-badge">DEFAULT</span>' : '';
-                const deleteBtn = isDefault ? '' : '<button class="btn btn-danger btn-sm delete-category" data-id="' + cat.id + '">🗑️ Delete</button>';
 
                 $list.append(`
                     <div class="category-item">
@@ -474,7 +473,7 @@
                             </div>
                         </div>
                         <div class="category-actions">
-                            ${deleteBtn}
+                            <button class="btn btn-danger btn-sm delete-category" data-id="${cat.id}">🗑️ Delete</button>
                         </div>
                     </div>
                 `);
