@@ -463,19 +463,23 @@ class RizqTrack {
     }
 
     public function verify_cron_request($request) {
-        // Option 1: Check for a secret key in the request
-        $secret_key = get_option('rizqtrack_cron_secret_key');
+        // Get the cron-job.org API key from settings
+        $cronjob_api_key = get_option('rizqtrack_cronjob_api_key');
 
-        // If no secret key is set, generate one
-        if (empty($secret_key)) {
-            $secret_key = wp_generate_password(32, false);
-            update_option('rizqtrack_cron_secret_key', $secret_key);
+        // If no API key is set, allow localhost for testing
+        if (empty($cronjob_api_key)) {
+            $remote_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+            if (in_array($remote_ip, ['127.0.0.1', '::1'])) {
+                return true;
+            }
+            return new WP_Error('no_api_key', 'Cron-job.org API key not configured. Please configure it in RizqTrack → Cron Logs.', ['status' => 401]);
         }
 
+        // Get the provided key from URL parameter
         $provided_key = $request->get_param('key');
 
-        // Allow request if key matches or if it's from localhost/internal (for testing)
-        if ($provided_key === $secret_key) {
+        // Check if key matches
+        if ($provided_key === $cronjob_api_key) {
             return true;
         }
 
@@ -485,7 +489,7 @@ class RizqTrack {
             return true;
         }
 
-        return false;
+        return new WP_Error('invalid_key', 'Invalid API key', ['status' => 403]);
     }
 
     public function verify_admin_request($request) {
@@ -2370,12 +2374,15 @@ HTML;
 
         global $wpdb;
 
-        // Get cron secret key
-        $secret_key = get_option('rizqtrack_cron_secret_key');
-        if (empty($secret_key)) {
-            $secret_key = wp_generate_password(32, false);
-            update_option('rizqtrack_cron_secret_key', $secret_key);
+        // Handle API key save
+        if (isset($_POST['save_cronjob_api_key']) && check_admin_referer('rizqtrack_save_cronjob_key')) {
+            $api_key = sanitize_text_field($_POST['cronjob_api_key']);
+            update_option('rizqtrack_cronjob_api_key', $api_key);
+            echo '<div class="notice notice-success is-dismissible"><p>Cron-job.org API key saved successfully!</p></div>';
         }
+
+        // Get cron-job.org API key
+        $cronjob_api_key = get_option('rizqtrack_cronjob_api_key', '');
 
         // Get filter
         $filter_type = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
@@ -2412,13 +2419,56 @@ HTML;
         <div class="wrap">
             <h1>RizqTrack - Cron Job Logs</h1>
 
-            <div class="notice notice-info" style="margin: 20px 0;">
-                <h2>Cron Endpoint URLs</h2>
-                <p><strong>Weekly Cron:</strong></p>
-                <code><?php echo site_url('/wp-json/rizqtrack/v1/cron/weekly?key=' . $secret_key); ?></code>
-                <p style="margin-top: 15px;"><strong>Monthly Cron:</strong></p>
-                <code><?php echo site_url('/wp-json/rizqtrack/v1/cron/monthly?key=' . $secret_key); ?></code>
-                <p style="margin-top: 15px;"><em>Use these URLs in your cron-job.org configuration. Keep the secret key secure!</em></p>
+            <div class="notice notice-info" style="margin: 20px 0; padding: 15px;">
+                <h2>Cron-job.org Configuration</h2>
+
+                <form method="post" action="" style="margin: 15px 0;">
+                    <?php wp_nonce_field('rizqtrack_save_cronjob_key'); ?>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row">
+                                <label for="cronjob_api_key">Cron-job.org API Key</label>
+                            </th>
+                            <td>
+                                <input type="text"
+                                       id="cronjob_api_key"
+                                       name="cronjob_api_key"
+                                       value="<?php echo esc_attr($cronjob_api_key); ?>"
+                                       class="regular-text"
+                                       placeholder="Enter your cron-job.org API key" />
+                                <p class="description">
+                                    Get your API key from <a href="https://console.cron-job.org/settings" target="_blank">cron-job.org settings</a>
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                    <p class="submit">
+                        <input type="submit" name="save_cronjob_api_key" class="button button-primary" value="Save API Key" />
+                    </p>
+                </form>
+
+                <?php if (!empty($cronjob_api_key)): ?>
+                    <hr style="margin: 20px 0;">
+                    <h3>Your Cron Endpoint URLs</h3>
+                    <p><strong>Weekly Cron:</strong></p>
+                    <input type="text" readonly value="<?php echo esc_attr(site_url('/wp-json/rizqtrack/v1/cron/weekly?key=' . $cronjob_api_key)); ?>" class="large-text" onclick="this.select();" style="font-family: monospace; margin-bottom: 10px;" />
+
+                    <p style="margin-top: 15px;"><strong>Monthly Cron:</strong></p>
+                    <input type="text" readonly value="<?php echo esc_attr(site_url('/wp-json/rizqtrack/v1/cron/monthly?key=' . $cronjob_api_key)); ?>" class="large-text" onclick="this.select();" style="font-family: monospace; margin-bottom: 10px;" />
+
+                    <p style="margin-top: 15px;">
+                        <strong>How to set up on cron-job.org:</strong><br>
+                        1. Go to <a href="https://console.cron-job.org/jobs" target="_blank">cron-job.org</a><br>
+                        2. Create a new cron job<br>
+                        3. Copy the URL above and paste it as the endpoint<br>
+                        4. Set your desired schedule (e.g., weekly on Monday, monthly on 1st day)<br>
+                        5. Save and enable the job
+                    </p>
+                <?php else: ?>
+                    <p style="color: #d63638; margin-top: 15px;">
+                        <strong>⚠️ Please enter your cron-job.org API key above to generate your endpoint URLs.</strong>
+                    </p>
+                <?php endif; ?>
             </div>
 
             <?php if (!empty($stats)): ?>
@@ -2500,6 +2550,7 @@ HTML;
             </table>
             <?php endif; ?>
 
+            <?php if (!empty($cronjob_api_key)): ?>
             <div style="margin-top: 20px;">
                 <h2>Test Endpoints</h2>
                 <p>Click the buttons below to manually trigger the cron jobs for testing:</p>
@@ -2513,7 +2564,7 @@ HTML;
                 const resultDiv = document.getElementById('test-result');
                 resultDiv.innerHTML = '<p>Running ' + type + ' cron job...</p>';
 
-                fetch('<?php echo site_url('/wp-json/rizqtrack/v1/cron/'); ?>' + type + '?key=<?php echo $secret_key; ?>')
+                fetch('<?php echo site_url('/wp-json/rizqtrack/v1/cron/'); ?>' + type + '?key=<?php echo esc_js($cronjob_api_key); ?>')
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -2534,6 +2585,7 @@ HTML;
                     });
             }
             </script>
+            <?php endif; ?>
         </div>
         <?php
     }
