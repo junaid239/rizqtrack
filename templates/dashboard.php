@@ -464,14 +464,12 @@
 
                 <div class="overview-insights">
                     <div class="insight-item">
-                        <span class="insight-icon">📅</span>
                         <div class="insight-content">
                             <span class="insight-label">Avg. Cost/Month</span>
                             <span class="insight-value" id="avg-subscription-cost">₹0.00</span>
                         </div>
                     </div>
                     <div class="insight-item">
-                        <span class="insight-icon">💳</span>
                         <div class="insight-content">
                             <span class="insight-label">Total Subscriptions</span>
                             <span class="insight-value" id="total-subscriptions-count">0</span>
