@@ -123,10 +123,10 @@
 .section-nav-arrows {
     position: fixed;
     right: 30px;
-    bottom: 100px;
+    bottom: 98px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
     z-index: 997;
 }
 
@@ -244,8 +244,8 @@
 
     .section-nav-arrows {
         right: 20px;
-        bottom: 90px;
-        gap: 6px;
+        bottom: 87px;
+        gap: 10px;
     }
 
     .nav-arrow {
@@ -2284,6 +2284,27 @@
     margin-top: 24px;
     padding-top: 24px;
     border-top: 2px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.modal-actions .btn {
+    min-width: 140px;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.modal-actions .btn-secondary {
+    order: 1;
+}
+
+.modal-actions .btn-primary {
+    order: 3;
+}
+
+.modal-actions .btn-success {
+    order: 2;
 }
 
 /* Categories List */
@@ -3857,6 +3878,16 @@
     .subscriptions-filter {
         width: 100%;
         justify-content: flex-start;
+    }
+
+    .modal-actions {
+        flex-direction: column-reverse;
+        gap: 10px;
+    }
+
+    .modal-actions .btn {
+        width: 100%;
+        min-width: auto;
     }
 }
 

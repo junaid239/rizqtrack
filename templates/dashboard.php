@@ -889,10 +889,10 @@
                 </div>
             </div>
 
-            <div class="modal-actions" style="margin-top: 24px;">
-                <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
-                <button type="button" class="btn btn-primary" id="save-email-settings-btn">💾 Save Settings</button>
-                <button type="button" class="btn btn-success" id="send-email-now-btn">📨 Send Now</button>
+            <div class="modal-actions" style="margin-top: 32px;">
+                <button type="button" class="btn btn-secondary cancel-btn">✕ Cancel</button>
+                <button type="button" class="btn btn-primary" id="save-email-settings-btn">💾 Save Configuration</button>
+                <button type="button" class="btn btn-success" id="send-email-now-btn">📧 Send Report Now</button>
             </div>
         </form>
     </div>

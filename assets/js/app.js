@@ -2424,15 +2424,22 @@
 
         getCurrentSectionIndex: function() {
             const sections = this.getSections();
-            const scrollPos = $(window).scrollTop() + 150; // Add offset for better detection
+            const scrollPos = $(window).scrollTop();
             const navHeight = $('#quick-nav').outerHeight() || 0;
+            const windowMiddle = scrollPos + ($(window).height() / 3); // Use top third of viewport
 
             let currentIndex = 0;
+            let minDistance = Infinity;
+
+            // Find the section closest to the top third of viewport
             for (let i = 0; i < sections.length; i++) {
                 const $section = $(sections[i]);
                 if ($section.length) {
                     const sectionTop = $section.offset().top - navHeight;
-                    if (scrollPos >= sectionTop) {
+                    const distance = Math.abs(windowMiddle - sectionTop);
+
+                    if (distance < minDistance) {
+                        minDistance = distance;
                         currentIndex = i;
                     }
                 }
@@ -2447,6 +2454,11 @@
             if (currentIndex < sections.length - 1) {
                 const nextSection = sections[currentIndex + 1];
                 this.scrollToSection(nextSection);
+            } else {
+                // At last section, scroll to bottom
+                $('html, body').animate({
+                    scrollTop: $(document).height()
+                }, 400);
             }
         },
 
@@ -2457,6 +2469,11 @@
             if (currentIndex > 0) {
                 const prevSection = sections[currentIndex - 1];
                 this.scrollToSection(prevSection);
+            } else {
+                // At first section, scroll to absolute top
+                $('html, body').animate({
+                    scrollTop: 0
+                }, 400);
             }
         },
 
