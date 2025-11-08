@@ -3498,6 +3498,7 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     line-height: 1.4;
+    white-space: nowrap;
 }
 
 .main-stat-value,

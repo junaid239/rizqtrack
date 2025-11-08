@@ -457,7 +457,7 @@
                         <span class="main-stat-value" id="total-monthly-cost">₹0.00</span>
                     </div>
                     <div class="main-stat-item">
-                        <span class="main-stat-label">Next Month Commitment</span>
+                        <span class="main-stat-label">Next Month Due</span>
                         <span class="main-stat-value" id="next-month-commitment">₹0.00</span>
                     </div>
                 </div>
