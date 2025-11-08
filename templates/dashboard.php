@@ -23,6 +23,16 @@
         <span class="fab-icon">+</span>
     </button>
 
+    <!-- Section Navigation Arrows -->
+    <div class="section-nav-arrows">
+        <button class="nav-arrow nav-arrow-up" id="nav-arrow-up" title="Previous Section">
+            <span>↑</span>
+        </button>
+        <button class="nav-arrow nav-arrow-down" id="nav-arrow-down" title="Next Section">
+            <span>↓</span>
+        </button>
+    </div>
+
     <div class="motivational-quote-card" id="motivation-card">
         <div class="quote-icon">💡</div>
         <div class="quote-content">
@@ -447,8 +457,8 @@
                         <span class="main-stat-value" id="total-monthly-cost">₹0.00</span>
                     </div>
                     <div class="main-stat-item">
-                        <span class="main-stat-label">Yearly Projection</span>
-                        <span class="main-stat-value" id="yearly-projection">₹0.00</span>
+                        <span class="main-stat-label">Next Month Commitment</span>
+                        <span class="main-stat-value" id="next-month-commitment">₹0.00</span>
                     </div>
                 </div>
 
