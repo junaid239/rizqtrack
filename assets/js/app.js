@@ -285,7 +285,7 @@
             $('#send-email-now-btn').on('click', this.handleSendEmailNow.bind(this));
             $('#save-email-settings-btn').on('click', this.handleSaveEmailSettings.bind(this));
             $('#email-auto-send').on('change', this.toggleAutoEmailSettings.bind(this));
-            $('#email-frequency').on('change', this.toggleMonthlyDaySelector.bind(this));
+            $('#email-frequency-monthly').on('change', this.toggleMonthlyDaySelector.bind(this));
 
             // Navigation toggle
             $('#nav-toggle').on('click', this.toggleNavMenu.bind(this));
@@ -2215,15 +2215,29 @@
                             $('#auto-email-settings').show();
                         }
 
-                        // Load frequency
+                        // Load frequency settings
                         const frequency = response.data.frequency || 'monthly';
-                        $('#email-frequency').val(frequency);
+                        const weeklyEnabled = response.data.weekly_enabled == 1;
+                        const monthlyEnabled = response.data.monthly_enabled == 1;
 
-                        // Show/hide monthly day selector based on frequency
-                        if (frequency === 'monthly') {
+                        // Set checkbox states based on saved data or legacy frequency field
+                        if (frequency === 'both' || (weeklyEnabled && monthlyEnabled)) {
+                            $('#email-frequency-weekly').prop('checked', true);
+                            $('#email-frequency-monthly').prop('checked', true);
+                            $('#monthly-day-selector').show();
+                        } else if (frequency === 'weekly' || weeklyEnabled) {
+                            $('#email-frequency-weekly').prop('checked', true);
+                            $('#email-frequency-monthly').prop('checked', false);
+                            $('#monthly-day-selector').hide();
+                        } else if (frequency === 'monthly' || monthlyEnabled) {
+                            $('#email-frequency-weekly').prop('checked', false);
+                            $('#email-frequency-monthly').prop('checked', true);
                             $('#monthly-day-selector').show();
                         } else {
-                            $('#monthly-day-selector').hide();
+                            // Default to monthly if no frequency set
+                            $('#email-frequency-weekly').prop('checked', false);
+                            $('#email-frequency-monthly').prop('checked', true);
+                            $('#monthly-day-selector').show();
                         }
 
                         // Load send day
@@ -2245,8 +2259,7 @@
         },
 
         toggleMonthlyDaySelector: function() {
-            const frequency = $('#email-frequency').val();
-            if (frequency === 'monthly') {
+            if ($('#email-frequency-monthly').is(':checked')) {
                 $('#monthly-day-selector').slideDown(300);
             } else {
                 $('#monthly-day-selector').slideUp(300);
@@ -2269,6 +2282,26 @@
                 return;
             }
 
+            const autoSend = $('#email-auto-send').is(':checked');
+            const weeklyChecked = $('#email-frequency-weekly').is(':checked');
+            const monthlyChecked = $('#email-frequency-monthly').is(':checked');
+
+            // Validate that at least one frequency is selected if auto-send is enabled
+            if (autoSend && !weeklyChecked && !monthlyChecked) {
+                this.showNotification('Please select at least one report frequency', 'error');
+                return;
+            }
+
+            // Determine primary frequency (for backward compatibility, prefer monthly if both selected)
+            let frequency = '';
+            if (monthlyChecked && weeklyChecked) {
+                frequency = 'both';
+            } else if (monthlyChecked) {
+                frequency = 'monthly';
+            } else if (weeklyChecked) {
+                frequency = 'weekly';
+            }
+
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -2276,8 +2309,10 @@
                     action: 'rizqtrack_save_email_settings',
                     nonce: rizqtrack.nonce,
                     email: emailAddress,
-                    auto_send: $('#email-auto-send').is(':checked') ? 1 : 0,
-                    frequency: $('#email-frequency').val(),
+                    auto_send: autoSend ? 1 : 0,
+                    frequency: frequency,
+                    weekly_enabled: weeklyChecked ? 1 : 0,
+                    monthly_enabled: monthlyChecked ? 1 : 0,
                     send_day: $('#email-send-day').val()
                 },
                 success: (response) => {

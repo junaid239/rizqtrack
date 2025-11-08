@@ -1793,6 +1793,8 @@ class RizqTrack {
             'email' => get_user_meta($user_id, 'rizqtrack_email_address', true) ?: wp_get_current_user()->user_email,
             'auto_send' => get_user_meta($user_id, 'rizqtrack_auto_send', true) ?: 0,
             'frequency' => get_user_meta($user_id, 'rizqtrack_email_frequency', true) ?: 'monthly',
+            'weekly_enabled' => get_user_meta($user_id, 'rizqtrack_weekly_enabled', true) ?: 0,
+            'monthly_enabled' => get_user_meta($user_id, 'rizqtrack_monthly_enabled', true) ?: 0,
             'send_day' => get_user_meta($user_id, 'rizqtrack_send_day', true) ?: -1
         ];
 
@@ -1812,6 +1814,8 @@ class RizqTrack {
         $email = sanitize_email($_POST['email']);
         $auto_send = isset($_POST['auto_send']) ? intval($_POST['auto_send']) : 0;
         $frequency = isset($_POST['frequency']) ? sanitize_text_field($_POST['frequency']) : 'monthly';
+        $weekly_enabled = isset($_POST['weekly_enabled']) ? intval($_POST['weekly_enabled']) : 0;
+        $monthly_enabled = isset($_POST['monthly_enabled']) ? intval($_POST['monthly_enabled']) : 0;
         $send_day = isset($_POST['send_day']) ? intval($_POST['send_day']) : -1;
 
         if (!is_email($email)) {
@@ -1822,18 +1826,26 @@ class RizqTrack {
         update_user_meta($user_id, 'rizqtrack_email_address', $email);
         update_user_meta($user_id, 'rizqtrack_auto_send', $auto_send);
         update_user_meta($user_id, 'rizqtrack_email_frequency', $frequency);
+        update_user_meta($user_id, 'rizqtrack_weekly_enabled', $weekly_enabled);
+        update_user_meta($user_id, 'rizqtrack_monthly_enabled', $monthly_enabled);
         update_user_meta($user_id, 'rizqtrack_send_day', $send_day);
 
-        // Schedule/unschedule cron jobs based on auto_send and frequency
+        // Schedule/unschedule cron jobs based on auto_send and individual frequencies
         if ($auto_send == 1) {
-            // Use the update_user_cron function to schedule based on frequency
-            $this->update_user_cron($user_id, $frequency);
+            // Handle weekly scheduling
+            if ($weekly_enabled) {
+                $this->update_user_cron($user_id, 'weekly');
+            } else {
+                wp_clear_scheduled_hook('rizqtrack_send_weekly_email', [$user_id]);
+            }
 
-            // For monthly, also schedule the daily check
-            if ($frequency === 'monthly') {
+            // Handle monthly scheduling
+            if ($monthly_enabled) {
                 if (!wp_next_scheduled('rizqtrack_send_monthly_email', [$user_id])) {
                     wp_schedule_event(time(), 'daily', 'rizqtrack_send_monthly_email', [$user_id]);
                 }
+            } else {
+                wp_clear_scheduled_hook('rizqtrack_send_monthly_email', [$user_id]);
             }
         } else {
             // Unschedule both if auto-send is disabled

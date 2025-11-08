@@ -842,19 +842,28 @@
                 <small style="margin-left: 24px; display: block; margin-top: 4px;">Automatically send reports on your chosen schedule</small>
             </div>
 
-            <div id="auto-email-settings" style="display: none; margin-top: 16px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
-                <div class="form-group">
-                    <label for="email-frequency">📆 Report Frequency <span class="required">*</span></label>
-                    <select id="email-frequency">
-                        <option value="weekly">Weekly (Every Monday)</option>
-                        <option value="monthly" selected>Monthly</option>
-                    </select>
-                    <small>Choose how often you want to receive automatic reports</small>
+            <div id="auto-email-settings" style="display: none; margin-top: 16px; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: #495057;">📆 Select Report Frequency</h4>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="email-frequency-weekly">
+                        <span class="checkbox-text">📅 Weekly Reports (Every Monday)</span>
+                    </label>
+                    <small style="margin-left: 24px; display: block; margin-top: 4px; color: #6c757d;">Receive a summary of the past week every Monday at 9:00 AM</small>
                 </div>
 
-                <div class="form-group" id="monthly-day-selector" style="margin-top: 12px;">
-                    <label for="email-send-day">📅 Send on day of month <span class="required">*</span></label>
-                    <select id="email-send-day">
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="email-frequency-monthly">
+                        <span class="checkbox-text">📅 Monthly Reports</span>
+                    </label>
+                    <small style="margin-left: 24px; display: block; margin-top: 4px; color: #6c757d;">Receive a monthly summary on your chosen day</small>
+                </div>
+
+                <div class="form-group" id="monthly-day-selector" style="display: none; margin-top: 12px; margin-left: 24px; padding: 12px; background: #fff; border-radius: 6px; border: 1px solid #dee2e6;">
+                    <label for="email-send-day" style="font-weight: 600; font-size: 13px;">📅 Send on day of month</label>
+                    <select id="email-send-day" style="margin-top: 8px;">
                         <option value="1">1st of every month</option>
                         <option value="2">2nd of every month</option>
                         <option value="3">3rd of every month</option>
@@ -870,24 +879,25 @@
                         <option value="25">25th of every month</option>
                         <option value="-1" selected>Last day of every month</option>
                     </select>
-                    <small>Choose which day of the month to receive your automatic report</small>
+                    <small style="display: block; margin-top: 4px;">Reports will be sent at 9:00 AM on this day</small>
                 </div>
             </div>
 
-            <div class="form-row" style="margin-top: 24px;">
+            <hr style="margin: 24px 0; border: none; border-top: 1px solid #e9ecef;">
+
+            <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #495057;">📤 Send Manual Report</h4>
+            <div class="form-row" style="margin-bottom: 24px;">
                 <div class="form-group">
                     <label for="email-start-date">Start Date <span class="required">*</span></label>
                     <input type="date" id="email-start-date" required>
-                    <small>For manual reports only</small>
                 </div>
                 <div class="form-group">
                     <label for="email-end-date">End Date <span class="required">*</span></label>
                     <input type="date" id="email-end-date" required>
-                    <small>For manual reports only</small>
                 </div>
             </div>
 
-            <div class="modal-actions" style="margin-top: 32px;">
+            <div class="modal-actions">
                 <button type="button" class="btn btn-secondary cancel-btn">✕ Cancel</button>
                 <button type="button" class="btn btn-primary" id="save-email-settings-btn">💾 Save Configuration</button>
                 <button type="button" class="btn btn-success" id="send-email-now-btn">📧 Send Report Now</button>
