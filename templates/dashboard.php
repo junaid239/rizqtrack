@@ -315,9 +315,10 @@
             </div>
 
             <div class="chart-card full-width-chart">
-                <h3>📉 Spending Over Time</h3>
+                <h3>📊 Pareto Analysis - Top Spending Categories</h3>
+                <p style="font-size: 13px; color: #6b7280; margin: 0 0 12px 0;">Identifies the 20% of categories causing 80% of spending</p>
                 <div class="chart-wrapper">
-                    <canvas id="spending-trend-chart"></canvas>
+                    <canvas id="pareto-chart"></canvas>
                 </div>
             </div>
 

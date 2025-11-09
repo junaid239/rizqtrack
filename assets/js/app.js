@@ -1018,7 +1018,7 @@
 
             // Re-render charts with comparison data
             this.renderCategoryChart(currentData.category_data || []);
-            this.renderSpendingTrendChart(currentData.spending_trend || []);
+            this.renderParetoChart(currentData.category_data || []);
         },
 
         loadChartData: function() {
@@ -1045,7 +1045,7 @@
                     if (response.success) {
                         this.renderCategoryChart(response.data.category_data || []);
                         this.renderTopFrequentChart(response.data.top_frequent || []);
-                        this.renderSpendingTrendChart(response.data.spending_trend || []);
+                        this.renderParetoChart(response.data.category_data || []);
                     }
                 },
                 error: (xhr, status, error) => {
@@ -1053,7 +1053,7 @@
                     // Render empty charts
                     this.renderCategoryChart([]);
                     this.renderTopFrequentChart([]);
-                    this.renderSpendingTrendChart([]);
+                    this.renderParetoChart([]);
                 }
             });
         },
@@ -1080,18 +1080,18 @@
 
             const labels = displayData.map(d => `${d.emoji} ${d.name}`);
             const values = displayData.map(d => parseFloat(d.total));
-            const colors = this.generateColors(displayData.length);
 
             // Responsive font sizes
             const labelFontSize = isMobile ? 10 : 12;
             const dataLabelFontSize = isMobile ? 10 : 13;
 
-            // Build datasets
+            // Build datasets with time period colors (blue for current, gray for previous)
             const datasets = [{
                 label: 'Current Period',
                 data: values,
-                backgroundColor: colors,
-                borderWidth: 0
+                backgroundColor: 'rgba(59, 130, 246, 0.8)', // Blue for current period
+                borderWidth: 0,
+                borderRadius: 4
             }];
 
             // Add comparison dataset if available
@@ -1102,11 +1102,12 @@
                     return compData ? parseFloat(compData.total) : 0;
                 });
 
-                datasets.push({
+                datasets.unshift({
                     label: 'Previous Period',
                     data: comparisonValues,
-                    backgroundColor: colors.map(c => c.replace('1)', '0.4)')), // Make semi-transparent
-                    borderWidth: 0
+                    backgroundColor: 'rgba(156, 163, 175, 0.6)', // Gray for previous period
+                    borderWidth: 0,
+                    borderRadius: 4
                 });
             }
 
@@ -1171,6 +1172,7 @@
                     scales: {
                         x: {
                             beginAtZero: true,
+                            stacked: false, // Grouped bars, not stacked
                             grace: '20%', // More space to prevent cutoff
                             ticks: {
                                 callback: function(value) {
@@ -1186,6 +1188,7 @@
                             }
                         },
                         y: {
+                            stacked: false, // Grouped bars, not stacked
                             ticks: {
                                 color: '#1f2937',
                                 font: {
@@ -1265,31 +1268,44 @@
             // Sort by count descending (already sorted from backend but ensure it)
             const sortedData = data.sort((a, b) => parseInt(b.count) - parseInt(a.count));
 
-            // Get top 10 most frequent categories
+            // Get labels and current period counts
             const labels = sortedData.map(d => `${d.emoji} ${d.name}`);
             const counts = sortedData.map(d => parseInt(d.count) || 0);
             const amounts = sortedData.map(d => parseFloat(d.total_amount) || 0);
 
-            // Generate vibrant colors
-            const colors = sortedData.map((_, i) => {
-                const hue = (i * 360 / sortedData.length) % 360;
-                return `hsla(${hue}, 70%, 60%, 0.8)`;
-            });
+            // Build datasets for diverging chart
+            const datasets = [{
+                label: 'Current Period',
+                data: counts,
+                backgroundColor: 'rgba(59, 130, 246, 0.8)', // Blue for current (right)
+                borderRadius: 4,
+                borderWidth: 0
+            }];
+
+            // Add previous period data if available (shown on left as negative values)
+            let previousCounts = [];
+            if (this.comparisonChartData && this.comparisonChartData.top_frequent) {
+                previousCounts = labels.map(label => {
+                    const categoryName = label.split(' ').slice(1).join(' '); // Remove emoji
+                    const compData = this.comparisonChartData.top_frequent.find(d => d.name === categoryName);
+                    const count = compData ? parseInt(compData.count) : 0;
+                    return -Math.abs(count); // Negative for left side
+                });
+
+                datasets.unshift({
+                    label: 'Previous Period',
+                    data: previousCounts,
+                    backgroundColor: 'rgba(156, 163, 175, 0.6)', // Gray for previous (left)
+                    borderRadius: 4,
+                    borderWidth: 0
+                });
+            }
 
             this.charts.topFrequent = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        label: 'Transaction Count',
-                        data: counts,
-                        backgroundColor: colors,
-                        borderColor: colors.map(c => c.replace('0.8', '1')),
-                        borderWidth: 2,
-                        borderRadius: 8,
-                        barThickness: 'flex',
-                        maxBarThickness: 40
-                    }]
+                    datasets: datasets
                 },
                 options: {
                     indexAxis: 'y',
@@ -1297,7 +1313,13 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: false
+                            display: this.comparisonChartData ? true : false,
+                            position: 'top',
+                            labels: {
+                                boxWidth: 15,
+                                padding: 10,
+                                font: { size: 11 }
+                            }
                         },
                         tooltip: {
                             backgroundColor: 'rgba(0, 0, 0, 0.9)',
@@ -1307,20 +1329,30 @@
                             callbacks: {
                                 label: (context) => {
                                     const index = context.dataIndex;
-                                    const count = counts[index];
-                                    const total = amounts[index];
-                                    return [
-                                        `Transactions: ${count}`,
-                                        `Total Amount: ₹${total.toLocaleString()}`,
-                                        `Average: ₹${(total / count).toLocaleString(undefined, {maximumFractionDigits: 0})}`
-                                    ];
+                                    const count = Math.abs(context.parsed.x);
+                                    const periodLabel = context.dataset.label;
+
+                                    if (periodLabel === 'Current Period') {
+                                        const total = amounts[index];
+                                        return [
+                                            `${periodLabel}:`,
+                                            `Transactions: ${count}`,
+                                            `Total: ₹${total.toLocaleString()}`,
+                                            `Average: ₹${(total / count).toLocaleString(undefined, {maximumFractionDigits: 0})}`
+                                        ];
+                                    } else {
+                                        return [
+                                            `${periodLabel}:`,
+                                            `Transactions: ${count}`
+                                        ];
+                                    }
                                 }
                             }
                         }
                     },
                     scales: {
                         x: {
-                            beginAtZero: true,
+                            stacked: false,
                             title: {
                                 display: true,
                                 text: 'Number of Transactions',
@@ -1328,13 +1360,17 @@
                             },
                             ticks: {
                                 precision: 0,
-                                font: { size: 11 }
+                                font: { size: 11 },
+                                callback: function(value) {
+                                    return Math.abs(value); // Show positive numbers on both sides
+                                }
                             },
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.05)'
                             }
                         },
                         y: {
+                            stacked: false,
                             title: {
                                 display: true,
                                 text: 'Category',
@@ -1359,6 +1395,165 @@
             this.renderTreemap(sortedData);
         },
 
+        renderParetoChart: function(data) {
+            const ctx = document.getElementById('pareto-chart');
+            if (!ctx) return;
+
+            if (this.charts.pareto) {
+                this.charts.pareto.destroy();
+            }
+
+            if (!data || data.length === 0) {
+                return;
+            }
+
+            // Sort by total amount descending
+            const sortedData = data.sort((a, b) => parseFloat(b.total) - parseFloat(a.total));
+
+            // Calculate cumulative percentages
+            const totalAmount = sortedData.reduce((sum, d) => sum + parseFloat(d.total), 0);
+            let cumulativeSum = 0;
+            const cumulativePercentages = sortedData.map(d => {
+                cumulativeSum += parseFloat(d.total);
+                return (cumulativeSum / totalAmount) * 100;
+            });
+
+            const labels = sortedData.map(d => `${d.emoji} ${d.name}`);
+            const amounts = sortedData.map(d => parseFloat(d.total));
+
+            this.charts.pareto = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Category Spending',
+                            data: amounts,
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 0,
+                            borderRadius: 4,
+                            yAxisID: 'y',
+                            order: 2
+                        },
+                        {
+                            label: 'Cumulative %',
+                            data: cumulativePercentages,
+                            type: 'line',
+                            borderColor: 'rgba(239, 68, 68, 0.9)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: 'rgba(239, 68, 68, 1)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            yAxisID: 'y1',
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                boxWidth: 15,
+                                padding: 10,
+                                font: { size: 11 },
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            padding: 14,
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            callbacks: {
+                                label: (context) => {
+                                    if (context.dataset.label === 'Category Spending') {
+                                        return `Spending: ₹${context.parsed.y.toLocaleString()}`;
+                                    } else {
+                                        return `Cumulative: ${context.parsed.y.toFixed(1)}%`;
+                                    }
+                                }
+                            }
+                        },
+                        datalabels: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                font: { size: 10 },
+                                maxRotation: 45,
+                                minRotation: 45,
+                                callback: function(value, index) {
+                                    const label = this.getLabelForValue(value);
+                                    return label.length > 20 ? label.substring(0, 20) + '...' : label;
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Spending Amount (₹)',
+                                font: { size: 12, weight: 'bold' }
+                            },
+                            ticks: {
+                                font: { size: 11 },
+                                callback: function(value) {
+                                    if (value >= 1000) {
+                                        return '₹' + (value / 1000) + 'k';
+                                    }
+                                    return '₹' + value;
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Cumulative Percentage (%)',
+                                font: { size: 12, weight: 'bold' }
+                            },
+                            ticks: {
+                                font: { size: 11 },
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
+        },
+
         renderTreemap: function(data) {
             const container = document.getElementById('treemap-container');
             if (!container || !data || data.length === 0) return;
@@ -1373,6 +1568,31 @@
                 const percentage = (parseInt(item.count) / total) * 100;
                 const hue = (index * 360 / data.length) % 360;
                 const color = `hsl(${hue}, 70%, 60%)`;
+
+                // Get previous period data if available
+                let previousPeriodHtml = '';
+                if (this.comparisonChartData && this.comparisonChartData.top_frequent) {
+                    const compData = this.comparisonChartData.top_frequent.find(d => d.name === item.name);
+                    if (compData) {
+                        const prevCount = parseInt(compData.count) || 0;
+                        const prevAmount = parseFloat(compData.total_amount) || 0;
+                        const currentCount = parseInt(item.count) || 0;
+                        const currentAmount = parseFloat(item.total_amount) || 0;
+
+                        // Calculate change
+                        const countChange = currentCount - prevCount;
+                        const amountChange = currentAmount - prevAmount;
+                        const changeArrow = countChange > 0 ? '↑' : (countChange < 0 ? '↓' : '→');
+
+                        previousPeriodHtml = `
+                            <br><br>
+                            <strong>Previous Period:</strong><br>
+                            Transactions: ${prevCount}<br>
+                            Total: ₹${prevAmount.toLocaleString()}<br>
+                            Change: ${changeArrow} ${Math.abs(countChange)} transactions, ₹${Math.abs(amountChange).toLocaleString()}
+                        `;
+                    }
+                }
 
                 const block = document.createElement('div');
                 block.className = 'treemap-block';
@@ -1392,7 +1612,7 @@
                         <strong>${item.emoji} ${item.name}</strong><br>
                         Transactions: ${item.count}<br>
                         Total: ₹${parseFloat(item.total_amount).toLocaleString()}<br>
-                        ${percentage.toFixed(1)}% of total
+                        ${percentage.toFixed(1)}% of total${previousPeriodHtml}
                     </div>
                 `;
 
@@ -1475,158 +1695,6 @@
             `;
 
             $container.html(html);
-        },
-
-        renderSpendingTrendChart: function(data) {
-            const ctx = document.getElementById('spending-trend-chart');
-            if (!ctx) return;
-
-            if (this.charts.spendingTrend) {
-                this.charts.spendingTrend.destroy();
-            }
-
-            if (!data || data.length === 0) {
-                return;
-            }
-
-            const dates = data.map(d => d.date);
-            const incomes = data.map(d => parseFloat(d.income) || 0);
-            const expenses = data.map(d => parseFloat(d.expense) || 0);
-
-            // Build datasets
-            const datasets = [
-                {
-                    label: 'Income (Current)',
-                    data: incomes,
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    pointBackgroundColor: '#10b981',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2
-                },
-                {
-                    label: 'Expense (Current)',
-                    data: expenses,
-                    borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    pointBackgroundColor: '#ef4444',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2
-                }
-            ];
-
-            // Add comparison datasets if available
-            if (this.comparisonChartData && this.comparisonChartData.spending_trend) {
-                const compDates = this.comparisonChartData.spending_trend.map(d => d.date);
-                const compIncomes = this.comparisonChartData.spending_trend.map(d => parseFloat(d.income) || 0);
-                const compExpenses = this.comparisonChartData.spending_trend.map(d => parseFloat(d.expense) || 0);
-
-                datasets.push({
-                    label: 'Income (Previous)',
-                    data: compIncomes,
-                    borderColor: '#10b981',
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    tension: 0.4,
-                    fill: false,
-                    pointRadius: 3,
-                    pointHoverRadius: 5,
-                    pointBackgroundColor: '#10b981',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 1
-                });
-
-                datasets.push({
-                    label: 'Expense (Previous)',
-                    data: compExpenses,
-                    borderColor: '#ef4444',
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    tension: 0.4,
-                    fill: false,
-                    pointRadius: 3,
-                    pointHoverRadius: 5,
-                    pointBackgroundColor: '#ef4444',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 1
-                });
-            }
-
-            this.charts.spendingTrend = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                padding: 15,
-                                usePointStyle: true,
-                                font: {
-                                    size: 13
-                                }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
-                            callbacks: {
-                                label: (context) => {
-                                    return `${context.dataset.label}: ₹${context.parsed.y.toLocaleString()}`;
-                                }
-                            }
-                        },
-                        datalabels: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '₹' + value.toLocaleString();
-                                },
-                                color: '#1f2937'
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            }
-                        },
-                        x: {
-                            ticks: {
-                                color: '#1f2937',
-                                maxRotation: 45,
-                                minRotation: 45
-                            },
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
         },
 
         generateColors: function(count) {
@@ -2652,8 +2720,16 @@
         },
 
         handleNavItemClick: function(e) {
-            e.preventDefault();
             const target = $(e.currentTarget).attr('href');
+
+            // Allow external links (like logout) to work normally
+            if (target && (target.startsWith('http') || target.indexOf('wp-login.php') !== -1 || target.indexOf('wp-admin') !== -1)) {
+                // Close mobile menu and let the link work normally
+                $('#nav-menu').removeClass('active');
+                return; // Don't prevent default for external/WordPress links
+            }
+
+            e.preventDefault();
             const $target = $(target);
 
             if ($target.length) {
