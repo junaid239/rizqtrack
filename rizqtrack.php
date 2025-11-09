@@ -3,7 +3,7 @@
  * Plugin Name: RizqTrack - Personal Finance Tracker
  * Plugin URI: https://thejunaid.in
  * Description: Premium zero-refresh personal finance management dashboard for WordPress
- * Version: 1.4.7
+ * Version: 1.4.8
  * Author: Junaid Ahmed
  * Author URI: https://thejunaid.in
  * License: GPL v2 or later
@@ -355,7 +355,7 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack' && $hook !== 'rizqtrack_page_rizqtrack-cron-logs' && $hook !== 'rizqtrack_page_rizqtrack-admin') return;
 
-        $version = '1.4.7'; // Updated version for cache busting
+        $version = '1.4.8'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -379,7 +379,7 @@ class RizqTrack {
             return;
         }
 
-        $version = '1.4.7'; // Updated version for cache busting
+        $version = '1.4.8'; // Updated version for cache busting
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -1052,10 +1052,38 @@ class RizqTrack {
         $spending_trend_params = array_merge([$user_id, $start_date, $end_date], $category_filter_params);
         $spending_trend = $wpdb->get_results($wpdb->prepare($spending_trend_query, $spending_trend_params));
 
+        // Get total transaction count for the period
+        $transaction_count_query = "SELECT COUNT(*) as total_count
+            FROM {$this->table_transactions} t
+            LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
+            WHERE t.user_id = %d AND t.status = 'Active'
+            AND t.date >= %s AND t.date <= %s
+            $category_filter_sql";
+
+        $transaction_count_params = array_merge([$user_id, $start_date, $end_date], $category_filter_params);
+        $transaction_count_result = $wpdb->get_row($wpdb->prepare($transaction_count_query, $transaction_count_params));
+        $transaction_count = $transaction_count_result ? intval($transaction_count_result->total_count) : 0;
+
+        // Calculate total income and expense for the period
+        $totals_query = "SELECT
+                COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as total_income,
+                COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as total_expense
+            FROM {$this->table_transactions} t
+            LEFT JOIN {$this->table_categories} c ON t.category_id = c.id
+            WHERE t.user_id = %d AND t.status = 'Active'
+            AND t.date >= %s AND t.date <= %s
+            $category_filter_sql";
+
+        $totals_params = array_merge([$user_id, $start_date, $end_date], $category_filter_params);
+        $totals = $wpdb->get_row($wpdb->prepare($totals_query, $totals_params));
+
         wp_send_json_success([
             'category_data' => $category_data,
             'top_frequent' => $top_frequent,
-            'spending_trend' => $spending_trend
+            'spending_trend' => $spending_trend,
+            'transaction_count' => $transaction_count,
+            'total_income' => floatval($totals->total_income ?? 0),
+            'total_expense' => floatval($totals->total_expense ?? 0)
         ]);
         wp_die();
     }

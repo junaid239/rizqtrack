@@ -937,35 +937,16 @@
         },
 
         updateComparisonCards: function(currentData, comparisonData) {
-            // Calculate totals from spending_trend data
-            const calculateTotals = (data) => {
-                let income = 0;
-                let expense = 0;
-                let transactionCount = 0;
-
-                if (data.data && data.data.spending_trend) {
-                    data.data.spending_trend.forEach(day => {
-                        income += parseFloat(day.income || 0);
-                        expense += parseFloat(day.expense || 0);
-                    });
-                    transactionCount = data.data.spending_trend.length;
-                }
-
-                return { income, expense, transactionCount };
-            };
-
-            const current = calculateTotals(currentData);
-            const comparison = calculateTotals(comparisonData);
-
-            const currentIncome = current.income;
-            const currentExpense = current.expense;
+            // Extract totals from response data
+            const currentIncome = parseFloat(currentData.data?.total_income || 0);
+            const currentExpense = parseFloat(currentData.data?.total_expense || 0);
             const currentSavings = currentIncome - currentExpense;
-            const currentTransactions = current.transactionCount;
+            const currentTransactions = parseInt(currentData.data?.transaction_count || 0);
 
-            const compIncome = comparison.income;
-            const compExpense = comparison.expense;
+            const compIncome = parseFloat(comparisonData.data?.total_income || 0);
+            const compExpense = parseFloat(comparisonData.data?.total_expense || 0);
             const compSavings = compIncome - compExpense;
-            const compTransactions = comparison.transactionCount;
+            const compTransactions = parseInt(comparisonData.data?.transaction_count || 0);
 
             // Helper function to format currency
             const formatCurrency = (amount) => {
