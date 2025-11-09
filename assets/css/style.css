@@ -139,27 +139,6 @@
     justify-content: center;
 }
 
-.fab-refresh::before {
-    content: '🔄 Hard Refresh';
-    position: absolute;
-    right: 68px;
-    background: rgba(0, 0, 0, 0.85);
-    color: white;
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.fab-refresh:hover::before {
-    opacity: 1;
-}
-
 .fab-refresh:hover {
     transform: scale(1.1) rotate(180deg);
     box-shadow: 0 8px 25px rgba(8, 145, 178, 0.5);
