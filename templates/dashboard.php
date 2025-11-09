@@ -238,6 +238,68 @@
                     <!-- Power BI-style category filters will be rendered here -->
                 </div>
             </div>
+
+            <div class="filter-group">
+                <label class="filter-label">
+                    <input type="checkbox" id="comparison-toggle" checked style="margin-right: 8px; cursor: pointer;">
+                    📊 Compare with Previous Period
+                </label>
+                <select id="comparison-mode" class="date-input" style="margin-left: 8px; display: inline-block; width: auto; padding: 4px 8px;">
+                    <option value="previous-month">Previous Month</option>
+                    <option value="custom">Custom Period</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Custom Period Comparison (Hidden by default) -->
+        <div id="custom-comparison-dates" class="unified-filters" style="display: none; margin-top: -16px; padding-top: 0;">
+            <div class="filter-group">
+                <label class="filter-label">📅 Compare Period:</label>
+                <div class="date-range-filters">
+                    <input type="date" id="compare-start-date" class="date-input" />
+                    <span class="date-separator">to</span>
+                    <input type="date" id="compare-end-date" class="date-input" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison KPI Cards -->
+        <div id="comparison-cards" class="comparison-kpi-section" style="margin-top: 24px; margin-bottom: 24px;">
+            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary);">📊 Current vs Previous Period</h3>
+            <div class="comparison-kpi-grid">
+                <div class="comparison-kpi-card">
+                    <div class="comparison-kpi-label">Total Income</div>
+                    <div class="comparison-kpi-current" id="comp-income-current">₹0.00</div>
+                    <div class="comparison-kpi-change" id="comp-income-change">
+                        <span class="change-badge">—</span>
+                        <span class="change-previous">vs ₹0.00</span>
+                    </div>
+                </div>
+                <div class="comparison-kpi-card">
+                    <div class="comparison-kpi-label">Total Expenses</div>
+                    <div class="comparison-kpi-current" id="comp-expense-current">₹0.00</div>
+                    <div class="comparison-kpi-change" id="comp-expense-change">
+                        <span class="change-badge">—</span>
+                        <span class="change-previous">vs ₹0.00</span>
+                    </div>
+                </div>
+                <div class="comparison-kpi-card">
+                    <div class="comparison-kpi-label">Net Savings</div>
+                    <div class="comparison-kpi-current" id="comp-savings-current">₹0.00</div>
+                    <div class="comparison-kpi-change" id="comp-savings-change">
+                        <span class="change-badge">—</span>
+                        <span class="change-previous">vs ₹0.00</span>
+                    </div>
+                </div>
+                <div class="comparison-kpi-card">
+                    <div class="comparison-kpi-label">Transactions</div>
+                    <div class="comparison-kpi-current" id="comp-transactions-current">0</div>
+                    <div class="comparison-kpi-change" id="comp-transactions-change">
+                        <span class="change-badge">—</span>
+                        <span class="change-previous">vs 0</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="charts-container">

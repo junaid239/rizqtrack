@@ -175,6 +175,11 @@
             // Date Range Filters
             $('#filter-start-date, #filter-end-date').on('change', this.handleDateFilterChange.bind(this));
 
+            // Comparison Toggle
+            $('#comparison-toggle').on('change', this.handleComparisonToggle.bind(this));
+            $('#comparison-mode').on('change', this.handleComparisonModeChange.bind(this));
+            $('#compare-start-date, #compare-end-date').on('change', this.handleDateFilterChange.bind(this));
+
             // Transaction Actions
             $(document).on('click', '.edit-transaction', this.openEditModal.bind(this));
             $(document).on('click', '.delete-transaction', this.handleDeleteTransaction.bind(this));
@@ -421,6 +426,10 @@
                             this.categorySlicersRendered = true;
                             // Load chart data after categories are initialized
                             this.loadChartData();
+                            // Load comparison data if toggle is enabled (default is on)
+                            if ($('#comparison-toggle').is(':checked')) {
+                                this.loadComparisonData();
+                            }
                         }
                     }
                 }
@@ -833,6 +842,164 @@
 
         handleDateFilterChange: function() {
             this.loadChartData();
+            if ($('#comparison-toggle').is(':checked')) {
+                this.loadComparisonData();
+            }
+        },
+
+        handleComparisonToggle: function() {
+            const isEnabled = $('#comparison-toggle').is(':checked');
+            if (isEnabled) {
+                $('#comparison-cards').slideDown(300);
+                $('#comparison-mode').prop('disabled', false);
+                this.loadComparisonData();
+            } else {
+                $('#comparison-cards').slideUp(300);
+                $('#comparison-mode').prop('disabled', true);
+            }
+        },
+
+        handleComparisonModeChange: function() {
+            const mode = $('#comparison-mode').val();
+            if (mode === 'custom') {
+                $('#custom-comparison-dates').slideDown(300);
+            } else {
+                $('#custom-comparison-dates').slideUp(300);
+            }
+            if ($('#comparison-toggle').is(':checked')) {
+                this.loadComparisonData();
+            }
+        },
+
+        getComparisonDates: function() {
+            const mode = $('#comparison-mode').val();
+            const currentStart = new Date($('#filter-start-date').val());
+            const currentEnd = new Date($('#filter-end-date').val());
+
+            if (mode === 'custom') {
+                return {
+                    start: $('#compare-start-date').val(),
+                    end: $('#compare-end-date').val()
+                };
+            } else {
+                // Previous month logic
+                const prevStart = new Date(currentStart);
+                prevStart.setMonth(prevStart.getMonth() - 1);
+                const prevEnd = new Date(currentEnd);
+                prevEnd.setMonth(prevEnd.getMonth() - 1);
+
+                return {
+                    start: this.formatDateInput(prevStart),
+                    end: this.formatDateInput(prevEnd)
+                };
+            }
+        },
+
+        loadComparisonData: function() {
+            if (!$('#comparison-toggle').is(':checked')) return;
+
+            const currentStart = $('#filter-start-date').val();
+            const currentEnd = $('#filter-end-date').val();
+            const comparisonDates = this.getComparisonDates();
+
+            // Fetch current period data
+            const currentDataPromise = $.ajax({
+                url: rizqtrack.ajax_url,
+                method: 'POST',
+                data: {
+                    action: 'rizqtrack_get_chart_data',
+                    nonce: rizqtrack.nonce,
+                    start_date: currentStart,
+                    end_date: currentEnd
+                }
+            });
+
+            // Fetch comparison period data
+            const comparisonDataPromise = $.ajax({
+                url: rizqtrack.ajax_url,
+                method: 'POST',
+                data: {
+                    action: 'rizqtrack_get_chart_data',
+                    nonce: rizqtrack.nonce,
+                    start_date: comparisonDates.start,
+                    end_date: comparisonDates.end
+                }
+            });
+
+            // Process both results
+            Promise.all([currentDataPromise, comparisonDataPromise])
+                .then(([currentData, comparisonData]) => {
+                    this.updateComparisonCards(currentData, comparisonData);
+                })
+                .catch(error => {
+                    console.error('Error loading comparison data:', error);
+                });
+        },
+
+        updateComparisonCards: function(currentData, comparisonData) {
+            // Calculate totals
+            const currentIncome = currentData.income || 0;
+            const currentExpense = currentData.expense || 0;
+            const currentSavings = currentIncome - currentExpense;
+            const currentTransactions = (currentData.transactions || []).length;
+
+            const compIncome = comparisonData.income || 0;
+            const compExpense = comparisonData.expense || 0;
+            const compSavings = compIncome - compExpense;
+            const compTransactions = (comparisonData.transactions || []).length;
+
+            // Helper function to format currency
+            const formatCurrency = (amount) => {
+                return '₹' + new Intl.NumberFormat('en-IN', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }).format(amount);
+            };
+
+            // Helper function to calculate percentage change
+            const calcChange = (current, previous) => {
+                if (previous === 0) {
+                    return current > 0 ? 100 : 0;
+                }
+                return ((current - previous) / previous) * 100;
+            };
+
+            // Helper function to render change badge
+            const renderChange = (current, previous, isTransaction = false) => {
+                const change = calcChange(current, previous);
+                const absChange = Math.abs(change);
+                let badgeClass = 'neutral';
+
+                if (change > 0) badgeClass = 'positive';
+                else if (change < 0) badgeClass = 'negative';
+
+                const formattedPrevious = isTransaction ? previous : formatCurrency(previous);
+
+                return {
+                    badge: `<span class="change-badge ${badgeClass}">${absChange.toFixed(1)}%</span>`,
+                    previous: `<span class="change-previous">vs ${formattedPrevious}</span>`
+                };
+            };
+
+            // Update Income
+            $('#comp-income-current').text(formatCurrency(currentIncome));
+            const incomeChange = renderChange(currentIncome, compIncome);
+            $('#comp-income-change').html(incomeChange.badge + incomeChange.previous);
+
+            // Update Expenses
+            $('#comp-expense-current').text(formatCurrency(currentExpense));
+            const expenseChange = renderChange(currentExpense, compExpense);
+            $('#comp-expense-change').html(expenseChange.badge + expenseChange.previous);
+
+            // Update Savings
+            $('#comp-savings-current').text(formatCurrency(currentSavings));
+            const savingsChange = renderChange(currentSavings, compSavings);
+            $('#comp-savings-change').html(savingsChange.badge + savingsChange.previous);
+
+            // Update Transactions
+            $('#comp-transactions-current').text(currentTransactions);
+            const transactionsChange = renderChange(currentTransactions, compTransactions, true);
+            $('#comp-transactions-change').html(transactionsChange.badge + transactionsChange.previous);
         },
 
         loadChartData: function() {
