@@ -224,7 +224,7 @@
         <!-- Unified Filters Section -->
         <div class="unified-filters">
             <div class="filter-group">
-                <label class="filter-label">📅 Time Period:</label>
+                <label class="filter-label">📅 Current Period:</label>
                 <div class="date-range-filters">
                     <input type="date" id="filter-start-date" class="date-input" />
                     <span class="date-separator">to</span>
@@ -232,10 +232,69 @@
                 </div>
             </div>
 
+            <div class="filter-group comparison-filter-group">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <label class="filter-label" style="margin: 0; display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="comparison-toggle" checked style="margin-right: 8px; cursor: pointer; width: 18px; height: 18px;">
+                        📊 Compare With
+                    </label>
+                    <select id="comparison-mode" class="date-input" style="flex: 0 0 auto; min-width: 160px;">
+                        <option value="previous-month">Previous Month</option>
+                        <option value="custom">Custom Period</option>
+                    </select>
+                </div>
+
+                <!-- Custom Period Dates (inline, hidden by default) -->
+                <div id="custom-comparison-dates" class="date-range-filters" style="display: none;">
+                    <input type="date" id="compare-start-date" class="date-input" placeholder="Compare from" />
+                    <span class="date-separator">to</span>
+                    <input type="date" id="compare-end-date" class="date-input" placeholder="Compare to" />
+                </div>
+            </div>
+
             <div class="filter-group">
                 <label class="filter-label">🏷️ Categories:</label>
                 <div class="chart-slicer" id="category-slicers">
                     <!-- Power BI-style category filters will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison KPI Cards -->
+        <div id="comparison-cards" class="comparison-kpi-section" style="margin-top: 24px; margin-bottom: 24px;">
+            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary);">📊 Period Comparison</h3>
+            <div class="comparison-kpi-grid">
+                <div class="comparison-kpi-card">
+                    <div class="comparison-kpi-label">Total Income</div>
+                    <div class="comparison-kpi-current" id="comp-income-current">₹0.00</div>
+                    <div class="comparison-kpi-change" id="comp-income-change">
+                        <span class="change-badge">—</span>
+                        <span class="change-previous">vs ₹0.00</span>
+                    </div>
+                </div>
+                <div class="comparison-kpi-card">
+                    <div class="comparison-kpi-label">Total Expenses</div>
+                    <div class="comparison-kpi-current" id="comp-expense-current">₹0.00</div>
+                    <div class="comparison-kpi-change" id="comp-expense-change">
+                        <span class="change-badge">—</span>
+                        <span class="change-previous">vs ₹0.00</span>
+                    </div>
+                </div>
+                <div class="comparison-kpi-card">
+                    <div class="comparison-kpi-label">Net Savings</div>
+                    <div class="comparison-kpi-current" id="comp-savings-current">₹0.00</div>
+                    <div class="comparison-kpi-change" id="comp-savings-change">
+                        <span class="change-badge">—</span>
+                        <span class="change-previous">vs ₹0.00</span>
+                    </div>
+                </div>
+                <div class="comparison-kpi-card">
+                    <div class="comparison-kpi-label">Transactions</div>
+                    <div class="comparison-kpi-current" id="comp-transactions-current">0</div>
+                    <div class="comparison-kpi-change" id="comp-transactions-change">
+                        <span class="change-badge">—</span>
+                        <span class="change-previous">vs 0</span>
+                    </div>
                 </div>
             </div>
         </div>
