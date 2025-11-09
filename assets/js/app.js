@@ -141,6 +141,8 @@
         init: function() {
             this.charts = {
                 category: null,
+                topFrequent: null,
+                pareto: null,
                 incomeExpense: null,
                 goalsDonut: null
             };
@@ -2521,7 +2523,10 @@
             $('#email-start-date').val(this.formatDateInput(firstDay));
             $('#email-end-date').val(this.formatDateInput(lastDay));
 
-            // Load current settings
+            // Show modal first
+            $('#email-report-modal').addClass('active');
+
+            // Load current settings (without blocking modal display)
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -2538,6 +2543,8 @@
                         $('#email-auto-send').prop('checked', autoSend);
                         if (autoSend) {
                             $('#auto-email-settings').show();
+                        } else {
+                            $('#auto-email-settings').hide();
                         }
 
                         // Load frequency settings
@@ -2561,7 +2568,6 @@
                             $('#email-send-day').val(response.data.send_day);
                         }
                     }
-                    $('#email-report-modal').addClass('active');
                 }
             });
         },
