@@ -15,6 +15,7 @@
             <a href="#subscription-section" class="nav-item">🔔 Subscriptions</a>
             <a href="#manage-categories-card" class="nav-item">🏷️ Categories</a>
             <a href="#trash-section" class="nav-item">🗑️ Trash</a>
+            <a href="<?php echo esc_url(wp_logout_url(admin_url('admin.php?page=rizqtrack'))); ?>" class="nav-item">🚪 Logout</a>
         </div>
     </nav>
 
