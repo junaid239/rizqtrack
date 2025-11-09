@@ -299,6 +299,9 @@
             // Floating Action Button
             $('#fab-add-transaction').on('click', this.scrollToTransactionForm.bind(this));
 
+            // Hard Refresh Button
+            $('#fab-refresh').on('click', this.handleHardRefresh.bind(this));
+
             // Section Navigation Arrows
             $('#nav-arrow-up').on('click', this.navigateToPreviousSection.bind(this));
             $('#nav-arrow-down').on('click', this.navigateToNextSection.bind(this));
@@ -2717,6 +2720,26 @@
             setTimeout(() => {
                 $('#amount').focus();
             }, 600);
+        },
+
+        handleHardRefresh: function() {
+            // Show confirmation with loading state
+            if (confirm('🔄 This will refresh the page and clear cache. Continue?')) {
+                // Add loading state to button
+                const $btn = $('#fab-refresh');
+                $btn.css('pointer-events', 'none');
+                $btn.find('.refresh-icon').css('animation', 'spin 0.5s linear infinite');
+
+                // Add CSS animation if not exists
+                if (!$('#refresh-spin-animation').length) {
+                    $('<style id="refresh-spin-animation">@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>').appendTo('head');
+                }
+
+                // Perform hard refresh
+                setTimeout(() => {
+                    window.location.reload(true);
+                }, 300);
+            }
         },
 
         handleNavItemClick: function(e) {

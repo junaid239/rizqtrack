@@ -24,6 +24,11 @@
         <span class="fab-icon">+</span>
     </button>
 
+    <!-- Hard Refresh Button -->
+    <button class="fab-refresh" id="fab-refresh" title="Hard Refresh - Clear Cache">
+        <span class="refresh-icon">↻</span>
+    </button>
+
     <!-- Section Navigation Arrows -->
     <div class="section-nav-arrows">
         <button class="nav-arrow nav-arrow-up" id="nav-arrow-up" title="Previous Section">
