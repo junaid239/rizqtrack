@@ -148,6 +148,7 @@
             this.selectedCategories = [];
             this.categorySlicersRendered = false;
             this.editTransactionData = {};
+            this.comparisonChartData = null; // Store comparison data for charts
 
             this.setupEventListeners();
             this.setDefaultFormValues();
@@ -856,6 +857,9 @@
             } else {
                 $('#comparison-cards').slideUp(300);
                 $('#comparison-mode').prop('disabled', true);
+                this.comparisonChartData = null;
+                // Refresh charts without comparison
+                this.loadChartData();
             }
         },
 
@@ -930,6 +934,10 @@
             Promise.all([currentDataPromise, comparisonDataPromise])
                 .then(([currentData, comparisonData]) => {
                     this.updateComparisonCards(currentData, comparisonData);
+                    // Store comparison data for charts
+                    this.comparisonChartData = comparisonData.data;
+                    // Refresh charts with comparison data
+                    this.refreshChartsWithComparison(currentData.data);
                 })
                 .catch(error => {
                     console.error('Error loading comparison data:', error);
@@ -1002,6 +1010,17 @@
             $('#comp-transactions-change').html(transactionsChange.badge + transactionsChange.previous);
         },
 
+        refreshChartsWithComparison: function(currentData) {
+            if (!$('#comparison-toggle').is(':checked')) {
+                // Clear comparison data from charts
+                this.comparisonChartData = null;
+            }
+
+            // Re-render charts with comparison data
+            this.renderCategoryChart(currentData.category_data || []);
+            this.renderSpendingTrendChart(currentData.spending_trend || []);
+        },
+
         loadChartData: function() {
             const startDate = $('#filter-start-date').val();
             const endDate = $('#filter-end-date').val();
@@ -1067,15 +1086,35 @@
             const labelFontSize = isMobile ? 10 : 12;
             const dataLabelFontSize = isMobile ? 10 : 13;
 
+            // Build datasets
+            const datasets = [{
+                label: 'Current Period',
+                data: values,
+                backgroundColor: colors,
+                borderWidth: 0
+            }];
+
+            // Add comparison dataset if available
+            if (this.comparisonChartData && this.comparisonChartData.category_data) {
+                const comparisonValues = labels.map(label => {
+                    const categoryName = label.split(' ').slice(1).join(' '); // Remove emoji
+                    const compData = this.comparisonChartData.category_data.find(d => d.name === categoryName);
+                    return compData ? parseFloat(compData.total) : 0;
+                });
+
+                datasets.push({
+                    label: 'Previous Period',
+                    data: comparisonValues,
+                    backgroundColor: colors.map(c => c.replace('1)', '0.4)')), // Make semi-transparent
+                    borderWidth: 0
+                });
+            }
+
             this.charts.category = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        data: values,
-                        backgroundColor: colors,
-                        borderWidth: 0
-                    }]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
@@ -1095,7 +1134,13 @@
                     },
                     plugins: {
                         legend: {
-                            display: false
+                            display: this.comparisonChartData ? true : false,
+                            position: 'top',
+                            labels: {
+                                boxWidth: 15,
+                                padding: 10,
+                                font: { size: 11 }
+                            }
                         },
                         tooltip: {
                             backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -1448,40 +1493,82 @@
             const incomes = data.map(d => parseFloat(d.income) || 0);
             const expenses = data.map(d => parseFloat(d.expense) || 0);
 
+            // Build datasets
+            const datasets = [
+                {
+                    label: 'Income (Current)',
+                    data: incomes,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#10b981',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                },
+                {
+                    label: 'Expense (Current)',
+                    data: expenses,
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#ef4444',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }
+            ];
+
+            // Add comparison datasets if available
+            if (this.comparisonChartData && this.comparisonChartData.spending_trend) {
+                const compDates = this.comparisonChartData.spending_trend.map(d => d.date);
+                const compIncomes = this.comparisonChartData.spending_trend.map(d => parseFloat(d.income) || 0);
+                const compExpenses = this.comparisonChartData.spending_trend.map(d => parseFloat(d.expense) || 0);
+
+                datasets.push({
+                    label: 'Income (Previous)',
+                    data: compIncomes,
+                    borderColor: '#10b981',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: '#10b981',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 1
+                });
+
+                datasets.push({
+                    label: 'Expense (Previous)',
+                    data: compExpenses,
+                    borderColor: '#ef4444',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: '#ef4444',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 1
+                });
+            }
+
             this.charts.spendingTrend = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: dates,
-                    datasets: [
-                        {
-                            label: 'Income',
-                            data: incomes,
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            borderWidth: 3,
-                            tension: 0.4,
-                            fill: true,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
-                            pointBackgroundColor: '#10b981',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 2
-                        },
-                        {
-                            label: 'Expense',
-                            data: expenses,
-                            borderColor: '#ef4444',
-                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                            borderWidth: 3,
-                            tension: 0.4,
-                            fill: true,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
-                            pointBackgroundColor: '#ef4444',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 2
-                        }
-                    ]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
