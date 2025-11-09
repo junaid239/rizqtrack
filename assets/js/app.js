@@ -807,14 +807,14 @@
         },
 
         initializeDateFilters: function() {
-            // Set default dates for charts: last 30 days to today
+            // Set default dates for charts: current month's first and last day
             const today = new Date();
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
             // For charts (financial overview)
-            $('#filter-end-date').val(this.formatDateInput(today));
-            $('#filter-start-date').val(this.formatDateInput(thirtyDaysAgo));
+            $('#filter-end-date').val(this.formatDateInput(lastDayOfMonth));
+            $('#filter-start-date').val(this.formatDateInput(firstDayOfMonth));
         },
 
         initializeTransactionFilters: function() {
