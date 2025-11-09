@@ -2523,10 +2523,7 @@
             $('#email-start-date').val(this.formatDateInput(firstDay));
             $('#email-end-date').val(this.formatDateInput(lastDay));
 
-            // Show modal first
-            $('#email-report-modal').addClass('active');
-
-            // Load current settings (without blocking modal display)
+            // Load current settings BEFORE showing modal to prevent checkbox flicker
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -2542,9 +2539,9 @@
                         const autoSend = response.data.auto_send == 1;
                         $('#email-auto-send').prop('checked', autoSend);
                         if (autoSend) {
-                            $('#auto-email-settings').show();
+                            $('#auto-email-settings').css('display', 'block');
                         } else {
-                            $('#auto-email-settings').hide();
+                            $('#auto-email-settings').css('display', 'none');
                         }
 
                         // Load frequency settings
@@ -2558,9 +2555,9 @@
 
                         // Show/hide monthly day selector based on monthly checkbox
                         if (monthlyEnabled) {
-                            $('#monthly-day-selector').show();
+                            $('#monthly-day-selector').css('display', 'block');
                         } else {
-                            $('#monthly-day-selector').hide();
+                            $('#monthly-day-selector').css('display', 'none');
                         }
 
                         // Load send day
@@ -2568,6 +2565,13 @@
                             $('#email-send-day').val(response.data.send_day);
                         }
                     }
+
+                    // Show modal AFTER settings are loaded
+                    $('#email-report-modal').addClass('active');
+                },
+                error: () => {
+                    // Show modal even if settings fail to load
+                    $('#email-report-modal').addClass('active');
                 }
             });
         },
@@ -2751,11 +2755,11 @@
         handleNavItemClick: function(e) {
             const target = $(e.currentTarget).attr('href');
 
-            // Allow external links (like logout) to work normally
-            if (target && (target.startsWith('http') || target.indexOf('wp-login.php') !== -1 || target.indexOf('wp-admin') !== -1)) {
-                // Close mobile menu and let the link work normally
+            // Only handle internal anchor links (starting with #)
+            if (!target || !target.startsWith('#')) {
+                // Close mobile menu and let the link work normally (logout, external links, etc.)
                 $('#nav-menu').removeClass('active');
-                return; // Don't prevent default for external/WordPress links
+                return; // Don't prevent default for non-anchor links
             }
 
             e.preventDefault();

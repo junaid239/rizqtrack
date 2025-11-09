@@ -127,10 +127,10 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
     color: white;
     border: none;
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 6px 20px rgba(8, 145, 178, 0.4);
     cursor: pointer;
     z-index: 998;
     transition: all 0.3s ease;
@@ -162,7 +162,7 @@
 
 .fab-refresh:hover {
     transform: scale(1.1) rotate(180deg);
-    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
+    box-shadow: 0 8px 25px rgba(8, 145, 178, 0.5);
 }
 
 .fab-refresh:active {
