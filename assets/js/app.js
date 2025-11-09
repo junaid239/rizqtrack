@@ -147,7 +147,7 @@
                 goalsDonut: null
             };
             this.currentFilter = '30';
-            this.selectedCategories = [];
+            this.selectedCategories = JSON.parse(localStorage.getItem('rizqtrack_selected_categories') || '[]');
             this.categorySlicersRendered = false;
             this.editTransactionData = {};
             this.comparisonChartData = null; // Store comparison data for charts
@@ -1221,6 +1221,7 @@
             // If no categories selected, select all by default
             if (this.selectedCategories.length === 0) {
                 this.selectedCategories = data.map(cat => cat.name);
+                localStorage.setItem('rizqtrack_selected_categories', JSON.stringify(this.selectedCategories));
             }
 
             // Add category chips (all active by default)
@@ -1254,6 +1255,7 @@
                 }
 
                 this.selectedCategories = selectedCategories;
+                localStorage.setItem('rizqtrack_selected_categories', JSON.stringify(selectedCategories));
                 this.loadChartData(); // Reload ALL charts with selected categories
             });
         },
@@ -1352,6 +1354,20 @@
                                         ];
                                     }
                                 }
+                            }
+                        },
+                        datalabels: {
+                            color: '#ffffff',
+                            anchor: 'end',
+                            align: 'start',
+                            offset: 4,
+                            font: {
+                                weight: 'bold',
+                                size: 11
+                            },
+                            formatter: (value) => {
+                                const absValue = Math.abs(value);
+                                return absValue === 0 ? '' : absValue;
                             }
                         }
                     },
@@ -2733,23 +2749,18 @@
         },
 
         handleHardRefresh: function() {
-            // Show confirmation with loading state
-            if (confirm('🔄 This will refresh the page and clear cache. Continue?')) {
-                // Add loading state to button
-                const $btn = $('#fab-refresh');
-                $btn.css('pointer-events', 'none');
-                $btn.find('.refresh-icon').css('animation', 'spin 0.5s linear infinite');
+            // Add loading state to button
+            const $btn = $('#fab-refresh');
+            $btn.css('pointer-events', 'none');
+            $btn.find('.refresh-icon').css('animation', 'spin 0.5s linear infinite');
 
-                // Add CSS animation if not exists
-                if (!$('#refresh-spin-animation').length) {
-                    $('<style id="refresh-spin-animation">@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>').appendTo('head');
-                }
-
-                // Perform hard refresh
-                setTimeout(() => {
-                    window.location.reload(true);
-                }, 300);
+            // Add CSS animation if not exists
+            if (!$('#refresh-spin-animation').length) {
+                $('<style id="refresh-spin-animation">@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>').appendTo('head');
             }
+
+            // Perform hard refresh immediately
+            window.location.reload(true);
         },
 
         handleNavItemClick: function(e) {
