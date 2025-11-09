@@ -937,16 +937,35 @@
         },
 
         updateComparisonCards: function(currentData, comparisonData) {
-            // Calculate totals
-            const currentIncome = currentData.income || 0;
-            const currentExpense = currentData.expense || 0;
-            const currentSavings = currentIncome - currentExpense;
-            const currentTransactions = (currentData.transactions || []).length;
+            // Calculate totals from spending_trend data
+            const calculateTotals = (data) => {
+                let income = 0;
+                let expense = 0;
+                let transactionCount = 0;
 
-            const compIncome = comparisonData.income || 0;
-            const compExpense = comparisonData.expense || 0;
+                if (data.data && data.data.spending_trend) {
+                    data.data.spending_trend.forEach(day => {
+                        income += parseFloat(day.income || 0);
+                        expense += parseFloat(day.expense || 0);
+                    });
+                    transactionCount = data.data.spending_trend.length;
+                }
+
+                return { income, expense, transactionCount };
+            };
+
+            const current = calculateTotals(currentData);
+            const comparison = calculateTotals(comparisonData);
+
+            const currentIncome = current.income;
+            const currentExpense = current.expense;
+            const currentSavings = currentIncome - currentExpense;
+            const currentTransactions = current.transactionCount;
+
+            const compIncome = comparison.income;
+            const compExpense = comparison.expense;
             const compSavings = compIncome - compExpense;
-            const compTransactions = (comparisonData.transactions || []).length;
+            const compTransactions = comparison.transactionCount;
 
             // Helper function to format currency
             const formatCurrency = (amount) => {

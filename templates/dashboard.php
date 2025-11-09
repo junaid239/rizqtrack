@@ -224,11 +224,31 @@
         <!-- Unified Filters Section -->
         <div class="unified-filters">
             <div class="filter-group">
-                <label class="filter-label">📅 Time Period:</label>
+                <label class="filter-label">📅 Current Period:</label>
                 <div class="date-range-filters">
                     <input type="date" id="filter-start-date" class="date-input" />
                     <span class="date-separator">to</span>
                     <input type="date" id="filter-end-date" class="date-input" />
+                </div>
+            </div>
+
+            <div class="filter-group comparison-filter-group">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <label class="filter-label" style="margin: 0; display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="comparison-toggle" checked style="margin-right: 8px; cursor: pointer; width: 18px; height: 18px;">
+                        📊 Compare With
+                    </label>
+                    <select id="comparison-mode" class="date-input" style="flex: 0 0 auto; min-width: 160px;">
+                        <option value="previous-month">Previous Month</option>
+                        <option value="custom">Custom Period</option>
+                    </select>
+                </div>
+
+                <!-- Custom Period Dates (inline, hidden by default) -->
+                <div id="custom-comparison-dates" class="date-range-filters" style="display: none;">
+                    <input type="date" id="compare-start-date" class="date-input" placeholder="Compare from" />
+                    <span class="date-separator">to</span>
+                    <input type="date" id="compare-end-date" class="date-input" placeholder="Compare to" />
                 </div>
             </div>
 
@@ -238,34 +258,11 @@
                     <!-- Power BI-style category filters will be rendered here -->
                 </div>
             </div>
-
-            <div class="filter-group">
-                <label class="filter-label">
-                    <input type="checkbox" id="comparison-toggle" checked style="margin-right: 8px; cursor: pointer;">
-                    📊 Compare with Previous Period
-                </label>
-                <select id="comparison-mode" class="date-input" style="margin-left: 8px; display: inline-block; width: auto; padding: 4px 8px;">
-                    <option value="previous-month">Previous Month</option>
-                    <option value="custom">Custom Period</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Custom Period Comparison (Hidden by default) -->
-        <div id="custom-comparison-dates" class="unified-filters" style="display: none; margin-top: -16px; padding-top: 0;">
-            <div class="filter-group">
-                <label class="filter-label">📅 Compare Period:</label>
-                <div class="date-range-filters">
-                    <input type="date" id="compare-start-date" class="date-input" />
-                    <span class="date-separator">to</span>
-                    <input type="date" id="compare-end-date" class="date-input" />
-                </div>
-            </div>
         </div>
 
         <!-- Comparison KPI Cards -->
         <div id="comparison-cards" class="comparison-kpi-section" style="margin-top: 24px; margin-bottom: 24px;">
-            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary);">📊 Current vs Previous Period</h3>
+            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary);">📊 Period Comparison</h3>
             <div class="comparison-kpi-grid">
                 <div class="comparison-kpi-card">
                     <div class="comparison-kpi-label">Total Income</div>
