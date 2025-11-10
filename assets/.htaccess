@@ -1,0 +1,24 @@
+# RizqTrack Assets - Aggressive No-Cache Headers
+# Prevents browser caching of JavaScript and CSS files
+
+<IfModule mod_headers.c>
+    # Completely disable caching for JavaScript files
+    <FilesMatch "\.(js)$">
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "Wed, 11 Jan 1984 05:00:00 GMT"
+    </FilesMatch>
+
+    # Minimal caching for CSS (1 hour only)
+    <FilesMatch "\.(css)$">
+        Header set Cache-Control "public, max-age=3600, must-revalidate"
+    </FilesMatch>
+
+    # Standard caching for images
+    <FilesMatch "\.(jpg|jpeg|png|gif|svg|ico)$">
+        Header set Cache-Control "public, max-age=86400"
+    </FilesMatch>
+</IfModule>
+
+# Prevent directory listing
+Options -Indexes
