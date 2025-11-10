@@ -17,8 +17,6 @@ class RizqTrack {
     private $table_transactions;
     private $table_categories;
     private $table_goals;
-    private $table_achievements;
-    private $table_challenges;
     private $table_budgets;
     private $table_subscriptions;
     private $table_cron_logs;
@@ -35,8 +33,6 @@ class RizqTrack {
         $this->table_transactions = $wpdb->prefix . 'rizqtrack_transactions';
         $this->table_categories = $wpdb->prefix . 'rizqtrack_categories';
         $this->table_goals = $wpdb->prefix . 'rizqtrack_goals';
-        $this->table_achievements = $wpdb->prefix . 'rizqtrack_achievements';
-        $this->table_challenges = $wpdb->prefix . 'rizqtrack_challenges';
         $this->table_budgets = $wpdb->prefix . 'rizqtrack_budgets';
         $this->table_subscriptions = $wpdb->prefix . 'rizqtrack_subscriptions';
         $this->table_cron_logs = $wpdb->prefix . 'rizqtrack_cron_logs';
@@ -167,37 +163,6 @@ class RizqTrack {
             KEY status (status)
         ) $charset;";
 
-        $sql_achievements = "CREATE TABLE IF NOT EXISTS {$this->table_achievements} (
-            id bigint(20) NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) NOT NULL,
-            achievement_key varchar(50) NOT NULL,
-            achievement_name varchar(200) NOT NULL,
-            achievement_description text,
-            badge_icon varchar(20) NOT NULL,
-            badge_color varchar(20) DEFAULT '#0891b2',
-            earned_date datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            KEY user_id (user_id),
-            UNIQUE KEY user_achievement (user_id, achievement_key)
-        ) $charset;";
-
-        $sql_challenges = "CREATE TABLE IF NOT EXISTS {$this->table_challenges} (
-            id bigint(20) NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) NOT NULL,
-            challenge_type varchar(50) NOT NULL,
-            challenge_name varchar(200) NOT NULL,
-            target_amount decimal(10,2) NOT NULL,
-            current_amount decimal(10,2) DEFAULT 0,
-            start_date date NOT NULL,
-            end_date date NOT NULL,
-            frequency varchar(20) DEFAULT 'weekly',
-            status enum('active','completed','paused','failed','deleted') DEFAULT 'active',
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            KEY user_id (user_id),
-            KEY status (status)
-        ) $charset;";
-
         $sql_budgets = "CREATE TABLE IF NOT EXISTS {$this->table_budgets} (
             id bigint(20) NOT NULL AUTO_INCREMENT,
             user_id bigint(20) NOT NULL,
@@ -245,8 +210,6 @@ class RizqTrack {
         dbDelta($sql_transactions);
         dbDelta($sql_categories);
         dbDelta($sql_goals);
-        dbDelta($sql_achievements);
-        dbDelta($sql_challenges);
         dbDelta($sql_budgets);
         dbDelta($sql_subscriptions);
 
@@ -529,8 +492,6 @@ class RizqTrack {
             'contribute_goal_transaction', 'generate_report', 'get_kpi_data',
             'get_email_settings', 'save_email_settings', 'test_email', 'send_email_now',
             'get_category_filters', 'save_category_filters',
-            'get_achievements', 'check_achievements',
-            'get_challenges', 'start_challenge', 'update_challenge', 'complete_challenge', 'delete_challenge',
             'get_budgets', 'add_budget', 'update_budget', 'delete_budget', 'check_budget_alerts', 'get_budget_vs_actual',
             'get_subscriptions', 'add_subscription', 'update_subscription', 'delete_subscription',
             'restore_subscription', 'permanent_delete_subscription', 'renew_subscription', 'reactivate_subscription',
@@ -3167,285 +3128,6 @@ HTML;
         ob_start();
         include plugin_dir_path(__FILE__) . 'templates/dashboard.php';
         return ob_get_clean();
-    }
-
-    // Achievement System
-    public function ajax_get_achievements() {
-        check_ajax_referer('rizqtrack_nonce', 'nonce');
-        global $wpdb;
-
-        $user_id = get_current_user_id();
-
-        if (!$user_id) {
-            wp_send_json_error(['message' => 'You must be logged in.']);
-            wp_die();
-        }
-
-        $achievements = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$this->table_achievements}
-            WHERE user_id = %d
-            ORDER BY earned_date DESC",
-            $user_id
-        ));
-
-        wp_send_json_success($achievements);
-        wp_die();
-    }
-
-    public function ajax_check_achievements() {
-        check_ajax_referer('rizqtrack_nonce', 'nonce');
-        global $wpdb;
-
-        $user_id = get_current_user_id();
-
-        if (!$user_id) {
-            wp_send_json_error(['message' => 'You must be logged in.']);
-            wp_die();
-        }
-
-        $new_achievements = [];
-
-        // Achievement definitions
-        $achievement_checks = [
-            // Transaction milestones
-            ['key' => 'first_transaction', 'name' => 'Getting Started', 'description' => 'Added your first transaction', 'icon' => '🎯', 'color' => '#10b981', 'check' =>
-                "SELECT COUNT(*) FROM {$this->table_transactions} WHERE user_id = %d AND status = 'Active'", 'threshold' => 1],
-
-            ['key' => '10_transactions', 'name' => 'Building Momentum', 'description' => 'Tracked 10 transactions', 'icon' => '💪', 'color' => '#3b82f6', 'check' =>
-                "SELECT COUNT(*) FROM {$this->table_transactions} WHERE user_id = %d AND status = 'Active'", 'threshold' => 10],
-
-            ['key' => '50_transactions', 'name' => 'Committed Tracker', 'description' => 'Tracked 50 transactions', 'icon' => '🏆', 'color' => '#f59e0b', 'check' =>
-                "SELECT COUNT(*) FROM {$this->table_transactions} WHERE user_id = %d AND status = 'Active'", 'threshold' => 50],
-
-            ['key' => '100_transactions', 'name' => 'Transaction Master', 'description' => 'Tracked 100 transactions', 'icon' => '👑', 'color' => '#8b5cf6', 'check' =>
-                "SELECT COUNT(*) FROM {$this->table_transactions} WHERE user_id = %d AND status = 'Active'", 'threshold' => 100],
-
-            // Goal achievements
-            ['key' => 'first_goal', 'name' => 'Dream Planner', 'description' => 'Created your first financial goal', 'icon' => '🎯', 'color' => '#ec4899', 'check' =>
-                "SELECT COUNT(*) FROM {$this->table_goals} WHERE user_id = %d", 'threshold' => 1],
-
-            ['key' => 'first_goal_complete', 'name' => 'Goal Achiever', 'description' => 'Completed your first financial goal', 'icon' => '✨', 'color' => '#10b981', 'check' =>
-                "SELECT COUNT(*) FROM {$this->table_goals} WHERE user_id = %d AND status = 'completed'", 'threshold' => 1],
-
-            // Savings achievements
-            ['key' => 'positive_savings', 'name' => 'Saving Smart', 'description' => 'Maintained positive net savings', 'icon' => '💰', 'color' => '#10b981', 'check' =>
-                "SELECT (COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0)) FROM {$this->table_transactions} WHERE user_id = %d AND status = 'Active'", 'threshold' => 1],
-
-            // Category usage
-            ['key' => '5_categories', 'name' => 'Category Explorer', 'description' => 'Used 5 different categories', 'icon' => '🏷️', 'color' => '#06b6d4', 'check' =>
-                "SELECT COUNT(DISTINCT category_id) FROM {$this->table_transactions} WHERE user_id = %d AND status = 'Active'", 'threshold' => 5],
-        ];
-
-        foreach ($achievement_checks as $achievement) {
-            // Check if user already has this achievement
-            $existing = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$this->table_achievements} WHERE user_id = %d AND achievement_key = %s",
-                $user_id, $achievement['key']
-            ));
-
-            if ($existing > 0) {
-                continue; // Already earned
-            }
-
-            // Check if user meets criteria
-            $count = $wpdb->get_var($wpdb->prepare($achievement['check'], $user_id));
-
-            if ($count >= $achievement['threshold']) {
-                // Award achievement
-                $wpdb->insert($this->table_achievements, [
-                    'user_id' => $user_id,
-                    'achievement_key' => $achievement['key'],
-                    'achievement_name' => $achievement['name'],
-                    'achievement_description' => $achievement['description'],
-                    'badge_icon' => $achievement['icon'],
-                    'badge_color' => $achievement['color']
-                ]);
-
-                $new_achievements[] = $achievement;
-            }
-        }
-
-        wp_send_json_success(['new_achievements' => $new_achievements]);
-        wp_die();
-    }
-
-    // Challenges System
-    public function ajax_get_challenges() {
-        check_ajax_referer('rizqtrack_nonce', 'nonce');
-        global $wpdb;
-
-        $user_id = get_current_user_id();
-
-        if (!$user_id) {
-            wp_send_json_error(['message' => 'You must be logged in.']);
-            wp_die();
-        }
-
-        $challenges = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$this->table_challenges}
-            WHERE user_id = %d
-            ORDER BY created_at DESC",
-            $user_id
-        ));
-
-        wp_send_json_success($challenges);
-        wp_die();
-    }
-
-    public function ajax_start_challenge() {
-        check_ajax_referer('rizqtrack_nonce', 'nonce');
-        global $wpdb;
-
-        $user_id = get_current_user_id();
-
-        if (!$user_id) {
-            wp_send_json_error(['message' => 'You must be logged in.']);
-            return;
-        }
-
-        $challenge_type = sanitize_text_field($_POST['challenge_type']);
-
-        // Pre-defined challenge templates
-        $challenge_templates = [
-            '52_week' => [
-                'name' => '52-Week Savings Challenge',
-                'target' => 13780, // ₹1 + ₹2 + ... + ₹52 = ₹1378 (adjusted for INR)
-                'weeks' => 52,
-                'description' => 'Save incrementally each week for a year'
-            ],
-            'no_spend' => [
-                'name' => '30-Day No-Spend Challenge',
-                'target' => 0,
-                'weeks' => 4,
-                'description' => 'Minimize unnecessary spending for 30 days'
-            ],
-            '1000_month' => [
-                'name' => 'Save ₹1000/Month Challenge',
-                'target' => 12000,
-                'weeks' => 52,
-                'description' => 'Save ₹1000 every month for a year'
-            ],
-            'emergency_fund' => [
-                'name' => '3-Month Emergency Fund Challenge',
-                'target' => floatval($_POST['target_amount'] ?? 30000),
-                'weeks' => 26, // 6 months to build
-                'description' => 'Build an emergency fund covering 3 months of expenses'
-            ],
-            'custom' => [
-                'name' => sanitize_text_field($_POST['custom_name'] ?? 'Custom Challenge'),
-                'target' => floatval($_POST['target_amount'] ?? 10000),
-                'weeks' => intval($_POST['custom_weeks'] ?? 12),
-                'description' => 'Custom savings challenge'
-            ]
-        ];
-
-        if (!isset($challenge_templates[$challenge_type])) {
-            wp_send_json_error(['message' => 'Invalid challenge type']);
-            return;
-        }
-
-        $template = $challenge_templates[$challenge_type];
-        $start_date = date('Y-m-d');
-        $end_date = date('Y-m-d', strtotime("+{$template['weeks']} weeks"));
-
-        $result = $wpdb->insert($this->table_challenges, [
-            'user_id' => $user_id,
-            'challenge_type' => $challenge_type,
-            'challenge_name' => $template['name'],
-            'target_amount' => $template['target'],
-            'current_amount' => 0,
-            'start_date' => $start_date,
-            'end_date' => $end_date,
-            'frequency' => 'weekly',
-            'status' => 'active'
-        ]);
-
-        if ($result) {
-            wp_send_json_success(['message' => 'Challenge started!', 'challenge_id' => $wpdb->insert_id]);
-        } else {
-            wp_send_json_error(['message' => 'Failed to start challenge']);
-        }
-        wp_die();
-    }
-
-    public function ajax_update_challenge() {
-        check_ajax_referer('rizqtrack_nonce', 'nonce');
-        global $wpdb;
-
-        $user_id = get_current_user_id();
-        $challenge_id = intval($_POST['challenge_id']);
-        $amount = floatval($_POST['amount']);
-
-        $result = $wpdb->query($wpdb->prepare(
-            "UPDATE {$this->table_challenges}
-            SET current_amount = current_amount + %f
-            WHERE id = %d AND user_id = %d",
-            $amount, $challenge_id, $user_id
-        ));
-
-        // Check if challenge is complete
-        $challenge = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$this->table_challenges}
-            WHERE id = %d AND user_id = %d",
-            $challenge_id, $user_id
-        ));
-
-        if ($challenge && $challenge->current_amount >= $challenge->target_amount) {
-            $wpdb->update(
-                $this->table_challenges,
-                ['status' => 'completed'],
-                ['id' => $challenge_id, 'user_id' => $user_id]
-            );
-        }
-
-        if ($result !== false) {
-            wp_send_json_success(['message' => 'Challenge updated!']);
-        } else {
-            wp_send_json_error(['message' => 'Failed to update challenge']);
-        }
-        wp_die();
-    }
-
-    public function ajax_complete_challenge() {
-        check_ajax_referer('rizqtrack_nonce', 'nonce');
-        global $wpdb;
-
-        $user_id = get_current_user_id();
-        $challenge_id = intval($_POST['challenge_id']);
-
-        $result = $wpdb->update(
-            $this->table_challenges,
-            ['status' => 'completed'],
-            ['id' => $challenge_id, 'user_id' => $user_id]
-        );
-
-        if ($result) {
-            wp_send_json_success(['message' => 'Challenge completed!']);
-        } else {
-            wp_send_json_error(['message' => 'Failed to complete challenge']);
-        }
-        wp_die();
-    }
-
-    public function ajax_delete_challenge() {
-        check_ajax_referer('rizqtrack_nonce', 'nonce');
-        global $wpdb;
-
-        $user_id = get_current_user_id();
-        $challenge_id = intval($_POST['challenge_id']);
-
-        $result = $wpdb->update(
-            $this->table_challenges,
-            ['status' => 'deleted'],
-            ['id' => $challenge_id, 'user_id' => $user_id]
-        );
-
-        if ($result) {
-            wp_send_json_success(['message' => 'Challenge moved to trash successfully!']);
-        } else {
-            wp_send_json_error(['message' => 'Failed to delete challenge']);
-        }
-        wp_die();
     }
 
     // Budget Management Functions
