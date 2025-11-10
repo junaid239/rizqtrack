@@ -1343,6 +1343,9 @@
                 });
             }
 
+            // Get mobile detection
+            const isMobile = window.innerWidth <= 768;
+
             this.charts.topFrequent = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -1376,19 +1379,67 @@
 
                                     if (periodLabel === 'Current Period') {
                                         const total = amounts[index];
-                                        return [
+                                        const tooltipLines = [
                                             `${periodLabel}:`,
                                             `Transactions: ${count}`,
                                             `Total: ₹${total.toLocaleString()}`,
                                             `Average: ₹${(total / count).toLocaleString(undefined, {maximumFractionDigits: 0})}`
                                         ];
+
+                                        // Add comparison data if available
+                                        if (this.comparisonChartData && this.comparisonChartData.top_frequent) {
+                                            const prevCount = previousCounts[index];
+                                            if (prevCount > 0) {
+                                                const categoryName = labels[index].split(' ').slice(1).join(' ');
+                                                const compData = this.comparisonChartData.top_frequent.find(d => d.name === categoryName);
+
+                                                if (compData) {
+                                                    const prevAmount = parseFloat(compData.total_amount) || 0;
+                                                    const countChange = count - prevCount;
+                                                    const amountChange = total - prevAmount;
+                                                    const countChangePercent = prevCount > 0 ? ((countChange / prevCount) * 100) : 0;
+                                                    const amountChangePercent = prevAmount > 0 ? ((amountChange / prevAmount) * 100) : 0;
+
+                                                    const countArrow = countChange > 0 ? '↑' : (countChange < 0 ? '↓' : '→');
+                                                    const amountArrow = amountChange > 0 ? '↑' : (amountChange < 0 ? '↓' : '→');
+
+                                                    tooltipLines.push('');
+                                                    tooltipLines.push('Previous Period:');
+                                                    tooltipLines.push(`Transactions: ${prevCount}`);
+                                                    tooltipLines.push(`Total: ₹${prevAmount.toLocaleString()}`);
+                                                    tooltipLines.push('');
+                                                    tooltipLines.push('Change:');
+                                                    tooltipLines.push(`${countArrow} ${Math.abs(countChange)} transactions (${countChangePercent > 0 ? '+' : ''}${countChangePercent.toFixed(1)}%)`);
+                                                    tooltipLines.push(`${amountArrow} ₹${Math.abs(amountChange).toLocaleString()} (${amountChangePercent > 0 ? '+' : ''}${amountChangePercent.toFixed(1)}%)`);
+                                                }
+                                            }
+                                        }
+
+                                        return tooltipLines;
                                     } else {
+                                        const categoryName = labels[index].split(' ').slice(1).join(' ');
+                                        const compData = this.comparisonChartData.top_frequent.find(d => d.name === categoryName);
+                                        const prevAmount = compData ? parseFloat(compData.total_amount) : 0;
+
                                         return [
                                             `${periodLabel}:`,
-                                            `Transactions: ${count}`
+                                            `Transactions: ${count}`,
+                                            `Total: ₹${prevAmount.toLocaleString()}`
                                         ];
                                     }
-                                }
+                                }.bind(this)
+                            }
+                        },
+                        datalabels: {
+                            color: '#fff',
+                            anchor: 'center',
+                            align: 'center',
+                            font: {
+                                weight: 'bold',
+                                size: isMobile ? 10 : 12
+                            },
+                            formatter: (value) => {
+                                return Math.abs(value);
                             }
                         }
                     },
@@ -1625,14 +1676,21 @@
                         // Calculate change
                         const countChange = currentCount - prevCount;
                         const amountChange = currentAmount - prevAmount;
-                        const changeArrow = countChange > 0 ? '↑' : (countChange < 0 ? '↓' : '→');
+                        const countChangePercent = prevCount > 0 ? ((countChange / prevCount) * 100) : 0;
+                        const amountChangePercent = prevAmount > 0 ? ((amountChange / prevAmount) * 100) : 0;
+
+                        const countArrow = countChange > 0 ? '↑' : (countChange < 0 ? '↓' : '→');
+                        const amountArrow = amountChange > 0 ? '↑' : (amountChange < 0 ? '↓' : '→');
 
                         previousPeriodHtml = `
                             <br><br>
                             <strong>Previous Period:</strong><br>
                             Transactions: ${prevCount}<br>
                             Total: ₹${prevAmount.toLocaleString()}<br>
-                            Change: ${changeArrow} ${Math.abs(countChange)} transactions, ₹${Math.abs(amountChange).toLocaleString()}
+                            <br>
+                            <strong>Change:</strong><br>
+                            ${countArrow} ${Math.abs(countChange)} transactions (${countChangePercent > 0 ? '+' : ''}${countChangePercent.toFixed(1)}%)<br>
+                            ${amountArrow} ₹${Math.abs(amountChange).toLocaleString()} (${amountChangePercent > 0 ? '+' : ''}${amountChangePercent.toFixed(1)}%)
                         `;
                     }
                 }
