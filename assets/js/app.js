@@ -1,7 +1,10 @@
 (function($) {
     'use strict';
 
-    Chart.register(ChartDataLabels); // Register the datalabels plugin
+    // Register the datalabels plugin if available
+    if (typeof ChartDataLabels !== 'undefined') {
+        Chart.register(ChartDataLabels);
+    }
 
     const RizqTrackApp = {
         charts: {
@@ -1427,7 +1430,7 @@
                                             `Total: ₹${prevAmount.toLocaleString()}`
                                         ];
                                     }
-                                }.bind(this)
+                                }
                             }
                         },
                         datalabels: {
