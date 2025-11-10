@@ -3,10 +3,10 @@
  * Provides offline support and caching for PWA functionality
  */
 
-const CACHE_NAME = 'rizqtrack-v1.6.0';
+const CACHE_NAME = 'rizqtrack-v1.6.1'; // Incremented to force cache refresh
 const urlsToCache = [
     '/wp-content/plugins/rizqtrack/assets/css/style.css',
-    '/wp-content/plugins/rizqtrack/assets/js/app.js',
+    // Removed app.js from cache - it must always be fetched fresh
     'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
@@ -77,6 +77,19 @@ self.addEventListener('fetch', event => {
         return;
     }
 
+    // CRITICAL: Skip caching app.js completely - always fetch fresh
+    if (event.request.url.includes('/assets/js/app.js')) {
+        event.respondWith(
+            fetch(event.request, {
+                cache: 'no-store' // Force no browser cache
+            }).catch(() => {
+                // If offline and absolutely no cache, return error
+                return new Response('', { status: 503, statusText: 'Service Unavailable' });
+            })
+        );
+        return;
+    }
+
     // NETWORK FIRST: Try network first, fallback to cache if offline
     event.respondWith(
         fetch(event.request)
@@ -92,8 +105,9 @@ self.addEventListener('fetch', event => {
                 // Clone the response
                 const responseToCache = response.clone();
 
-                // Cache CSS, JS, and image files for offline use
-                if (event.request.url.match(/\.(css|js|png|jpg|jpeg|svg|gif)$/)) {
+                // Cache CSS and image files for offline use (but NOT JS)
+                if (event.request.url.match(/\.(css|png|jpg|jpeg|svg|gif)$/) &&
+                    !event.request.url.includes('/assets/js/')) {
                     caches.open(CACHE_NAME)
                         .then(cache => {
                             cache.put(event.request, responseToCache);

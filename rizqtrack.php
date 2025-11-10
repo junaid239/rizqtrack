@@ -48,6 +48,9 @@ class RizqTrack {
         add_action('wp_enqueue_scripts', [$this, 'enqueue_login_styles'], 999); // High priority for login pages
         add_action('admin_init', [$this, 'run_migrations']);
 
+        // Add no-cache headers for plugin assets
+        add_action('init', [$this, 'add_nocache_headers']);
+
         // Shortcode
         add_shortcode('rizqtrack_dashboard', [$this, 'render_frontend_dashboard']);
 
@@ -459,6 +462,21 @@ class RizqTrack {
             $css_file = plugin_dir_path(__FILE__) . 'assets/css/style.css';
             $version = '1.6.0.' . (file_exists($css_file) ? filemtime($css_file) : time());
             wp_enqueue_style('rizqtrack-login-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
+        }
+    }
+
+    public function add_nocache_headers() {
+        // Only add headers when serving our plugin assets
+        if (isset($_SERVER['REQUEST_URI']) &&
+            (strpos($_SERVER['REQUEST_URI'], 'rizqtrack/assets/js/app.js') !== false ||
+             strpos($_SERVER['REQUEST_URI'], 'rizqtrack/assets/css/style.css') !== false)) {
+
+            if (!headers_sent()) {
+                header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+                header('Cache-Control: post-check=0, pre-check=0', false);
+                header('Pragma: no-cache');
+                header('Expires: Wed, 11 Jan 1984 05:00:00 GMT');
+            }
         }
     }
 
