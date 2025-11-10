@@ -153,6 +153,7 @@
             this.setupEventListeners();
             this.setDefaultFormValues();
             this.showRandomQuote();
+            this.loadCategoryFilters(); // Load saved category filter preferences from database
             this.loadCategories(); // This will trigger loadChartData() after categories are loaded
             this.loadKPIData();
             this.loadTransactions(1); // Load page 1
@@ -293,6 +294,9 @@
             $('#email-auto-send').on('change', this.toggleAutoEmailSettings.bind(this));
             $('#email-frequency-monthly').on('change', this.toggleMonthlyDaySelector.bind(this));
 
+            // Store checkbox states in sessionStorage for persistence within the session
+            $('#email-frequency-weekly, #email-frequency-monthly, #email-send-day').on('change', this.saveEmailModalState.bind(this));
+
             // Navigation toggle
             $('#nav-toggle').on('click', this.toggleNavMenu.bind(this));
 
@@ -405,6 +409,43 @@
                 },
                 error: () => {
                     $('#kpi-income, #kpi-expense, #kpi-savings, #kpi-transaction-count, #kpi-avg-transaction, #kpi-top-category, #kpi-most-frequent-category, #kpi-days-without-spending, #kpi-busiest-day, #kpi-avg-income-per-day, #kpi-avg-expense-per-day, #kpi-vehicle-mileage').text('Error');
+                }
+            });
+        },
+
+        loadCategoryFilters: function() {
+            // Load saved category filter preferences from database
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_get_category_filters',
+                    nonce: rizqtrack.nonce
+                },
+                success: (response) => {
+                    if (response.success && response.data.categories && response.data.categories.length > 0) {
+                        // Set selectedCategories from saved preferences
+                        this.selectedCategories = response.data.categories;
+                    }
+                    // If no saved preferences, selectedCategories remains empty and will default to all
+                }
+            });
+        },
+
+        saveCategoryFilters: function() {
+            // Save current category filter preferences to database
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_save_category_filters',
+                    nonce: rizqtrack.nonce,
+                    categories: this.selectedCategories
+                },
+                success: (response) => {
+                    if (response.success) {
+                        console.log('Category filters saved successfully');
+                    }
                 }
             });
         },
@@ -1249,6 +1290,7 @@
                 }
 
                 this.selectedCategories = selectedCategories;
+                this.saveCategoryFilters(); // Save preferences to database
                 this.loadChartData(); // Reload ALL charts with selected categories
             });
         },
@@ -1282,14 +1324,14 @@
                 borderWidth: 0
             }];
 
-            // Add previous period data if available (shown on left as negative values)
+            // Add previous period data if available (shown as positive values for comparison)
             let previousCounts = [];
             if (this.comparisonChartData && this.comparisonChartData.top_frequent) {
                 previousCounts = labels.map(label => {
                     const categoryName = label.split(' ').slice(1).join(' '); // Remove emoji
                     const compData = this.comparisonChartData.top_frequent.find(d => d.name === categoryName);
                     const count = compData ? parseInt(compData.count) : 0;
-                    return -Math.abs(count); // Negative for left side
+                    return Math.abs(count); // Always positive for correct comparison
                 });
 
                 datasets.unshift({
@@ -1353,6 +1395,7 @@
                     scales: {
                         x: {
                             stacked: false,
+                            beginAtZero: true,
                             title: {
                                 display: true,
                                 text: 'Number of Transactions',
@@ -1362,7 +1405,7 @@
                                 precision: 0,
                                 font: { size: 11 },
                                 callback: function(value) {
-                                    return Math.abs(value); // Show positive numbers on both sides
+                                    return Math.abs(value); // Ensure positive display
                                 }
                             },
                             grid: {
@@ -2539,10 +2582,25 @@
 
                         // Load frequency settings
                         const frequency = response.data.frequency || 'monthly';
-                        const weeklyEnabled = parseInt(response.data.weekly_enabled) === 1;
-                        const monthlyEnabled = parseInt(response.data.monthly_enabled) === 1;
+                        let weeklyEnabled = parseInt(response.data.weekly_enabled) === 1;
+                        let monthlyEnabled = parseInt(response.data.monthly_enabled) === 1;
+                        let sendDay = response.data.send_day || '-1';
 
-                        // Set checkbox states - prioritize individual enabled flags over legacy frequency
+                        // Check if we have saved state in sessionStorage (takes precedence)
+                        const savedState = sessionStorage.getItem('rizqtrack_email_modal_state');
+                        if (savedState) {
+                            try {
+                                const state = JSON.parse(savedState);
+                                weeklyEnabled = state.weeklyChecked;
+                                monthlyEnabled = state.monthlyChecked;
+                                sendDay = state.sendDay;
+                            } catch (e) {
+                                // If parsing fails, use server data
+                                console.warn('Failed to parse saved email modal state');
+                            }
+                        }
+
+                        // Set checkbox states
                         $('#email-frequency-weekly').prop('checked', weeklyEnabled);
                         $('#email-frequency-monthly').prop('checked', monthlyEnabled);
 
@@ -2554,13 +2612,21 @@
                         }
 
                         // Load send day
-                        if (response.data.send_day) {
-                            $('#email-send-day').val(response.data.send_day);
-                        }
+                        $('#email-send-day').val(sendDay);
                     }
                     $('#email-report-modal').addClass('active');
                 }
             });
+        },
+
+        saveEmailModalState: function() {
+            // Save checkbox states to sessionStorage for persistence within the session
+            const state = {
+                weeklyChecked: $('#email-frequency-weekly').is(':checked'),
+                monthlyChecked: $('#email-frequency-monthly').is(':checked'),
+                sendDay: $('#email-send-day').val()
+            };
+            sessionStorage.setItem('rizqtrack_email_modal_state', JSON.stringify(state));
         },
 
         toggleAutoEmailSettings: function() {
@@ -2631,6 +2697,8 @@
                 success: (response) => {
                     if (response.success) {
                         this.showNotification('Email settings saved successfully!', 'success');
+                        // Clear sessionStorage after successful save - server is now the source of truth
+                        sessionStorage.removeItem('rizqtrack_email_modal_state');
                         this.closeModals();
                     } else {
                         this.showNotification(response.data.message || 'Failed to save settings', 'error');
@@ -2720,10 +2788,19 @@
         },
 
         handleNavItemClick: function(e) {
-            const target = $(e.currentTarget).attr('href');
+            const $link = $(e.currentTarget);
+            const target = $link.attr('href');
+            const linkText = $link.text().trim();
 
-            // Allow external links (like logout) to work normally
-            if (target && (target.startsWith('http') || target.indexOf('wp-login.php') !== -1 || target.indexOf('wp-admin') !== -1)) {
+            // Allow external links (like logout, wp-admin) to work normally
+            // Check by URL pattern or link text
+            if (target && (
+                target.startsWith('http') ||
+                target.indexOf('wp-login.php') !== -1 ||
+                target.indexOf('wp-admin') !== -1 ||
+                target.indexOf('action=logout') !== -1 ||
+                linkText.includes('Logout')
+            )) {
                 // Close mobile menu and let the link work normally
                 $('#nav-menu').removeClass('active');
                 return; // Don't prevent default for external/WordPress links

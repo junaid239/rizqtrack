@@ -431,6 +431,7 @@ class RizqTrack {
             'add_goal', 'update_goal', 'delete_goal', 'restore_goal', 'permanent_delete_goal',
             'contribute_goal_transaction', 'generate_report', 'get_kpi_data',
             'get_email_settings', 'save_email_settings', 'test_email', 'send_email_now',
+            'get_category_filters', 'save_category_filters',
             'get_achievements', 'check_achievements',
             'get_challenges', 'start_challenge', 'update_challenge', 'complete_challenge', 'delete_challenge',
             'get_budgets', 'add_budget', 'update_budget', 'delete_budget', 'check_budget_alerts', 'get_budget_vs_actual',
@@ -1891,6 +1892,54 @@ class RizqTrack {
         }
 
         wp_send_json_success(['message' => 'Email settings saved successfully!']);
+        wp_die();
+    }
+
+    public function ajax_get_category_filters() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        $user_id = get_current_user_id();
+
+        if (!$user_id) {
+            wp_send_json_error(['message' => 'You must be logged in.']);
+            wp_die();
+        }
+
+        // Get saved category filters from user meta
+        $selected_categories = get_user_meta($user_id, 'rizqtrack_selected_categories', true);
+
+        // If no saved filters, return empty array (will default to all categories)
+        if (!$selected_categories) {
+            $selected_categories = [];
+        }
+
+        wp_send_json_success(['categories' => $selected_categories]);
+        wp_die();
+    }
+
+    public function ajax_save_category_filters() {
+        check_ajax_referer('rizqtrack_nonce', 'nonce');
+        $user_id = get_current_user_id();
+
+        if (!$user_id) {
+            wp_send_json_error(['message' => 'You must be logged in.']);
+            wp_die();
+        }
+
+        // Get categories from POST data
+        $categories = isset($_POST['categories']) ? $_POST['categories'] : [];
+
+        // Sanitize each category name
+        if (is_array($categories)) {
+            $categories = array_map('sanitize_text_field', $categories);
+        } else {
+            wp_send_json_error(['message' => 'Invalid categories data']);
+            wp_die();
+        }
+
+        // Save to user meta
+        update_user_meta($user_id, 'rizqtrack_selected_categories', $categories);
+
+        wp_send_json_success(['message' => 'Category filters saved successfully!']);
         wp_die();
     }
 

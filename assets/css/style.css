@@ -1,6 +1,289 @@
 /* RizqTrack Premium Styles */
 
 /* ============================================
+   MODERN LOGIN PAGE DESIGN
+   ============================================ */
+
+/* Login Page Container */
+.um-page-login,
+.um-login-form,
+.um .um-form {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Login Form Styling */
+.um .um-form {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1), 0 0 1px rgba(0, 0, 0, 0.05) !important;
+    padding: 40px !important;
+    border: none !important;
+    max-width: 450px !important;
+    margin: 60px auto !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.um .um-form::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #0891b2 0%, #06b6d4 50%, #0891b2 100%);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Form Header */
+.um .um-header {
+    text-align: center;
+    margin-bottom: 35px !important;
+}
+
+.um .um-header .um-title {
+    font-size: 32px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    margin-bottom: 10px !important;
+    letter-spacing: -0.5px;
+}
+
+/* Input Fields */
+.um .um-field-group {
+    margin-bottom: 25px !important;
+    position: relative;
+}
+
+.um .um-field-label {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    margin-bottom: 8px !important;
+    display: block;
+}
+
+.um input[type="text"],
+.um input[type="password"],
+.um input[type="email"] {
+    width: 100% !important;
+    padding: 14px 16px !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    font-size: 15px !important;
+    color: #1e293b !important;
+    background: #ffffff !important;
+    transition: all 0.3s ease !important;
+    box-sizing: border-box !important;
+}
+
+.um input[type="text"]:focus,
+.um input[type="password"]:focus,
+.um input[type="email"]:focus {
+    border-color: #0891b2 !important;
+    box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.1) !important;
+    outline: none !important;
+    transform: translateY(-2px);
+}
+
+/* Submit Button */
+.um button[type="submit"],
+.um .um-button {
+    width: 100% !important;
+    padding: 16px 24px !important;
+    background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 12px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3) !important;
+    margin-top: 10px !important;
+    text-transform: none !important;
+}
+
+.um button[type="submit"]:hover,
+.um .um-button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(8, 145, 178, 0.4) !important;
+}
+
+.um button[type="submit"]:active,
+.um .um-button:active {
+    transform: translateY(0) !important;
+}
+
+/* Remember Me & Links */
+.um .um-field-checkbox label {
+    font-size: 14px !important;
+    color: #64748b !important;
+}
+
+.um .um-forgot-password,
+.um a {
+    color: #0891b2 !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    transition: color 0.2s ease !important;
+}
+
+.um .um-forgot-password:hover,
+.um a:hover {
+    color: #06b6d4 !important;
+    text-decoration: underline !important;
+}
+
+/* Error Messages */
+.um .um-notice {
+    border-radius: 12px !important;
+    padding: 14px 18px !important;
+    margin-bottom: 20px !important;
+    border: none !important;
+    animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+.um .um-notice.error {
+    background: #fef2f2 !important;
+    color: #991b1b !important;
+    border-left: 4px solid #ef4444 !important;
+}
+
+.um .um-notice.success {
+    background: #f0fdf4 !important;
+    color: #166534 !important;
+    border-left: 4px solid #10b981 !important;
+}
+
+/* Loading State */
+.um button[type="submit"].loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.um button[type="submit"].loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    margin-left: -10px;
+    margin-top: -10px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Login Page Background */
+body.um-page-login {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0f9ff 100%) !important;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+body.um-page-login::before,
+body.um-page-login::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(8, 145, 178, 0.1) 0%, transparent 70%);
+    animation: float 20s ease-in-out infinite;
+}
+
+body.um-page-login::before {
+    width: 600px;
+    height: 600px;
+    top: -300px;
+    right: -200px;
+    animation-delay: 0s;
+}
+
+body.um-page-login::after {
+    width: 800px;
+    height: 800px;
+    bottom: -400px;
+    left: -300px;
+    animation-delay: 5s;
+}
+
+@keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(50px, 50px) scale(1.1); }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .um .um-form {
+        padding: 30px 20px !important;
+        margin: 30px 15px !important;
+        border-radius: 16px !important;
+    }
+
+    .um .um-header .um-title {
+        font-size: 26px !important;
+    }
+
+    .um input[type="text"],
+    .um input[type="password"],
+    .um input[type="email"] {
+        padding: 12px 14px !important;
+        font-size: 14px !important;
+    }
+
+    .um button[type="submit"],
+    .um .um-button {
+        padding: 14px 20px !important;
+        font-size: 15px !important;
+    }
+
+    body.um-page-login::before,
+    body.um-page-login::after {
+        display: none;
+    }
+}
+
+/* Tablet View */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .um .um-form {
+        max-width: 400px !important;
+    }
+}
+
+/* ============================================
    QUICK NAVIGATION BAR
    ============================================ */
 .quick-nav {
@@ -206,6 +489,11 @@
         padding: 16px 20px;
         min-width: auto;
         text-decoration: none !important;
+        touch-action: manipulation;
+        pointer-events: auto;
+        cursor: pointer;
+        position: relative;
+        z-index: 1;
     }
 
     .nav-item:hover,
@@ -215,6 +503,8 @@
         text-decoration: none !important;
         color: white;
         background: rgba(255, 255, 255, 0.15);
+        pointer-events: auto;
+        cursor: pointer;
         transform: none;
     }
 
