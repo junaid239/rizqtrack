@@ -3,7 +3,7 @@
  * Provides offline support and caching for PWA functionality
  */
 
-const CACHE_NAME = 'rizqtrack-v1.0.1';
+const CACHE_NAME = 'rizqtrack-v1.6.0';
 const urlsToCache = [
     '/wp-content/plugins/rizqtrack/assets/css/style.css',
     '/wp-content/plugins/rizqtrack/assets/js/app.js',
@@ -50,7 +50,7 @@ self.addEventListener('activate', event => {
     return self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - NETWORK FIRST strategy with cache fallback
 self.addEventListener('fetch', event => {
     // Skip cross-origin requests
     if (!event.request.url.startsWith(self.location.origin) &&
@@ -77,45 +77,48 @@ self.addEventListener('fetch', event => {
         return;
     }
 
+    // NETWORK FIRST: Try network first, fallback to cache if offline
     event.respondWith(
-        caches.match(event.request)
+        fetch(event.request)
             .then(response => {
-                // Cache hit - return response
-                if (response) {
-                    console.log('[Service Worker] Serving from cache:', event.request.url);
-                    return response;
+                // Check if valid response
+                if (!response || response.status !== 200 || response.type === 'error') {
+                    // Try cache if network fails
+                    return caches.match(event.request).then(cachedResponse => {
+                        return cachedResponse || response;
+                    });
                 }
 
-                // Clone the request
-                const fetchRequest = event.request.clone();
+                // Clone the response
+                const responseToCache = response.clone();
 
-                return fetch(fetchRequest).then(response => {
-                    // Check if valid response
-                    if (!response || response.status !== 200 || response.type === 'error') {
-                        return response;
-                    }
+                // Cache CSS, JS, and image files for offline use
+                if (event.request.url.match(/\.(css|js|png|jpg|jpeg|svg|gif)$/)) {
+                    caches.open(CACHE_NAME)
+                        .then(cache => {
+                            cache.put(event.request, responseToCache);
+                            console.log('[Service Worker] Updated cache:', event.request.url);
+                        });
+                }
 
-                    // Clone the response
-                    const responseToCache = response.clone();
-
-                    // Cache CSS, JS, and image files
-                    if (event.request.url.match(/\.(css|js|png|jpg|jpeg|svg|gif)$/)) {
-                        caches.open(CACHE_NAME)
-                            .then(cache => {
-                                cache.put(event.request, responseToCache);
-                            });
-                    }
-
-                    return response;
-                }).catch(() => {
-                    // Network failed, return offline page or error
-                    return new Response(
-                        '<h1>You are offline</h1><p>Please check your internet connection.</p>',
-                        {
-                            headers: { 'Content-Type': 'text/html' }
+                return response;
+            })
+            .catch(() => {
+                // Network failed completely - serve from cache
+                return caches.match(event.request)
+                    .then(cachedResponse => {
+                        if (cachedResponse) {
+                            console.log('[Service Worker] Serving from cache (offline):', event.request.url);
+                            return cachedResponse;
                         }
-                    );
-                });
+                        // No cache available
+                        return new Response(
+                            '<h1>You are offline</h1><p>Please check your internet connection.</p>',
+                            {
+                                headers: { 'Content-Type': 'text/html' }
+                            }
+                        );
+                    });
             })
     );
 });

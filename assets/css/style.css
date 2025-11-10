@@ -30,7 +30,7 @@
     padding: 40px !important;
     border: none !important;
     max-width: 450px !important;
-    margin: 60px auto !important;
+    margin: 60px auto 100px auto !important; /* Increased bottom margin for footer space */
     position: relative;
     overflow: hidden;
 }
@@ -280,7 +280,9 @@ body.um-page-login {
     align-items: center;
     justify-content: center;
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 60px 20px 100px 20px; /* Add padding to prevent footer overlap */
 }
 
 body.um-page-login::before,
@@ -328,8 +330,12 @@ body.um-page-login::after {
 @media (max-width: 768px) {
     .um .um-form {
         padding: 30px 20px !important;
-        margin: 30px 15px !important;
+        margin: 30px 15px 80px 15px !important; /* Increased bottom margin for mobile */
         border-radius: 16px !important;
+    }
+
+    body.um-page-login {
+        padding: 40px 15px 80px 15px !important;
     }
 
     .um .um-header .um-title {
@@ -4446,4 +4452,5 @@ body.um-page-login::after {
     }
 }
 
-/* Cache bust: 1762777192 - Version 1.6.0 with aggressive cache busting */
+
+/* Cache bust: 1762778015 - Version 1.6.0 with login spacing fix and network-first caching */
