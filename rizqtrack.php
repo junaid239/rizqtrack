@@ -371,8 +371,9 @@ class RizqTrack {
         wp_enqueue_script('chart-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js', ['chart-js'], '2.2.0', true);
 
         // MODIFIED: Added 'chart-js-datalabels' as a dependency
+        // CRITICAL: Add random component to force cache bypass on every page load
         $js_file = plugin_dir_path(__FILE__) . 'assets/js/app.js';
-        $js_version = '1.6.0.' . (file_exists($js_file) ? filemtime($js_file) : time());
+        $js_version = '1.6.0.' . (file_exists($js_file) ? filemtime($js_file) : time()) . '.' . mt_rand();
         wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], $js_version, true);
 
         wp_localize_script('rizqtrack-script', 'rizqtrack', [
@@ -399,8 +400,9 @@ class RizqTrack {
         wp_enqueue_script('chart-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js', ['chart-js'], '2.2.0', true);
 
         // MODIFIED: Added 'chart-js-datalabels' as a dependency
+        // CRITICAL: Add random component to force cache bypass on every page load
         $js_file = plugin_dir_path(__FILE__) . 'assets/js/app.js';
-        $js_version = '1.6.0.' . (file_exists($js_file) ? filemtime($js_file) : time());
+        $js_version = '1.6.0.' . (file_exists($js_file) ? filemtime($js_file) : time()) . '.' . mt_rand();
         wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], $js_version, true);
 
         wp_localize_script('rizqtrack-script', 'rizqtrack', [
