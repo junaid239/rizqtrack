@@ -2,6 +2,7 @@
 
 **Version:** 1.6.0
 **Last Updated:** 2025-11-10
+**Note:** Gamification features (achievements and challenges) have been removed from the codebase.
 **Author:** Generated for RizqTrack Development Team
 
 ---
@@ -24,8 +25,8 @@ This table maps every major feature of RizqTrack to the specific files and key f
 | **Fuel/Vehicle Tracking** | Track odometer readings, fuel consumption, calculate mileage (km/L), and monitor full tank status | **Backend:** `rizqtrack.php:777-842` (Integrated in transaction system)<br>**Database:** `wp_rizqtrack_transactions` table (odometer_reading, fuel_liters, fuel_amount, is_full_tank columns)<br>**Frontend:** `templates/dashboard.php:180-210` (Fuel tracking fields)<br>`assets/js/app.js:172-199` (Fuel form logic) |
 | **Category Management** | Create, edit, delete custom categories with emoji support for income/expense/both types | **Backend:** `rizqtrack.php:1400-1580`<br>- `ajax_get_categories()` (Line 1400)<br>- `ajax_add_category()` (Line 1493)<br>- `ajax_update_category()` (Line 1521)<br>- `ajax_delete_category()` (Line 1548)<br>**Frontend:** `templates/dashboard.php:687-720` (Category management modal)<br>`assets/js/app.js` (Category CRUD operations) |
 | **Financial Goals** | Set savings/investment goals with target amounts, deadlines, priority levels, and track contributions | **Backend:** `rizqtrack.php:1422-1803`<br>- `ajax_get_goals()` (Line 1422)<br>- `ajax_add_goal()` (Line 1581)<br>- `ajax_update_goal()` (Line 1620)<br>- `ajax_delete_goal()` (Line 1651)<br>- `ajax_contribute_goal_transaction()` (Line 1734)<br>**Frontend:** `templates/dashboard.php:386-472` (Goals overview section)<br>`templates/dashboard.php:722-796` (Goal modal)<br>`templates/dashboard.php:798-820` (Contribution modal) |
-| **Budget Management** | Create category-based budgets with monthly/yearly periods, alert thresholds, and rollover options | **Backend:** `rizqtrack.php:3452-3709`<br>- `ajax_get_budgets()` (Line 3452)<br>- `ajax_add_budget()` (Line 3471)<br>- `ajax_update_budget()` (Line 3527)<br>- `ajax_delete_budget()` (Line 3564)<br>- `ajax_get_budget_vs_actual()` (Line 3585)<br>- `ajax_check_budget_alerts()` (Line 3652)<br>**Frontend:** `templates/dashboard.php:474-487` (Budget grid)<br>`templates/dashboard.php:972-1021` (Budget modal) |
-| **Subscription Management** | Track recurring payments with multiple billing cycles, renewal tracking, and payment history | **Backend:** `rizqtrack.php:3713-4118`<br>- `ajax_get_subscriptions()` (Line 3713)<br>- `ajax_add_subscription()` (Line 3787)<br>- `ajax_update_subscription()` (Line 3852)<br>- `ajax_renew_subscription()` (Line 3902)<br>- `ajax_reactivate_subscription()` (Line 3978)<br>- `ajax_deactivate_subscription()` (Line 4049)<br>- `ajax_undo_payment()` (Line 4073)<br>**Frontend:** `templates/dashboard.php:489-561` (Subscription overview)<br>`templates/dashboard.php:1023-1122` (Subscription modal) |
+| **Budget Management** | Create category-based budgets with monthly/yearly periods, alert thresholds, and rollover options | **Backend:** `rizqtrack.php:3134-3391`<br>- `ajax_get_budgets()` (Line 3134)<br>- `ajax_add_budget()` (Line 3153)<br>- `ajax_update_budget()` (Line 3209)<br>- `ajax_delete_budget()` (Line 3246)<br>- `ajax_get_budget_vs_actual()` (Line 3267)<br>- `ajax_check_budget_alerts()` (Line 3334)<br>**Frontend:** `templates/dashboard.php:474-487` (Budget grid)<br>`templates/dashboard.php:972-1021` (Budget modal) |
+| **Subscription Management** | Track recurring payments with multiple billing cycles, renewal tracking, and payment history | **Backend:** `rizqtrack.php:3395-3800`<br>- `ajax_get_subscriptions()` (Line 3395)<br>- `ajax_add_subscription()` (Line 3469)<br>- `ajax_update_subscription()` (Line 3534)<br>- `ajax_renew_subscription()` (Line 3584)<br>- `ajax_reactivate_subscription()` (Line 3660)<br>- `ajax_deactivate_subscription()` (Line 3731)<br>- `ajax_undo_payment()` (Line 3755)<br>**Frontend:** `templates/dashboard.php:489-561` (Subscription overview)<br>`templates/dashboard.php:1023-1122` (Subscription modal) |
 | **KPI Dashboard** | Display 12 key performance indicators including income, expenses, savings, and vehicle mileage | **Backend:** `rizqtrack.php:1226-1398`<br>- `ajax_get_kpi_data()` (Line 1226)<br>**Frontend:** `templates/dashboard.php:48-133` (KPI cards section)<br>`assets/js/app.js` (KPI refresh logic) |
 | **Charts & Analytics** | Advanced visualizations including pie charts, Pareto analysis, treemaps, and period comparisons | **Backend:** `rizqtrack.php:1079-1225`<br>- `ajax_get_chart_data()` (Line 1079)<br>- `ajax_get_category_details()` (Line 1189)<br>**Frontend:** `templates/dashboard.php:221-330` (Chart containers and filters)<br>`assets/js/app.js:900-1800` (Chart rendering with Chart.js) |
 | **Report Generation** | Generate CSV reports with custom filters, date ranges, and category selections | **Backend:** `rizqtrack.php:1804-1917`<br>- `ajax_generate_report()` (Line 1804)<br>**Frontend:** `templates/dashboard.php:822-883` (Report configuration modal)<br>`assets/js/app.js` (Report generation logic) |
@@ -160,7 +161,7 @@ This section provides step-by-step instructions for safely making common modific
 
 #### **Modify Budget Alert Logic**
 1. Open `rizqtrack.php`
-2. Navigate to `ajax_check_budget_alerts()` function (Line 3652)
+2. Navigate to `ajax_check_budget_alerts()` function (Line 3334)
 3. Find the alert condition logic
 4. Modify the condition (e.g., trigger alerts at different percentages)
 5. Update alert messages if needed
@@ -172,8 +173,8 @@ This section provides step-by-step instructions for safely making common modific
 2. Find the budget modal (Lines 972-1021)
 3. Locate the period dropdown
 4. Add new `<option>` elements (e.g., "Quarterly", "Bi-Weekly")
-5. Open `rizqtrack.php` and update `ajax_add_budget()` (Line 3471) to handle new periods
-6. Update `ajax_get_budget_vs_actual()` (Line 3585) to calculate for new periods
+5. Open `rizqtrack.php` and update `ajax_add_budget()` (Line 3153) to handle new periods
+6. Update `ajax_get_budget_vs_actual()` (Line 3267) to calculate for new periods
 7. **Test:** Create budgets with new periods and verify calculations are correct
 
 ---
@@ -185,7 +186,7 @@ This section provides step-by-step instructions for safely making common modific
 2. Find the subscription modal (Lines 1023-1122)
 3. Locate the billing cycle dropdown
 4. Add new `<option>` elements (e.g., "Bi-Annual", "Every 3 months")
-5. Open `rizqtrack.php` and update `ajax_add_subscription()` (Line 3787)
+5. Open `rizqtrack.php` and update `ajax_add_subscription()` (Line 3469)
 6. Update the next billing date calculation logic to handle new cycles
 7. Save both files
 8. **Test:** Create subscriptions with new billing cycles and verify renewal dates
@@ -200,7 +201,7 @@ This section provides step-by-step instructions for safely making common modific
 
 #### **Modify Subscription Renewal Logic**
 1. Open `rizqtrack.php`
-2. Navigate to `ajax_renew_subscription()` function (Line 3902)
+2. Navigate to `ajax_renew_subscription()` function (Line 3584)
 3. Find the next billing date calculation
 4. Modify the logic as needed (e.g., change how dates are calculated)
 5. Save the file
@@ -553,7 +554,7 @@ This section provides step-by-step instructions for safely making common modific
 
 | File | Purpose | Lines |
 |------|---------|-------|
-| `rizqtrack.php` | Main plugin file with all backend logic | 4,266 |
+| `rizqtrack.php` | Main plugin file with all backend logic | 3,948 |
 | `templates/dashboard.php` | Main dashboard HTML template | 1,149 |
 | `assets/js/app.js` | Main JavaScript application logic | 4,048 |
 | `assets/css/style.css` | Complete styling for the application | 4,456 |
