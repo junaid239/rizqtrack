@@ -4445,3 +4445,5 @@ body.um-page-login::after {
         font-size: 20px;
     }
 }
+
+/* Cache bust: 1762777192 - Version 1.6.0 with aggressive cache busting */

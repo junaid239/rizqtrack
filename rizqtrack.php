@@ -45,6 +45,7 @@ class RizqTrack {
         add_action('admin_menu', [$this, 'add_menu']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_frontend_assets']);
+        add_action('wp_enqueue_scripts', [$this, 'enqueue_login_styles'], 999); // High priority for login pages
         add_action('admin_init', [$this, 'run_migrations']);
 
         // Shortcode
@@ -355,7 +356,9 @@ class RizqTrack {
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_rizqtrack' && $hook !== 'rizqtrack_page_rizqtrack-cron-logs' && $hook !== 'rizqtrack_page_rizqtrack-admin') return;
 
-        $version = '1.6.0'; // Updated version for cache busting
+        // Aggressive cache busting with file modification time
+        $css_file = plugin_dir_path(__FILE__) . 'assets/css/style.css';
+        $version = '1.6.0.' . (file_exists($css_file) ? filemtime($css_file) : time());
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -365,7 +368,9 @@ class RizqTrack {
         wp_enqueue_script('chart-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js', ['chart-js'], '2.2.0', true);
 
         // MODIFIED: Added 'chart-js-datalabels' as a dependency
-        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], $version, true);
+        $js_file = plugin_dir_path(__FILE__) . 'assets/js/app.js';
+        $js_version = '1.6.0.' . (file_exists($js_file) ? filemtime($js_file) : time());
+        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], $js_version, true);
 
         wp_localize_script('rizqtrack-script', 'rizqtrack', [
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -379,7 +384,9 @@ class RizqTrack {
             return;
         }
 
-        $version = '1.6.0'; // Updated version for cache busting
+        // Aggressive cache busting with file modification time
+        $css_file = plugin_dir_path(__FILE__) . 'assets/css/style.css';
+        $version = '1.6.0.' . (file_exists($css_file) ? filemtime($css_file) : time());
         wp_enqueue_style('rizqtrack-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
         wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
@@ -389,7 +396,9 @@ class RizqTrack {
         wp_enqueue_script('chart-js-datalabels', 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js', ['chart-js'], '2.2.0', true);
 
         // MODIFIED: Added 'chart-js-datalabels' as a dependency
-        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], $version, true);
+        $js_file = plugin_dir_path(__FILE__) . 'assets/js/app.js';
+        $js_version = '1.6.0.' . (file_exists($js_file) ? filemtime($js_file) : time());
+        wp_enqueue_script('rizqtrack-script', plugin_dir_url(__FILE__) . 'assets/js/app.js', ['jquery', 'chart-js', 'chart-js-datalabels'], $js_version, true);
 
         wp_localize_script('rizqtrack-script', 'rizqtrack', [
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -420,6 +429,37 @@ class RizqTrack {
                 });
             }
         ", 'after');
+    }
+
+    public function enqueue_login_styles() {
+        // Load styles on Ultimate Member login/register pages or any UM page
+        if (function_exists('um_is_core_page') && um_is_core_page('login', 'register', 'password-reset')) {
+            // Aggressive cache busting with timestamp
+            $css_file = plugin_dir_path(__FILE__) . 'assets/css/style.css';
+            $version = '1.6.0.' . (file_exists($css_file) ? filemtime($css_file) : time());
+
+            // Enqueue with high priority and no cache headers
+            wp_enqueue_style('rizqtrack-login-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
+
+            // Add no-cache headers via inline script
+            add_action('wp_head', function() {
+                echo '<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />';
+                echo '<meta http-equiv="Pragma" content="no-cache" />';
+                echo '<meta http-equiv="Expires" content="0" />';
+            }, 1);
+        }
+
+        // Fallback: Also load on any page with 'login' in the body class or URL
+        global $post;
+        if ((is_page() && $post && (strpos($post->post_name, 'login') !== false ||
+            strpos($post->post_name, 'register') !== false)) ||
+            strpos($_SERVER['REQUEST_URI'], 'login') !== false ||
+            strpos($_SERVER['REQUEST_URI'], 'register') !== false) {
+
+            $css_file = plugin_dir_path(__FILE__) . 'assets/css/style.css';
+            $version = '1.6.0.' . (file_exists($css_file) ? filemtime($css_file) : time());
+            wp_enqueue_style('rizqtrack-login-style', plugin_dir_url(__FILE__) . 'assets/css/style.css', [], $version);
+        }
     }
 
     private function register_ajax_endpoints() {
