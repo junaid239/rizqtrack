@@ -156,8 +156,7 @@
             this.setupEventListeners();
             this.setDefaultFormValues();
             this.showRandomQuote();
-            this.loadCategoryFilters(); // Load saved category filter preferences from database
-            this.loadCategories(); // This will trigger loadChartData() after categories are loaded
+            this.loadCategoryFiltersAndCategories(); // Load saved filters first, then categories
             this.loadKPIData();
             this.loadTransactions(1); // Load page 1
             this.loadGoals();
@@ -301,7 +300,16 @@
             $('#email-frequency-weekly, #email-frequency-monthly, #email-send-day').on('change', this.saveEmailModalState.bind(this));
 
             // Navigation toggle
-            $('#nav-toggle').on('click', this.toggleNavMenu.bind(this));
+            $('#nav-toggle').on('click touchend', this.toggleNavMenu.bind(this));
+
+            // Close mobile nav when clicking any nav item (especially logout)
+            $(document).on('click touchend', '.nav-item', function(e) {
+                // Close the mobile menu
+                if (window.innerWidth <= 768) {
+                    $('#nav-menu').removeClass('active');
+                }
+                // Allow the default action (navigation) to proceed
+            });
 
             // Floating Action Button
             $('#fab-add-transaction').on('click', this.scrollToTransactionForm.bind(this));
@@ -416,8 +424,8 @@
             });
         },
 
-        loadCategoryFilters: function() {
-            // Load saved category filter preferences from database
+        loadCategoryFiltersAndCategories: function() {
+            // Load saved category filter preferences first, then load categories
             $.ajax({
                 url: rizqtrack.ajax_url,
                 type: 'POST',
@@ -430,7 +438,30 @@
                         // Set selectedCategories from saved preferences
                         this.selectedCategories = response.data.categories;
                     }
-                    // If no saved preferences, selectedCategories remains empty and will default to all
+                    // Now load categories after filters are loaded
+                    this.loadCategories();
+                },
+                error: () => {
+                    // If filter loading fails, still load categories (will default to all)
+                    this.loadCategories();
+                }
+            });
+        },
+
+        loadCategoryFilters: function() {
+            // Legacy method - now handled by loadCategoryFiltersAndCategories
+            // Kept for backward compatibility
+            $.ajax({
+                url: rizqtrack.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'rizqtrack_get_category_filters',
+                    nonce: rizqtrack.nonce
+                },
+                success: (response) => {
+                    if (response.success && response.data.categories && response.data.categories.length > 0) {
+                        this.selectedCategories = response.data.categories;
+                    }
                 }
             });
         },
@@ -1257,9 +1288,11 @@
 
             $container.empty();
 
-            // If no categories selected, select all by default
+            // If no categories selected, select all by default and save preference
             if (this.selectedCategories.length === 0) {
                 this.selectedCategories = data.map(cat => cat.name);
+                // Save the "all selected" state as default preference
+                this.saveCategoryFilters();
             }
 
             // Add category chips (all active by default)
@@ -2831,7 +2864,11 @@
         },
 
         // Navigation Functions
-        toggleNavMenu: function() {
+        toggleNavMenu: function(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
             $('#nav-menu').toggleClass('active');
         },
 

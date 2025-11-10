@@ -58,10 +58,26 @@
     margin-bottom: 35px !important;
 }
 
+.um .um-header::before {
+    content: '🌙';
+    display: block;
+    font-size: 48px;
+    margin-bottom: 15px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
 .um .um-header .um-title {
     font-size: 32px !important;
     font-weight: 700 !important;
-    color: #1e293b !important;
+    background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     margin-bottom: 10px !important;
     letter-spacing: -0.5px;
 }
@@ -84,13 +100,13 @@
 .um input[type="password"],
 .um input[type="email"] {
     width: 100% !important;
-    padding: 14px 16px !important;
+    padding: 14px 16px 14px 44px !important;
     border: 2px solid #e2e8f0 !important;
     border-radius: 12px !important;
     font-size: 15px !important;
     color: #1e293b !important;
     background: #ffffff !important;
-    transition: all 0.3s ease !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     box-sizing: border-box !important;
 }
 
@@ -98,9 +114,38 @@
 .um input[type="password"]:focus,
 .um input[type="email"]:focus {
     border-color: #0891b2 !important;
-    box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.1) !important;
+    box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.1), 0 4px 12px rgba(8, 145, 178, 0.15) !important;
     outline: none !important;
-    transform: translateY(-2px);
+    transform: translateY(-2px) scale(1.01);
+    background: #fafbfc !important;
+}
+
+/* Add icons to inputs */
+.um .um-field-group:has(input[type="text"]:not([name*="password"])):before,
+.um .um-field-group:has(input[type="email"]):before {
+    content: '👤';
+    position: absolute;
+    left: 16px;
+    top: 42px;
+    font-size: 18px;
+    z-index: 1;
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+
+.um .um-field-group:has(input[type="password"]):before {
+    content: '🔒';
+    position: absolute;
+    left: 16px;
+    top: 42px;
+    font-size: 18px;
+    z-index: 1;
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+
+.um .um-field-group:has(input:focus):before {
+    opacity: 1;
 }
 
 /* Submit Button */
@@ -115,21 +160,44 @@
     font-size: 16px !important;
     font-weight: 600 !important;
     cursor: pointer !important;
-    transition: all 0.3s ease !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
     box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3) !important;
     margin-top: 10px !important;
     text-transform: none !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.um button[type="submit"]::before,
+.um .um-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.um button[type="submit"]:hover::before,
+.um .um-button:hover::before {
+    width: 300px;
+    height: 300px;
 }
 
 .um button[type="submit"]:hover,
 .um .um-button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 20px rgba(8, 145, 178, 0.4) !important;
+    transform: translateY(-2px) scale(1.02) !important;
+    box-shadow: 0 12px 24px rgba(8, 145, 178, 0.5) !important;
 }
 
 .um button[type="submit"]:active,
 .um .um-button:active {
-    transform: translateY(0) !important;
+    transform: translateY(0) scale(0.98) !important;
+    box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3) !important;
 }
 
 /* Remember Me & Links */
@@ -220,8 +288,9 @@ body.um-page-login::after {
     content: '';
     position: absolute;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(8, 145, 178, 0.1) 0%, transparent 70%);
-    animation: float 20s ease-in-out infinite;
+    background: radial-gradient(circle, rgba(8, 145, 178, 0.15) 0%, rgba(6, 182, 212, 0.05) 50%, transparent 70%);
+    animation: float 25s ease-in-out infinite;
+    filter: blur(40px);
 }
 
 body.um-page-login::before {
@@ -241,8 +310,18 @@ body.um-page-login::after {
 }
 
 @keyframes float {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    50% { transform: translate(50px, 50px) scale(1.1); }
+    0%, 100% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    33% {
+        transform: translate(30px, -30px) scale(1.05) rotate(120deg);
+        opacity: 0.8;
+    }
+    66% {
+        transform: translate(-30px, 30px) scale(0.95) rotate(240deg);
+        opacity: 0.9;
+    }
 }
 
 /* Mobile Responsive */
@@ -490,10 +569,13 @@ body.um-page-login::after {
         min-width: auto;
         text-decoration: none !important;
         touch-action: manipulation;
-        pointer-events: auto;
+        pointer-events: auto !important;
         cursor: pointer;
         position: relative;
-        z-index: 1;
+        z-index: 1000;
+        -webkit-tap-highlight-color: rgba(255, 255, 255, 0.2);
+        user-select: none;
+        display: block;
     }
 
     .nav-item:hover,
@@ -501,15 +583,21 @@ body.um-page-login::after {
     .nav-item:visited,
     .nav-item:active {
         text-decoration: none !important;
-        color: white;
+        color: white !important;
         background: rgba(255, 255, 255, 0.15);
-        pointer-events: auto;
+        pointer-events: auto !important;
         cursor: pointer;
         transform: none;
     }
 
     .nav-item:last-child {
         border-bottom: none;
+        background: rgba(220, 38, 38, 0.2); /* Highlight logout */
+    }
+
+    .nav-item:last-child:hover,
+    .nav-item:last-child:active {
+        background: rgba(220, 38, 38, 0.3);
     }
 
     .fab {
