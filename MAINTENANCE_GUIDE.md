@@ -30,7 +30,6 @@ This table maps every major feature of RizqTrack to the specific files and key f
 | **Charts & Analytics** | Advanced visualizations including pie charts, Pareto analysis, treemaps, and period comparisons | **Backend:** `rizqtrack.php:1079-1225`<br>- `ajax_get_chart_data()` (Line 1079)<br>- `ajax_get_category_details()` (Line 1189)<br>**Frontend:** `templates/dashboard.php:221-330` (Chart containers and filters)<br>`assets/js/app.js:900-1800` (Chart rendering with Chart.js) |
 | **Report Generation** | Generate CSV reports with custom filters, date ranges, and category selections | **Backend:** `rizqtrack.php:1804-1917`<br>- `ajax_generate_report()` (Line 1804)<br>**Frontend:** `templates/dashboard.php:822-883` (Report configuration modal)<br>`assets/js/app.js` (Report generation logic) |
 | **Email Reports** | Automated weekly/monthly email reports with customizable schedules and manual sending | **Backend:** `rizqtrack.php:1918-2119, 2120-2318`<br>- `ajax_get_email_settings()` (Line 1918)<br>- `ajax_save_email_settings()` (Line 1940)<br>- `ajax_send_email_now()` (Line 2120)<br>- `send_weekly_report()` (Cron job)<br>- `send_monthly_report()` (Cron job)<br>**Frontend:** `templates/dashboard.php:885-970` (Email settings modal)<br>**API:** `/wp-json/rizqtrack/v1/cron/weekly` (REST endpoint) |
-| **Gamification System** | Achievements, badges, and challenges to encourage financial discipline | **Backend:** `rizqtrack.php:2319-3451`<br>- `ajax_get_achievements()` (Line 2319)<br>- `ajax_check_achievements()` (Line 2337)<br>- `ajax_get_challenges()` (Line 2720)<br>- `ajax_start_challenge()` (Line 2776)<br>- `ajax_complete_challenge()` (Line 3347)<br>**Database:** `wp_rizqtrack_achievements`, `wp_rizqtrack_challenges` tables |
 | **Quick Navigation** | Hamburger menu for quick section navigation and FAB for quick transaction entry | **Frontend:** `templates/dashboard.php:3-25` (Nav bar and FAB)<br>`assets/css/style.css` (Navigation styling)<br>`assets/js/app.js` (Navigation event handlers) |
 | **Section Navigation** | Up/Down arrow buttons to navigate between major dashboard sections | **Frontend:** `templates/dashboard.php:27-35` (Section arrows)<br>`assets/js/app.js` (Scroll logic) |
 | **Motivational Quotes** | Display rotating multi-religious wisdom and financial quotes | **Frontend:** `templates/dashboard.php:37-46` (Quote card)<br>`assets/js/app.js` (Quote rotation logic) |
@@ -39,7 +38,7 @@ This table maps every major feature of RizqTrack to the specific files and key f
 | **Period Comparison** | Compare current period vs previous month or custom date ranges in KPIs and charts | **Backend:** `rizqtrack.php:1226-1398` (Integrated in KPI data)<br>**Frontend:** `templates/dashboard.php:221-330` (Comparison controls)<br>`assets/js/app.js` (Comparison logic) |
 | **Progressive Web App** | Offline support, installable app, background sync, and push notifications | **Files:** `assets/sw.js` (Service Worker - 174 lines)<br>`assets/manifest.json` (PWA manifest)<br>`assets/.htaccess` (Cache control headers) |
 | **User Authentication** | WordPress-based authentication with user data isolation and capability checks | **Backend:** `rizqtrack.php:33-775` (Constructor and security checks)<br>All AJAX functions include: `check_ajax_referer('rizqtrack_nonce', 'nonce')` |
-| **Database Schema** | 8 custom tables for transactions, categories, goals, budgets, subscriptions, achievements, challenges, and cron logs | **Migration:** `rizqtrack.php` (activate() method)<br>**Tables:** wp_rizqtrack_transactions, wp_rizqtrack_categories, wp_rizqtrack_goals, wp_rizqtrack_budgets, wp_rizqtrack_subscriptions, wp_rizqtrack_achievements, wp_rizqtrack_challenges, wp_rizqtrack_cron_logs |
+| **Database Schema** | 6 custom tables for transactions, categories, goals, budgets, subscriptions, and cron logs | **Migration:** `rizqtrack.php` (activate() method)<br>**Tables:** wp_rizqtrack_transactions, wp_rizqtrack_categories, wp_rizqtrack_goals, wp_rizqtrack_budgets, wp_rizqtrack_subscriptions, wp_rizqtrack_cron_logs |
 | **Login Page Design** | Modern, animated login page with gradient effects and responsive design | **Styling:** `assets/css/style.css:1-200` (Login page styles)<br>Includes animations, gradient backgrounds, and form styling |
 
 ---
@@ -486,27 +485,7 @@ This section provides step-by-step instructions for safely making common modific
 
 ---
 
-### 17. Gamification
-
-#### **Add New Achievement**
-1. Open `rizqtrack.php`
-2. Navigate to `ajax_check_achievements()` function (Line 2337)
-3. Add new achievement criteria logic
-4. Add achievement unlock logic with appropriate badge icon/color
-5. Save the file
-6. **Test:** Perform actions that should unlock achievement and verify it appears
-
-#### **Modify Challenge Types**
-1. Open `templates/dashboard.php`
-2. Search for challenges section
-3. Add/modify challenge type options
-4. Update `ajax_start_challenge()` in `rizqtrack.php` (Line 2776)
-5. Update challenge tracking logic
-6. **Test:** Start new challenge types and verify tracking works
-
----
-
-### 18. Cron Jobs & Automation
+### 17. Cron Jobs & Automation
 
 #### **Modify Cron Schedule**
 1. Open `rizqtrack.php`
@@ -527,7 +506,7 @@ This section provides step-by-step instructions for safely making common modific
 
 ---
 
-### 19. Trash Management
+### 18. Trash Management
 
 #### **Change Trash Retention Period**
 1. Currently, trash items are permanent until manually deleted
@@ -548,7 +527,7 @@ This section provides step-by-step instructions for safely making common modific
 
 ---
 
-### 20. Advanced Filtering
+### 19. Advanced Filtering
 
 #### **Add Custom Filter Options**
 1. Open `templates/dashboard.php`
