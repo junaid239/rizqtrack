@@ -3355,6 +3355,231 @@ body.um-page-login::after {
 }
 
 /* ============================================
+   BUDGET MANAGEMENT SECTION
+   ============================================ */
+/* Budget Management Section */
+.budget-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.budget-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    border: 2px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.budget-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.budget-card.warning {
+    border-color: #f59e0b;
+    background: linear-gradient(135deg, #fef3c7 0%, #ffffff 100%);
+}
+
+.budget-card.danger {
+    border-color: var(--danger-color);
+    background: linear-gradient(135deg, #fee2e2 0%, #ffffff 100%);
+}
+
+.budget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.budget-category {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.budget-category-emoji {
+    font-size: 24px;
+}
+
+.budget-category-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.budget-period {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: capitalize;
+}
+
+.budget-amounts {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+}
+
+.budget-spent {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.budget-card.warning .budget-spent {
+    color: #f59e0b;
+}
+
+.budget-card.danger .budget-spent {
+    color: var(--danger-color);
+}
+
+.budget-limit {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.budget-progress-bar {
+    height: 8px;
+    background: var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.budget-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-light) 100%);
+    transition: width 0.5s ease;
+}
+
+.budget-card.warning .budget-progress-fill {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.budget-card.danger .budget-progress-fill {
+    background: linear-gradient(90deg, var(--danger-color) 0%, #f87171 100%);
+}
+
+.budget-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.budget-remaining {
+    color: var(--success-color);
+    font-weight: 600;
+}
+
+.budget-card.danger .budget-remaining {
+    color: var(--danger-color);
+}
+
+.budget-percentage {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.budget-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.budget-actions button {
+    flex: 1;
+    font-size: 13px;
+    padding: 6px 12px;
+}
+
+.budget-alerts {
+    background: #fee2e2;
+    border: 2px solid #ef4444;
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.budget-alert-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #991b1b;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.budget-alert-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.budget-alert-item {
+    padding: 8px 12px;
+    background: white;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.budget-alert-item:last-child {
+    margin-bottom: 0;
+}
+
+.budget-alert-category {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.budget-alert-status {
+    font-size: 13px;
+    color: #991b1b;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Mobile responsiveness for budget */
+@media (max-width: 768px) {
+    .budget-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .budget-alert-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .budget-alert-category {
+        width: 100%;
+    }
+
+    .budget-alert-status {
+        width: 100%;
+        text-align: left;
+    }
+}
+
+/* ============================================
    CHECKBOX ALIGNMENT FIX FOR BUDGET ROLLOVER
    ============================================ */
 .checkbox-group .checkbox-label {
