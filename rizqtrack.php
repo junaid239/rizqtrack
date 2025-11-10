@@ -412,6 +412,11 @@ class RizqTrack {
 
         // PWA Support - Add manifest link and service worker
         add_action('wp_head', function() {
+            // CRITICAL: Add meta tags to prevent ANY caching
+            echo '<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />';
+            echo '<meta http-equiv="Pragma" content="no-cache" />';
+            echo '<meta http-equiv="Expires" content="0" />';
+
             echo '<link rel="manifest" href="' . plugin_dir_url(__FILE__) . 'assets/manifest.json">';
             echo '<meta name="theme-color" content="#0891b2">';
             echo '<meta name="apple-mobile-web-app-capable" content="yes">';
@@ -420,13 +425,45 @@ class RizqTrack {
             echo '<link rel="apple-touch-icon" href="' . plugin_dir_url(__FILE__) . 'assets/icons/icon-192x192.png">';
         });
 
-        // Register service worker inline script
+        // NUCLEAR OPTION: Force clear old service worker cache on page load (one-time)
+        wp_add_inline_script('rizqtrack-script', "
+            // Unregister old service workers and clear cache
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    registrations.forEach(function(registration) {
+                        const swUrl = registration.active ? registration.active.scriptURL : '';
+                        // Only unregister if it's our old version
+                        if (swUrl.includes('rizqtrack') && !swUrl.includes('v=')) {
+                            registration.unregister();
+                            console.log('[RizqTrack] Old service worker unregistered');
+                        }
+                    });
+                });
+
+                // Clear all caches
+                if ('caches' in window) {
+                    caches.keys().then(function(names) {
+                        names.forEach(function(name) {
+                            if (name.includes('rizqtrack') && !name.includes('v1.6.1')) {
+                                caches.delete(name);
+                                console.log('[RizqTrack] Deleted old cache:', name);
+                            }
+                        });
+                    });
+                }
+            }
+        ", 'before');
+
+        // Register NEW service worker with version parameter
         wp_add_inline_script('rizqtrack-script', "
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('" . plugin_dir_url(__FILE__) . "assets/sw.js')
+                    const swUrl = '" . plugin_dir_url(__FILE__) . "assets/sw.js?v=1.6.1';
+                    navigator.serviceWorker.register(swUrl)
                         .then(function(registration) {
                             console.log('[RizqTrack] Service Worker registered:', registration.scope);
+                            // Force update on every page load
+                            registration.update();
                         })
                         .catch(function(error) {
                             console.log('[RizqTrack] Service Worker registration failed:', error);
