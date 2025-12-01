@@ -2161,9 +2161,9 @@ class RizqTrack {
             }
         }
 
-        // Send the report for the current month (1st to today)
-        $start_date = date('Y-m-01'); // First day of current month
-        $end_date = date('Y-m-d'); // Today
+        // Send the report for the previous complete month
+        $start_date = date('Y-m-01', strtotime('first day of last month'));
+        $end_date = date('Y-m-t', strtotime('last day of last month'));
 
         $this->send_email_report($user_id, 'monthly', $start_date, $end_date);
     }
